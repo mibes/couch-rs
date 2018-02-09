@@ -1,0 +1,1 @@
+# Sofa - CouchDB for Rust
