@@ -2,49 +2,43 @@
 //!
 //! This crate is an interface to CouchDB HTTP REST API. Works with stable Rust.
 //!
-//! Does not support #![no_std]
+//! Does not support `#![no_std]`
 //!
 //! Supports CouchDB 2.0 and up.
 //!
 //! Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/index.html) in detail to see what's possible.
 extern crate reqwest;
-extern crate url;
 extern crate serde;
 #[macro_use] extern crate serde_json;
 #[macro_use] extern crate serde_derive;
-#[macro_use] extern crate maplit;
 
 #[cfg(test)]
 #[macro_use] extern crate pretty_assertions;
 
 /// Macros that the crate exports to facilitate most of the doc-to-json-to-string-related tasks
+#[allow(unused_macros)]
 #[macro_use] mod macros {
     /// Extracts a JSON Value to a defined Struct
-    #[macro_export]
     macro_rules! json_extr {
         ($e: expr) => (serde_json::from_value($e.to_owned()).unwrap())
     }
 
     /// Automatic call to serde_json::to_string() function, with prior Document::get_data() call to get documents' inner data
-    #[macro_export]
     macro_rules! dtj {
         ($e: expr) => (js!(&$e.get_data()))
     }
 
     /// Automatic call to serde_json::to_string() function
-    #[macro_export]
     macro_rules! js {
         ($e: expr) => (serde_json::to_string(&$e).unwrap())
     }
 
     /// String creation
-    #[macro_export]
     macro_rules! s {
         ($e: expr) => (String::from($e))
     }
 
     /// Gets milliseconds from timespec
-    #[macro_export]
     macro_rules! tspec_ms {
         ($tspec: ident) => ({
             $tspec.sec * 1000 + $tspec.nsec as i64 / 1000000
@@ -52,7 +46,6 @@ extern crate serde;
     }
 
     /// Gets current UNIX time in milliseconds
-    #[macro_export]
     macro_rules! msnow {
         () => ({
             let tm = time::now().to_timespec();

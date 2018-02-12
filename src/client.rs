@@ -1,11 +1,9 @@
-use url::Url;
 use std::collections::HashMap;
 use std::time::Duration;
 use std::error::Error;
 use serde_json::from_reader;
 
-use reqwest;
-pub use reqwest::{Method, RequestBuilder, Response, StatusCode};
+use reqwest::{self, Url, Method, RequestBuilder, StatusCode};
 
 use ::database::*;
 use ::types::*;

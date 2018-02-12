@@ -119,19 +119,19 @@ impl Database {
         let mut options;
         if let Some(opts) = params {
             options = opts;
-            options.insert(s!("include_docs"), s!("true"));
         } else {
-            options = hashmap!{
-                s!("include_docs") => s!("true")
-            };
+            options = HashMap::new();
         }
+
+        options.insert(s!("include_docs"), s!("true"));
+
+        let mut body = HashMap::new();
+        body.insert(s!("keys"), ids);
 
         let response = self._client.get(
             self.create_document_path("_all_docs".into()),
             Some(options)
-        ).body(to_string(&hashmap!{
-            s!("keys") => ids
-        }).unwrap())
+        ).body(to_string(&body).unwrap())
         .send()
         .unwrap();
 
@@ -148,12 +148,11 @@ impl Database {
         let mut options;
         if let Some(opts) = params {
             options = opts;
-            options.insert(s!("include_docs"), s!("true"));
         } else {
-            options = hashmap!{
-                s!("include_docs") => s!("true")
-            };
+            options = HashMap::new();
         }
+
+        options.insert(s!("include_docs"), s!("true"));
 
         let response = self._client.get(
             self.create_document_path("_all_docs".into()),
@@ -239,8 +238,10 @@ impl Database {
     pub fn remove(&self, doc: Document) -> bool {
         let response = self._client.delete(
             self.create_document_path(doc._id.clone()),
-            Some(hashmap!{
-                s!("rev") => doc._rev.clone()
+            Some({
+                let mut h = HashMap::new();
+                h.insert(s!("rev"), doc._rev.clone());
+                h
             })
         )
         .send()
