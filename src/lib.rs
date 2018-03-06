@@ -1,12 +1,31 @@
 //! # Sofa - CouchDB for Rust
 //!
-//! This crate is an interface to CouchDB HTTP REST API. Works with stable Rust.
+//! ## Description
 //!
+//! This crate is an interface to CouchDB HTTP REST API. Works with stable Rust.
 //! Does not support `#![no_std]`
 //!
-//! Supports CouchDB 2.0 and up.
+//! After trying most crates for CouchDB in Rust (`chill`, `couchdb` in particular), none of them fit our needs hence the need to create our own.
+//! No async I/O, uses a mix of Reqwest and Serde under the hood, with a few nice abstractions out there.
 //!
+//! **NOT 1.0 YET, so expect changes**
+//!
+//! **Supports CouchDB 2.0 and up.**
 //! Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/index.html) in detail to see what's possible.
+//!
+//! ## Why the name "Sofa"?
+//! CouchDB has a nice name, and I wanted to reflect that.
+//!
+//! ## Documentation
+//! Here: http://docs.rs/sofa
+
+//! ## License
+//! Sofa is licensed under Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
+
+//! ## Yellow Innovation
+//! Yellow Innovation is the innovation laboratory of the French postal service: La Poste.
+//! We create innovative user experiences and journeys through services with a focus on IoT lately.
+
 extern crate reqwest;
 extern crate serde;
 #[macro_use] extern crate serde_json;
@@ -100,13 +119,13 @@ mod sofa_tests {
             let db = dbw.unwrap();
 
             let ndoc_result = db.create(json!({
-                "pouet": true
+                "thing": true
             }));
 
             assert!(ndoc_result.is_ok());
 
             let mut doc = ndoc_result.unwrap();
-            assert_eq!(doc["pouet"], json!(true))
+            assert_eq!(doc["thing"], json!(true))
         }
 
         #[test]
@@ -127,13 +146,13 @@ mod sofa_tests {
             let db = dbw.unwrap();
 
             let ndoc_result = db.create(json!({
-                "pouet": true
+                "thing": true
             }));
 
             assert!(ndoc_result.is_ok());
 
             let mut doc = ndoc_result.unwrap();
-            assert_eq!(doc["pouet"], json!(true));
+            assert_eq!(doc["thing"], json!(true));
 
             (client, db, doc)
         }
@@ -146,12 +165,12 @@ mod sofa_tests {
         fn a_should_update_a_document() {
             let (client, db, mut doc) = setup();
 
-            doc["pouet"] = json!(false);
+            doc["thing"] = json!(false);
 
             let save_result = db.save(doc);
             assert!(save_result.is_ok());
             let new_doc = save_result.unwrap();
-            assert_eq!(new_doc["pouet"], json!(false));
+            assert_eq!(new_doc["thing"], json!(false));
 
             teardown(client);
         }
@@ -175,10 +194,10 @@ mod sofa_tests {
             let (client, db, doc) = setup();
 
             let spec = IndexFields::new(vec![
-                SortSpec::Simple(s!("pouet"))
+                SortSpec::Simple(s!("thing"))
             ]);
 
-            let res = db.insert_index("pouet-index".into(), spec);
+            let res = db.insert_index("thing-index".into(), spec);
 
             assert!(res.is_ok());
 
@@ -200,7 +219,7 @@ mod sofa_tests {
             assert!(index_list.indexes.len() > 1);
             let ref findex = index_list.indexes[1];
 
-            assert_eq!(findex.name.as_str(), "pouet-index");
+            assert_eq!(findex.name.as_str(), "thing-index");
             teardown(client);
         }
 
@@ -209,10 +228,10 @@ mod sofa_tests {
             let (client, db, _) = setup();
 
             let spec = IndexFields::new(vec![
-                SortSpec::Simple(s!("pouet"))
+                SortSpec::Simple(s!("thing"))
             ]);
 
-            let res = db.ensure_index("pouet-index".into(), spec);
+            let res = db.ensure_index("thing-index".into(), spec);
             assert!(res.is_ok());
 
 
@@ -225,11 +244,11 @@ mod sofa_tests {
 
             let documents_res = db.find(json!({
                 "selector": {
-                    "pouet": true
+                    "thing": true
                 },
                 "limit": 1,
                 "sort": [{
-                    "pouet": "desc"
+                    "thing": "desc"
                 }]
             }));
 
