@@ -1,4 +1,8 @@
 # Sofa - CouchDB for Rust
+==========================================================
+
+[![Crates.io](https://img.shields.io/crates/v/sofa.svg)](https://crates.io/crates/sofa)
+
 
 ## Description
 This crate is an interface to CouchDB HTTP REST API. Works with stable Rust.
@@ -22,11 +26,17 @@ CouchDB has a nice name, and I wanted to reflect that.
 Here: http://docs.rs/sofa
 
 ## License
-Sofa is licensed under Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
+
+Licensed under either of these:
+
+ * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or
+   https://www.apache.org/licenses/LICENSE-2.0)
+ * MIT license ([LICENSE-MIT](LICENSE-MIT) or
+   https://opensource.org/licenses/MIT)
 
 ## Yellow Innovation
 Yellow Innovation is the innovation laboratory of the French postal service: La Poste.
 
 We create innovative user experiences and journeys through services with a focus on IoT lately.
 
-http://yellowinnovation.fr
+[Yellow Innovation's website and works](http://yellowinnovation.fr)

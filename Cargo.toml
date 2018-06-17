@@ -2,6 +2,14 @@
 name = "sofa"
 version = "0.5.1"
 authors = ["Mathieu Amiot <mathieu.amiot@yellowinnovation.fr>"]
+license = "MIT/Apache-2.0"
+description = "Sofa - CouchDB for Rust"
+readme = "README.md"
+documentation = "https://docs.rs/sofa"
+homepage = "https://github.com/YellowInnovation/sofa"
+repository = "https://github.com/YellowInnovation/sofa"
+keywords = ["couchdb", "orm", "database", "nosql"]
+categories = ["database"]
 
 [dependencies]
 serde = "1.0"

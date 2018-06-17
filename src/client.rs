@@ -128,10 +128,10 @@ impl Client {
         let s: CouchResponse = from_reader(response).unwrap();
 
         if let Some(ok) = s.ok {
-            return ok
+            ok
+        } else {
+            false
         }
-
-        false
     }
 
     pub fn check_status(&self) -> Option<Result<CouchStatus, SofaError>> {

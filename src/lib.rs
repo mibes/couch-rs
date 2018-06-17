@@ -195,8 +195,8 @@ mod sofa_tests {
         fn setup_create_indexes() -> (Client, Database, Document) {
             let (client, db, doc) = setup();
 
-            let spec = IndexFields::new(vec![
-                SortSpec::Simple(s!("thing"))
+            let spec = types::IndexFields::new(vec![
+                types::SortSpec::Simple(s!("thing"))
             ]);
 
             let res = db.insert_index("thing-index".into(), spec);
@@ -229,8 +229,8 @@ mod sofa_tests {
         fn f_should_ensure_index_in_db() {
             let (client, db, _) = setup();
 
-            let spec = IndexFields::new(vec![
-                SortSpec::Simple(s!("thing"))
+            let spec = types::IndexFields::new(vec![
+                types::SortSpec::Simple(s!("thing"))
             ]);
 
             let res = db.ensure_index("thing-index".into(), spec);
