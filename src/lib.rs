@@ -36,56 +36,68 @@
 
 extern crate reqwest;
 extern crate serde;
-#[macro_use] extern crate serde_json;
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate serde_json;
+#[macro_use]
+extern crate serde_derive;
 
 #[cfg(test)]
-#[macro_use] extern crate pretty_assertions;
+#[macro_use]
+extern crate pretty_assertions;
 
 /// Macros that the crate exports to facilitate most of the doc-to-json-to-string-related tasks
 #[allow(unused_macros)]
-#[macro_use] mod macros {
+#[macro_use]
+mod macros {
     /// Shortcut to `mod $mod; pub use mod::*;`
     macro_rules! mod_use {
-        ($module: ident) => (
+        ($module:ident) => {
             mod $module;
             pub use self::$module::*;
-        )
+        };
     }
 
     /// Extracts a JSON Value to a defined Struct
     macro_rules! json_extr {
-        ($e: expr) => (serde_json::from_value($e.to_owned()).unwrap())
+        ($e:expr) => {
+            serde_json::from_value($e.to_owned()).unwrap()
+        };
     }
 
     /// Automatic call to serde_json::to_string() function, with prior Document::get_data() call to get documents' inner data
     macro_rules! dtj {
-        ($e: expr) => (js!(&$e.get_data()))
+        ($e:expr) => {
+            js!(&$e.get_data())
+        };
     }
 
     /// Automatic call to serde_json::to_string() function
     macro_rules! js {
-        ($e: expr) => (serde_json::to_string(&$e).unwrap())
+        ($e:expr) => {
+            serde_json::to_string(&$e).unwrap()
+        };
     }
 
     /// String creation
     macro_rules! s {
-        ($e: expr) => (String::from($e))
+        ($e:expr) => {
+            String::from($e)
+        };
     }
 
     /// Gets milliseconds from timespec
     macro_rules! tspec_ms {
-        ($tspec: ident) => ({
+        ($tspec:ident) => {{
             $tspec.sec * 1000 + $tspec.nsec as i64 / 1000000
-        })
+        }};
     }
 
     /// Gets current UNIX time in milliseconds
     macro_rules! msnow {
-        () => ({
+        () => {{
             let tm = time::now().to_timespec();
             tspec_ms!(tm)
-        })
+        }};
     }
 }
 
@@ -100,7 +112,7 @@ mod_use!(model);
 #[cfg(test)]
 mod sofa_tests {
     mod a_sys {
-        use ::*;
+        use *;
 
         #[test]
         fn a_should_check_couchdbs_status() {
@@ -141,7 +153,7 @@ mod sofa_tests {
     }
 
     mod b_db {
-        use ::*;
+        use *;
 
         fn setup() -> (Client, Database, Document) {
             let client = Client::new("http://localhost:5984".into());
@@ -197,9 +209,7 @@ mod sofa_tests {
         fn setup_create_indexes() -> (Client, Database, Document) {
             let (client, db, doc) = setup();
 
-            let spec = types::IndexFields::new(vec![
-                types::SortSpec::Simple(s!("thing"))
-            ]);
+            let spec = types::IndexFields::new(vec![types::SortSpec::Simple(s!("thing"))]);
 
             let res = db.insert_index("thing-index".into(), spec);
 
@@ -231,13 +241,10 @@ mod sofa_tests {
         fn f_should_ensure_index_in_db() {
             let (client, db, _) = setup();
 
-            let spec = types::IndexFields::new(vec![
-                types::SortSpec::Simple(s!("thing"))
-            ]);
+            let spec = types::IndexFields::new(vec![types::SortSpec::Simple(s!("thing"))]);
 
             let res = db.ensure_index("thing-index".into(), spec);
             assert!(res.is_ok());
-
 
             teardown(client);
         }
