@@ -1,5 +1,7 @@
 //! # Sofa - CouchDB for Rust
 //!
+//! [![Crates.io](https://img.shields.io/crates/v/sofa.svg)](https://crates.io/crates/sofa)
+//!
 //! ## Description
 //! This crate is an interface to CouchDB HTTP REST API. Works with stable Rust.
 //!
@@ -30,7 +32,7 @@
 //!
 //! We create innovative user experiences and journeys through services with a focus on IoT lately.
 //!
-//! http://yellowinnovation.fr
+//! [Yellow Innovation's website and works](http://yellowinnovation.fr/en/)
 
 extern crate reqwest;
 extern crate serde;
