@@ -43,6 +43,14 @@ extern crate serde;
 /// Macros that the crate exports to facilitate most of the doc-to-json-to-string-related tasks
 #[allow(unused_macros)]
 #[macro_use] mod macros {
+    /// Shortcut to `mod $mod; pub use mod::*;`
+    macro_rules! mod_use {
+        ($module: ident) => (
+            mod $module;
+            pub use self::$module::*;
+        )
+    }
+
     /// Extracts a JSON Value to a defined Struct
     macro_rules! json_extr {
         ($e: expr) => (serde_json::from_value($e.to_owned()).unwrap())
@@ -79,27 +87,16 @@ extern crate serde;
     }
 }
 
-mod client;
-pub use client::*;
-
-mod database;
-pub use database::*;
-
-mod document;
-pub use document::*;
-
-mod error;
-pub use error::*;
-
+mod_use!(client);
+mod_use!(database);
+mod_use!(document);
+mod_use!(error);
 pub mod types;
-
-mod model;
-pub use model::*;
+mod_use!(model);
 
 #[allow(unused_mut, unused_variables)]
 #[cfg(test)]
 mod sofa_tests {
-
     mod a_sys {
         use ::*;
 
@@ -143,7 +140,6 @@ mod sofa_tests {
 
     mod b_db {
         use ::*;
-
 
         fn setup() -> (Client, Database, Document) {
             let client = Client::new("http://localhost:5984".into());

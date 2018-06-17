@@ -1,13 +1,4 @@
-mod system;
-pub use self::system::*;
-
-mod document;
-pub use self::document::*;
-
-mod find;
-pub use self::find::*;
-
-mod index;
-pub use self::index::*;
-
-
+mod_use!(system);
+mod_use!(document);
+mod_use!(find);
+mod_use!(index);
