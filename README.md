@@ -13,7 +13,7 @@ Here: [http://docs.rs/sofa](http://docs.rs/sofa)
 
 ```toml
 [dependencies]
-sofa = "0.5.1"
+sofa = "0.5"
 ```
 
 ## Description
