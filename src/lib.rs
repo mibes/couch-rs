@@ -53,6 +53,8 @@
 //!
 //! [Yellow Innovation's website and works](http://yellowinnovation.fr/en/)
 
+#[macro_use]
+extern crate failure;
 extern crate reqwest;
 extern crate serde;
 #[macro_use]
@@ -135,21 +137,21 @@ mod sofa_tests {
 
         #[test]
         fn a_should_check_couchdbs_status() {
-            let client = Client::new("http://localhost:5984".into());
+            let client = Client::new("http://localhost:5984".into()).unwrap();
             let status = client.check_status();
-            assert!(status.is_some())
+            assert!(status.is_ok())
         }
 
         #[test]
         fn b_should_create_sofa_test_db() {
-            let client = Client::new("http://localhost:5984".into());
+            let client = Client::new("http://localhost:5984".into()).unwrap();
             let dbw = client.db("sofa_test");
             assert!(dbw.is_ok());
         }
 
         #[test]
         fn c_should_create_a_document() {
-            let client = Client::new("http://localhost:5984".into());
+            let client = Client::new("http://localhost:5984".into()).unwrap();
             let dbw = client.db("sofa_test");
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
@@ -166,8 +168,8 @@ mod sofa_tests {
 
         #[test]
         fn d_should_destroy_the_db() {
-            let client = Client::new("http://localhost:5984".into());
-            assert!(client.destroy_db("sofa_test"));
+            let client = Client::new("http://localhost:5984".into()).unwrap();
+            assert!(client.destroy_db("sofa_test").unwrap());
         }
     }
 
@@ -175,7 +177,7 @@ mod sofa_tests {
         use *;
 
         fn setup() -> (Client, Database, Document) {
-            let client = Client::new("http://localhost:5984".into());
+            let client = Client::new("http://localhost:5984".into()).unwrap();
             let dbw = client.db("sofa_test");
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
@@ -193,7 +195,7 @@ mod sofa_tests {
         }
 
         fn teardown(client: Client) {
-            assert!(client.destroy_db("sofa_test"))
+            assert!(client.destroy_db("sofa_test").unwrap())
         }
 
         #[test]
@@ -248,7 +250,7 @@ mod sofa_tests {
         fn e_should_list_indexes_in_db() {
             let (client, db, _) = setup_create_indexes();
 
-            let index_list = db.read_indexes();
+            let index_list = db.read_indexes().unwrap();
             assert!(index_list.indexes.len() > 1);
             let ref findex = index_list.indexes[1];
 
