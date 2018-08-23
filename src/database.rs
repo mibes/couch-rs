@@ -4,25 +4,26 @@ use reqwest::StatusCode;
 
 use failure::Error;
 use serde_json;
-use serde_json::{Value, from_reader, to_string};
+use serde_json::{from_reader, to_string, Value};
 
-use ::client::*;
-use ::document::*;
-use ::types::*;
-use ::error::SofaError;
+use client::*;
+use document::*;
+use error::SofaError;
+use types::*;
 
-/// Database holds the logic of making operations on a CouchDB Database (sometimes called Collection in other NoSQL flavors such as MongoDB).
+/// Database holds the logic of making operations on a CouchDB Database
+/// (sometimes called Collection in other NoSQL flavors such as MongoDB).
 #[derive(Debug, Clone)]
 pub struct Database {
     _client: Client,
-    name: String
+    name: String,
 }
 
 impl Database {
     pub fn new(name: String, client: Client) -> Database {
         Database {
             _client: client,
-            name: name
+            name: name,
         }
     }
 
@@ -55,11 +56,13 @@ impl Database {
 
         let request = self._client.post(path, "".into());
 
-        request.and_then(|mut req| {
-            Ok(req.send().and_then(|res| {
-                Ok(res.status() == StatusCode::Accepted)
-            }).unwrap_or(false))
-        }).unwrap_or(false)
+        request
+            .and_then(|mut req| {
+                Ok(req.send()
+                    .and_then(|res| Ok(res.status() == StatusCode::Accepted))
+                    .unwrap_or(false))
+            })
+            .unwrap_or(false)
     }
 
     /// Starts the compaction of all views
@@ -69,36 +72,44 @@ impl Database {
 
         let request = self._client.post(path, "".into());
 
-        request.and_then(|mut req| {
-            Ok(req.send().and_then(|res| {
-                Ok(res.status() == StatusCode::Accepted)
-            }).unwrap_or(false))
-        }).unwrap_or(false)
+        request
+            .and_then(|mut req| {
+                Ok(req.send()
+                    .and_then(|res| Ok(res.status() == StatusCode::Accepted))
+                    .unwrap_or(false))
+            })
+            .unwrap_or(false)
     }
 
     /// Starts the compaction of a given index
     pub fn compact_index(&self, index: &'static str) -> bool {
         let request = self._client.post(self.create_compact_path(index), "".into());
 
-        request.and_then(|mut req| {
-            Ok(req.send().and_then(|res| {
-                Ok(res.status() == StatusCode::Accepted)
-            }).unwrap_or(false))
-        }).unwrap_or(false)
+        request
+            .and_then(|mut req| {
+                Ok(req.send()
+                    .and_then(|res| Ok(res.status() == StatusCode::Accepted))
+                    .unwrap_or(false))
+            })
+            .unwrap_or(false)
     }
 
     /// Checks if a document ID exists
     pub fn exists(&self, id: DocumentId) -> bool {
         let request = self._client.head(self.create_document_path(id), None);
 
-        request.and_then(|mut req| {
-            Ok(req.send().and_then(|res| {
-                Ok(match res.status() {
-                    StatusCode::Ok | StatusCode::NotModified => true,
-                    _ => false
-                })
-            }).unwrap_or(false))
-        }).unwrap_or(false)
+        request
+            .and_then(|mut req| {
+                Ok(req.send()
+                    .and_then(|res| {
+                        Ok(match res.status() {
+                            StatusCode::Ok | StatusCode::NotModified => true,
+                            _ => false,
+                        })
+                    })
+                    .unwrap_or(false))
+            })
+            .unwrap_or(false)
     }
 
     /// Gets one document
@@ -114,7 +125,11 @@ impl Database {
     }
 
     /// Gets documents in bulk with provided IDs list, with added params. Params description can be found here: Parameters description can be found here: http://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view
-    pub fn get_bulk_params(&self, ids: Vec<DocumentId>, params: Option<HashMap<String, String>>) -> Result<DocumentCollection, Error> {
+    pub fn get_bulk_params(
+        &self,
+        ids: Vec<DocumentId>,
+        params: Option<HashMap<String, String>>,
+    ) -> Result<DocumentCollection, Error> {
         let mut options;
         if let Some(opts) = params {
             options = opts;
@@ -127,12 +142,10 @@ impl Database {
         let mut body = HashMap::new();
         body.insert(s!("keys"), ids);
 
-        let response = self._client.get(
-            self.create_document_path("_all_docs".into()),
-            Some(options)
-        )?
-        .body(to_string(&body)?)
-        .send()?;
+        let response = self._client
+            .get(self.create_document_path("_all_docs".into()), Some(options))?
+            .body(to_string(&body)?)
+            .send()?;
 
         Ok(DocumentCollection::new(from_reader(response)?))
     }
@@ -153,10 +166,9 @@ impl Database {
 
         options.insert(s!("include_docs"), s!("true"));
 
-        let response = self._client.get(
-            self.create_document_path("_all_docs".into()),
-            Some(options)
-        )?.send()?;
+        let response = self._client
+            .get(self.create_document_path("_all_docs".into()), Some(options))?
+            .send()?;
 
         Ok(DocumentCollection::new(from_reader(response)?))
     }
@@ -168,8 +180,10 @@ impl Database {
 
         let data: FindResult = from_reader(response)?;
         if let Some(doc_val) = data.docs {
-            let documents: Vec<Document> = doc_val.iter()
-                .filter(|d| { // Remove _design documents
+            let documents: Vec<Document> = doc_val
+                .into_iter()
+                .filter(|d| {
+                    // Remove _design documents
                     let id: String = json_extr!(d["_id"]);
                     !id.starts_with('_')
                 })
@@ -189,10 +203,9 @@ impl Database {
         let id = doc._id.to_owned();
         let raw = doc.get_data();
 
-        let response = self._client.put(
-            self.create_document_path(id),
-            to_string(&raw)?
-        )?.send()?;
+        let response = self._client
+            .put(self.create_document_path(id), to_string(&raw)?)?
+            .send()?;
 
         let data: DocumentCreatedResult = from_reader(response)?;
 
@@ -202,7 +215,7 @@ impl Database {
                 val["_rev"] = json!(data.rev);
 
                 Ok(Document::new(val))
-            },
+            }
             Some(false) | _ => {
                 let err = data.error.unwrap_or(s!("unspecified error"));
                 return Err(SofaError(err).into());
@@ -212,10 +225,7 @@ impl Database {
 
     /// Creates a document from a raw JSON document Value.
     pub fn create(&self, raw_doc: Value) -> Result<Document, Error> {
-        let response = self._client.post(
-            self.name.clone(),
-            to_string(&raw_doc)?
-        )?.send()?;
+        let response = self._client.post(self.name.clone(), to_string(&raw_doc)?)?.send()?;
 
         let data: DocumentCreatedResult = from_reader(response)?;
 
@@ -236,7 +246,7 @@ impl Database {
                 val["_rev"] = json!(data_rev);
 
                 Ok(Document::new(val))
-            },
+            }
             Some(false) | _ => {
                 let err = data.error.unwrap_or(s!("unspecified error"));
                 return Err(SofaError(err).into());
@@ -252,28 +262,35 @@ impl Database {
                 let mut h = HashMap::new();
                 h.insert(s!("rev"), doc._rev.clone());
                 h
-            })
+            }),
         );
 
-        request.and_then(|mut req| {
-            Ok(req.send().and_then(|res| {
-                Ok(match res.status() {
-                    StatusCode::Ok | StatusCode::Accepted => true,
-                    _ => false
-                })
-            }).unwrap_or(false))
-        }).unwrap_or(false)
+        request
+            .and_then(|mut req| {
+                Ok(req.send()
+                    .and_then(|res| {
+                        Ok(match res.status() {
+                            StatusCode::Ok | StatusCode::Accepted => true,
+                            _ => false,
+                        })
+                    })
+                    .unwrap_or(false))
+            })
+            .unwrap_or(false)
     }
 
-    /// Inserts an index in a naive way, if it already exists, will throw an `Err`
+    /// Inserts an index in a naive way, if it already exists, will throw an
+    /// `Err`
     pub fn insert_index(&self, name: String, spec: IndexFields) -> Result<IndexCreated, Error> {
-        let response = self._client.post(
-            self.create_document_path("_index".into()),
-            js!(json!({
+        let response = self._client
+            .post(
+                self.create_document_path("_index".into()),
+                js!(json!({
                 "name": name,
                 "index": spec
-            }))
-        )?.send()?;
+            })),
+            )?
+            .send()?;
 
         let data: IndexCreated = from_reader(response)?;
 
@@ -287,21 +304,21 @@ impl Database {
 
     /// Reads the database's indexes and returns them
     pub fn read_indexes(&self) -> Result<DatabaseIndexList, Error> {
-        let response = self._client.get(
-            self.create_document_path("_index".into()),
-            None
-        )?.send()?;
+        let response = self._client
+            .get(self.create_document_path("_index".into()), None)?
+            .send()?;
 
         Ok(from_reader(response)?)
     }
 
-    /// Method to ensure an index is created on the database with the following spec.
-    /// Returns `true` when we created a new one, or `false` when the index was already existing.
+    /// Method to ensure an index is created on the database with the following
+    /// spec. Returns `true` when we created a new one, or `false` when the
+    /// index was already existing.
     pub fn ensure_index(&self, name: String, spec: IndexFields) -> Result<bool, Error> {
         let db_indexes = self.read_indexes()?;
 
         // We look for our index
-        for i in db_indexes.indexes.iter() {
+        for i in db_indexes.indexes.into_iter() {
             if i.name == name {
                 // Found? Ok let's return
                 return Ok(false);
