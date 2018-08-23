@@ -32,6 +32,15 @@ No async I/O (yet), uses a mix of Reqwest and Serde under the hood, with a few n
 
 Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/index.html) in detail to see what's possible.
 
+## Running tests
+
+Make sure that you have an instance of CouchDB 2.0+ running, either via the supplied `docker-compose.yml` file or by yourself. It must be listening on the default port.
+
+And then
+`cargo test -- --test-threads=1`
+
+Single-threading the tests is very important because we need to make sure that the basic features are working before actually testing features on dbs/documents.
+
 ## Why the name "Sofa"
 
 CouchDB has a nice name, and I wanted to reflect that.
