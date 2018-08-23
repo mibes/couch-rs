@@ -31,9 +31,11 @@ impl Document {
     /// Returns all document's keys
     pub fn get_keys(&self) -> Vec<String> {
         let mut ret: Vec<String> = Vec::new();
-        let obj = self.doc.as_object().unwrap();
-        for (k, _) in obj.iter() {
-            ret.push(k.clone());
+
+        if let Some(obj) = self.doc.as_object() {
+            for (k, _) in obj.iter() {
+                ret.push(k.clone());
+            }
         }
 
         ret
@@ -46,10 +48,12 @@ impl Document {
 
     /// Merges this document with a raw JSON value, useful to update data with a payload
     pub fn merge(&mut self, doc: Value) -> &Self {
-        for (k, v) in doc.as_object().unwrap().iter() {
-            match k.as_str() {
-                "_id" | "_rev" => { continue; }
-                _ => { self[k] = v.clone(); }
+        if let Some(obj) = doc.as_object() {
+            for (k, v) in obj.iter() {
+                match k.as_str() {
+                    "_id" | "_rev" => { continue; }
+                    _ => { self[k] = v.clone(); }
+                }
             }
         }
 
@@ -63,22 +67,36 @@ impl Document {
             return self;
         }
 
-        let ids = val.as_array().unwrap()
+        let ids = val.as_array().unwrap_or(&Vec::new())
             .iter()
-            .map(|v| s!(v.as_str().unwrap()))
+            .map(|v| s!(v.as_str().unwrap_or("")))
             .collect();
 
-        let docs = db.get_bulk(ids).unwrap();
-        self[field] = docs.get_data().iter()
-        .filter_map(|d: &Value| {
-            let did = d["_id"].as_str().unwrap();
-            if val[did] != Value::Null {
-                Some(d.clone())
-            } else {
-                None
-            }
-        })
-        .collect();
+        let data = db.get_bulk(ids).and_then(|docs| {
+            Ok(docs.get_data())
+        });
+
+        match data {
+            Ok(data) => {
+                self[field] = data.iter()
+                    .filter_map(|d: &Value| {
+                        let did = match d["_id"].as_str() {
+                            Some(did) => did,
+                            None => return None,
+                        };
+
+                        if val[did] != Value::Null {
+                            Some(d.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+            },
+            Err(_) => {
+                return self;
+            },
+        }
 
         self
     }
@@ -130,7 +148,7 @@ impl DocumentCollection {
         let items: Vec<DocumentCollectionItem> = rows.iter()
             .filter(|d| { // Remove _design documents
                 let id: String = json_extr!(d["doc"]["_id"]);
-                id.chars().nth(0).unwrap() != '_'
+                !id.starts_with('_')
             })
             .map(|d| {
                 let document: Value = json_extr!(d["doc"]);

@@ -53,6 +53,8 @@
 //!
 //! [Yellow Innovation's website and works](http://yellowinnovation.fr/en/)
 
+#[macro_use]
+extern crate failure;
 extern crate reqwest;
 extern crate serde;
 #[macro_use]
@@ -135,22 +137,24 @@ mod sofa_tests {
 
         #[test]
         fn a_should_check_couchdbs_status() {
-            let client = Client::new("http://localhost:5984".into());
+            let client = Client::new("http://localhost:5984".into()).unwrap();
             let status = client.check_status();
-            assert!(status.is_some())
+            assert!(status.is_ok());
         }
 
         #[test]
         fn b_should_create_sofa_test_db() {
-            let client = Client::new("http://localhost:5984".into());
-            let dbw = client.db("sofa_test");
+            let client = Client::new("http://localhost:5984".into()).unwrap();
+            let dbw = client.db("b_should_create_sofa_test_db");
             assert!(dbw.is_ok());
+
+            let _ = client.destroy_db("b_should_create_sofa_test_db");
         }
 
         #[test]
         fn c_should_create_a_document() {
-            let client = Client::new("http://localhost:5984".into());
-            let dbw = client.db("sofa_test");
+            let client = Client::new("http://localhost:5984".into()).unwrap();
+            let dbw = client.db("c_should_create_a_document");
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
 
@@ -161,22 +165,26 @@ mod sofa_tests {
             assert!(ndoc_result.is_ok());
 
             let mut doc = ndoc_result.unwrap();
-            assert_eq!(doc["thing"], json!(true))
+            assert_eq!(doc["thing"], json!(true));
+
+            let _ = client.destroy_db("c_should_create_a_document");
         }
 
         #[test]
         fn d_should_destroy_the_db() {
-            let client = Client::new("http://localhost:5984".into());
-            assert!(client.destroy_db("sofa_test"));
+            let client = Client::new("http://localhost:5984".into()).unwrap();
+            let _ = client.db("d_should_destroy_the_db");
+
+            assert!(client.destroy_db("d_should_destroy_the_db").unwrap());
         }
     }
 
     mod b_db {
         use *;
 
-        fn setup() -> (Client, Database, Document) {
-            let client = Client::new("http://localhost:5984".into());
-            let dbw = client.db("sofa_test");
+        fn setup(dbname: &'static str) -> (Client, Database, Document) {
+            let client = Client::new("http://localhost:5984".into()).unwrap();
+            let dbw = client.db(dbname);
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
 
@@ -192,13 +200,13 @@ mod sofa_tests {
             (client, db, doc)
         }
 
-        fn teardown(client: Client) {
-            assert!(client.destroy_db("sofa_test"))
+        fn teardown(client: Client, dbname: &'static str) {
+            assert!(client.destroy_db(dbname).unwrap())
         }
 
         #[test]
         fn a_should_update_a_document() {
-            let (client, db, mut doc) = setup();
+            let (client, db, mut doc) = setup("a_should_update_a_document");
 
             doc["thing"] = json!(false);
 
@@ -207,26 +215,26 @@ mod sofa_tests {
             let new_doc = save_result.unwrap();
             assert_eq!(new_doc["thing"], json!(false));
 
-            teardown(client);
+            teardown(client, "a_should_update_a_document");
         }
 
         #[test]
         fn b_should_remove_a_document() {
-            let (client, db, doc) = setup();
+            let (client, db, doc) = setup("b_should_remove_a_document");
             assert!(db.remove(doc));
 
-            teardown(client);
+            teardown(client, "b_should_remove_a_document");
         }
 
         #[test]
         fn c_should_get_a_single_document() {
-            let (client, _, _) = setup();
+            let (client, _, _) = setup("c_should_get_a_single_document");
             assert!(true);
-            teardown(client);
+            teardown(client, "c_should_get_a_single_document");
         }
 
-        fn setup_create_indexes() -> (Client, Database, Document) {
-            let (client, db, doc) = setup();
+        fn setup_create_indexes(dbname: &'static str) -> (Client, Database, Document) {
+            let (client, db, doc) = setup(dbname);
 
             let spec = types::IndexFields::new(vec![types::SortSpec::Simple(s!("thing"))]);
 
@@ -239,38 +247,38 @@ mod sofa_tests {
 
         #[test]
         fn d_should_create_index_in_db() {
-            let (client, db, _) = setup_create_indexes();
+            let (client, db, _) = setup_create_indexes("d_should_create_index_in_db");
             assert!(true);
-            teardown(client);
+            teardown(client, "d_should_create_index_in_db");
         }
 
         #[test]
         fn e_should_list_indexes_in_db() {
-            let (client, db, _) = setup_create_indexes();
+            let (client, db, _) = setup_create_indexes("e_should_list_indexes_in_db");
 
-            let index_list = db.read_indexes();
+            let index_list = db.read_indexes().unwrap();
             assert!(index_list.indexes.len() > 1);
             let ref findex = index_list.indexes[1];
 
             assert_eq!(findex.name.as_str(), "thing-index");
-            teardown(client);
+            teardown(client, "e_should_list_indexes_in_db");
         }
 
         #[test]
         fn f_should_ensure_index_in_db() {
-            let (client, db, _) = setup();
+            let (client, db, _) = setup("f_should_ensure_index_in_db");
 
             let spec = types::IndexFields::new(vec![types::SortSpec::Simple(s!("thing"))]);
 
             let res = db.ensure_index("thing-index".into(), spec);
             assert!(res.is_ok());
 
-            teardown(client);
+            teardown(client, "f_should_ensure_index_in_db");
         }
 
         #[test]
         fn f_should_find_documents_in_db() {
-            let (client, db, doc) = setup_create_indexes();
+            let (client, db, doc) = setup_create_indexes("f_should_find_documents_in_db");
 
             let documents_res = db.find(json!({
                 "selector": {
@@ -286,7 +294,7 @@ mod sofa_tests {
             let documents = documents_res.unwrap();
             assert_eq!(documents.rows.len(), 1);
 
-            teardown(client);
+            teardown(client, "f_should_find_documents_in_db");
         }
     }
 }

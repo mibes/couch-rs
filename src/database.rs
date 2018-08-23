@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use reqwest::StatusCode;
 
-use reqwest::Error;
+use failure::Error;
 use serde_json;
 use serde_json::{Value, from_reader, to_string};
 
@@ -52,61 +52,60 @@ impl Database {
     pub fn compact(&self) -> bool {
         let mut path: String = self.name.clone();
         path.push_str("/_compact");
-        let response = self._client.post(path, "".into())
-            .send()
-            .unwrap();
 
-        match response.status() {
-            StatusCode::Accepted => true,
-            _ => false
-        }
+        let request = self._client.post(path, "".into());
+
+        request.and_then(|mut req| {
+            Ok(req.send().and_then(|res| {
+                Ok(res.status() == StatusCode::Accepted)
+            }).unwrap_or(false))
+        }).unwrap_or(false)
     }
 
     /// Starts the compaction of all views
     pub fn compact_views(&self) -> bool {
         let mut path: String = self.name.clone();
         path.push_str("/_view_cleanup");
-        let response = self._client.post(path, "".into())
-            .send()
-            .unwrap();
 
-        match response.status() {
-            StatusCode::Accepted => true,
-            _ => false
-        }
+        let request = self._client.post(path, "".into());
+
+        request.and_then(|mut req| {
+            Ok(req.send().and_then(|res| {
+                Ok(res.status() == StatusCode::Accepted)
+            }).unwrap_or(false))
+        }).unwrap_or(false)
     }
 
     /// Starts the compaction of a given index
     pub fn compact_index(&self, index: &'static str) -> bool {
-        let response = self._client.post(self.create_compact_path(index), "".into())
-            .send()
-            .unwrap();
+        let request = self._client.post(self.create_compact_path(index), "".into());
 
-        match response.status() {
-            StatusCode::Accepted => true,
-            _ => false
-        }
+        request.and_then(|mut req| {
+            Ok(req.send().and_then(|res| {
+                Ok(res.status() == StatusCode::Accepted)
+            }).unwrap_or(false))
+        }).unwrap_or(false)
     }
 
     /// Checks if a document ID exists
     pub fn exists(&self, id: DocumentId) -> bool {
-        let response = self._client.head(self.create_document_path(id), None)
-            .send()
-            .unwrap();
+        let request = self._client.head(self.create_document_path(id), None);
 
-        match response.status() {
-            StatusCode::Ok | StatusCode::NotModified => true,
-            _ => false
-        }
+        request.and_then(|mut req| {
+            Ok(req.send().and_then(|res| {
+                Ok(match res.status() {
+                    StatusCode::Ok | StatusCode::NotModified => true,
+                    _ => false
+                })
+            }).unwrap_or(false))
+        }).unwrap_or(false)
     }
 
     /// Gets one document
-    pub fn get(&self, id: DocumentId) -> Result<Document, SofaError> {
-        let response = self._client.get(self.create_document_path(id), None)
-            .send()
-            .unwrap();
+    pub fn get(&self, id: DocumentId) -> Result<Document, Error> {
+        let response = self._client.get(self.create_document_path(id), None)?.send()?;
 
-        Ok(Document::new(from_reader(response).unwrap()))
+        Ok(Document::new(from_reader(response)?))
     }
 
     /// Gets documents in bulk with provided IDs list
@@ -131,11 +130,11 @@ impl Database {
         let response = self._client.get(
             self.create_document_path("_all_docs".into()),
             Some(options)
-        ).body(to_string(&body).unwrap())
-        .send()
-        .unwrap();
+        )?
+        .body(to_string(&body)?)
+        .send()?;
 
-        Ok(DocumentCollection::new(from_reader(response).unwrap()))
+        Ok(DocumentCollection::new(from_reader(response)?))
     }
 
     /// Gets all the documents in database
@@ -157,138 +156,149 @@ impl Database {
         let response = self._client.get(
             self.create_document_path("_all_docs".into()),
             Some(options)
-        )
-        .send()
-        .unwrap();
+        )?.send()?;
 
-        Ok(DocumentCollection::new(from_reader(response).unwrap()))
+        Ok(DocumentCollection::new(from_reader(response)?))
     }
 
     /// Finds a document in the database through a Mango query. Parameters here http://docs.couchdb.org/en/latest/api/database/find.html
-    pub fn find(&self, params: Value) -> Result<DocumentCollection, SofaError> {
+    pub fn find(&self, params: Value) -> Result<DocumentCollection, Error> {
         let path = self.create_document_path("_find".into());
-        let response = self._client.post(path, js!(&params))
-            .send()
-            .unwrap();
+        let response = self._client.post(path, js!(&params))?.send()?;
 
-        let data: FindResult = from_reader(response).unwrap();
+        let data: FindResult = from_reader(response)?;
         if let Some(doc_val) = data.docs {
             let documents: Vec<Document> = doc_val.iter()
                 .filter(|d| { // Remove _design documents
                     let id: String = json_extr!(d["_id"]);
-                    id.chars().nth(0).unwrap() != '_'
+                    !id.starts_with('_')
                 })
                 .map(|v| Document::new(v.clone()))
                 .collect();
 
             Ok(DocumentCollection::new_from_documents(documents))
         } else if let Some(err) = data.error {
-            Err(SofaError::from(err))
+            Err(SofaError(err).into())
         } else {
             Ok(DocumentCollection::default())
         }
     }
 
     /// Updates a document
-    pub fn save(&self, doc: Document) -> Result<Document, SofaError> {
+    pub fn save(&self, doc: Document) -> Result<Document, Error> {
         let id = doc._id.to_owned();
         let raw = doc.get_data();
 
         let response = self._client.put(
             self.create_document_path(id),
-            to_string(&raw).unwrap()
-        )
-        .send()
-        .unwrap();
+            to_string(&raw)?
+        )?.send()?;
 
-        let data: DocumentCreatedResult = from_reader(response).unwrap();
-        if !data.ok.is_some() || !data.ok.unwrap() {
-            return Err(SofaError::from(data.error.unwrap()))
+        let data: DocumentCreatedResult = from_reader(response)?;
+
+        match data.ok {
+            Some(true) => {
+                let mut val = doc.get_data();
+                val["_rev"] = json!(data.rev);
+
+                Ok(Document::new(val))
+            },
+            Some(false) | _ => {
+                let err = data.error.unwrap_or(s!("unspecified error"));
+                return Err(SofaError(err).into());
+            }
         }
-
-        let mut val = doc.get_data();
-        val["_rev"] = json!(data.rev.unwrap());
-
-        Ok(Document::new(val))
     }
 
     /// Creates a document from a raw JSON document Value.
-    pub fn create(&self, raw_doc: Value) -> Result<Document, SofaError> {
+    pub fn create(&self, raw_doc: Value) -> Result<Document, Error> {
         let response = self._client.post(
             self.name.clone(),
-            to_string(&raw_doc).unwrap()
-        )
-        .send()
-        .unwrap();
+            to_string(&raw_doc)?
+        )?.send()?;
 
-        let data: DocumentCreatedResult = from_reader(response).unwrap();
-        if !data.ok.is_some() || !data.ok.unwrap() {
-            return Err(SofaError::from(data.error.unwrap()))
+        let data: DocumentCreatedResult = from_reader(response)?;
+
+        match data.ok {
+            Some(true) => {
+                let data_id = match data.id {
+                    Some(id) => id,
+                    _ => return Err(SofaError(s!("invalid id")).into()),
+                };
+
+                let data_rev = match data.rev {
+                    Some(rev) => rev,
+                    _ => return Err(SofaError(s!("invalid rev")).into()),
+                };
+
+                let mut val = raw_doc.clone();
+                val["_id"] = json!(data_id);
+                val["_rev"] = json!(data_rev);
+
+                Ok(Document::new(val))
+            },
+            Some(false) | _ => {
+                let err = data.error.unwrap_or(s!("unspecified error"));
+                return Err(SofaError(err).into());
+            }
         }
-
-        let mut val = raw_doc.clone();
-
-        val["_id"] = json!(data.id.unwrap());
-        val["_rev"] = json!(data.rev.unwrap());
-
-        Ok(Document::new(val))
     }
 
     /// Removes a document from the database. Returns success in a `bool`
     pub fn remove(&self, doc: Document) -> bool {
-        let response = self._client.delete(
+        let request = self._client.delete(
             self.create_document_path(doc._id.clone()),
             Some({
                 let mut h = HashMap::new();
                 h.insert(s!("rev"), doc._rev.clone());
                 h
             })
-        )
-        .send()
-        .unwrap();
+        );
 
-        match response.status() {
-            StatusCode::Ok | StatusCode::Accepted => true,
-            _ => false
-        }
+        request.and_then(|mut req| {
+            Ok(req.send().and_then(|res| {
+                Ok(match res.status() {
+                    StatusCode::Ok | StatusCode::Accepted => true,
+                    _ => false
+                })
+            }).unwrap_or(false))
+        }).unwrap_or(false)
     }
 
     /// Inserts an index in a naive way, if it already exists, will throw an `Err`
-    pub fn insert_index(&self, name: String, spec: IndexFields) -> Result<IndexCreated, SofaError> {
+    pub fn insert_index(&self, name: String, spec: IndexFields) -> Result<IndexCreated, Error> {
         let response = self._client.post(
             self.create_document_path("_index".into()),
             js!(json!({
                 "name": name,
                 "index": spec
             }))
-        )
-        .send()
-        .unwrap();
+        )?.send()?;
 
-        let data: IndexCreated = from_reader(response).unwrap();
+        let data: IndexCreated = from_reader(response)?;
+
         if data.error.is_some() {
-            Err(SofaError::from(data.error.unwrap()))
+            let err = data.error.unwrap_or(s!("unspecified error"));
+            Err(SofaError(err).into())
         } else {
             Ok(data)
         }
     }
 
     /// Reads the database's indexes and returns them
-    pub fn read_indexes(&self) -> DatabaseIndexList {
+    pub fn read_indexes(&self) -> Result<DatabaseIndexList, Error> {
         let response = self._client.get(
             self.create_document_path("_index".into()),
             None
-        )
-        .send()
-        .unwrap();
+        )?.send()?;
 
-        from_reader(response).unwrap()
+        Ok(from_reader(response)?)
     }
 
     /// Method to ensure an index is created on the database with the following spec.
     /// Returns `true` when we created a new one, or `false` when the index was already existing.
-    pub fn ensure_index(&self, name: String, spec: IndexFields) -> Result<bool, SofaError> {
-        let db_indexes = self.read_indexes();
+    pub fn ensure_index(&self, name: String, spec: IndexFields) -> Result<bool, Error> {
+        let db_indexes = self.read_indexes()?;
 
         // We look for our index
         for i in db_indexes.indexes.iter() {
@@ -299,10 +309,7 @@ impl Database {
         }
 
         // Let's create it then
-        let res = self.insert_index(name, spec);
-        if res.is_err() {
-            return Err(res.err().unwrap());
-        }
+        let _ = self.insert_index(name, spec)?;
 
         // Created and alright
         Ok(true)

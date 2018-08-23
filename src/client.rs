@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::time::Duration;
-use std::error::Error;
+use failure::Error;
 use serde_json::from_reader;
 
 use reqwest::{self, Url, Method, RequestBuilder, StatusCode};
@@ -22,27 +22,29 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(uri: String) -> Client {
+    pub fn new(uri: String) -> Result<Client, Error> {
         let client = reqwest::Client::builder()
             .gzip(true)
             .timeout(Duration::new(4, 0))
-            .build().unwrap();
+            .build()?;
 
-        Client {
+        Ok(Client {
             _client: client,
             uri: uri,
             _gzip: true,
             _timeout: 4,
             dbs: Vec::new(),
             db_prefix: String::new()
-        }
+        })
     }
 
-    fn create_client(&self) -> reqwest::Client {
-        reqwest::Client::builder()
+    fn create_client(&self) -> Result<reqwest::Client, Error> {
+        let client = reqwest::Client::builder()
             .gzip(self._gzip)
             .timeout(Duration::new(self._timeout as u64, 0))
-            .build().unwrap()
+            .build()?;
+
+        Ok(client)
     }
 
     pub fn get_self(&mut self) -> &mut Self {
@@ -59,148 +61,141 @@ impl Client {
         self
     }
 
-    pub fn gzip(&mut self, enabled: bool) -> &Self {
+    pub fn gzip(&mut self, enabled: bool) -> Result<&Self, Error> {
         self._gzip = enabled;
-        self._client = self.create_client();
-        self
+        self._client = self.create_client()?;
+
+        Ok(self)
     }
 
-    pub fn timeout(&mut self, to: u8) -> &Self {
+    pub fn timeout(&mut self, to: u8) -> Result<&Self, Error> {
         self._timeout = to;
-        self._client = self.create_client();
-        self
+        self._client = self.create_client()?;
+
+        Ok(self)
     }
 
-    pub fn list_dbs(&self) -> reqwest::Result<Vec<String>> {
-        self.get(String::from("/_all_dbs"), None)
-            .send()
-            .unwrap()
-            .json::<Vec<String>>()
+    pub fn list_dbs(&self) -> Result<Vec<String>, Error> {
+        let mut response = self.get(String::from("/_all_dbs"), None)?.send()?;
+        let data = response.json::<Vec<String>>()?;
+
+        Ok(data)
     }
 
     fn build_dbname(&self, dbname: &'static str) -> String {
         self.db_prefix.clone() + dbname
     }
 
-    pub fn db(&self, dbname: &'static str) -> Result<Database, SofaError> {
+    pub fn db(&self, dbname: &'static str) -> Result<Database, Error> {
         let name = self.build_dbname(dbname);
 
         let db = Database::new(name.clone(), self.clone());
 
-        let path = self.create_path(name, None);
-        let status_req = self._client.head(&path)
+        let path = self.create_path(name, None)?;
+
+        let head_response = self._client.head(&path)
             .header(reqwest::header::ContentType::json())
-            .send()
-            .unwrap();
+            .send()?;
 
-        match status_req.status() {
-            StatusCode::Ok => {
-                return Ok(db);
-            },
-            _ => {
-                let response = self._client.put(&path)
-                    .header(reqwest::header::ContentType::json())
-                    .send()
-                    .unwrap();
-
-                let s: CouchResponse = from_reader(response).unwrap();
-
-                if let Some(ok) = s.ok {
-                    if ok {
-                        return Ok(db);
-                    } else {
-                        return Err(SofaError::from(s.error.unwrap()));
-                    }
-                }
-
-                Err(SofaError::from(s.error.unwrap()))
-            }
+        match head_response.status() {
+            StatusCode::Ok => Ok(db),
+            _ => self.make_db(dbname),
         }
     }
 
-    pub fn destroy_db(&self, dbname: &'static str) -> bool {
-        let path = self.create_path(self.build_dbname(dbname), None);
+    pub fn make_db(&self, dbname: &'static str) -> Result<Database, Error> {
+        let name = self.build_dbname(dbname);
+
+        let db = Database::new(name.clone(), self.clone());
+
+        let path = self.create_path(name, None)?;
+
+        let put_response = self._client.put(&path)
+            .header(reqwest::header::ContentType::json())
+            .send()?;
+
+        let s: CouchResponse = from_reader(put_response)?;
+
+        match s.ok {
+            Some(true) => Ok(db),
+            Some(false) | _ => {
+                let err = s.error.unwrap_or(s!("unspecified error"));
+                Err(SofaError(err).into())
+            },
+        }
+    }
+
+    pub fn destroy_db(&self, dbname: &'static str) -> Result<bool, Error> {
+        let path = self.create_path(self.build_dbname(dbname), None)?;
         let response = self._client.delete(&path)
             .header(reqwest::header::ContentType::json())
-            .send()
-            .unwrap();
+            .send()?;
 
-        let s: CouchResponse = from_reader(response).unwrap();
+        let s: CouchResponse = from_reader(response)?;
 
-        if let Some(ok) = s.ok {
-            ok
-        } else {
-            false
-        }
+        Ok(s.ok.unwrap_or(false))
     }
 
-    pub fn check_status(&self) -> Option<Result<CouchStatus, SofaError>> {
+    pub fn check_status(&self) -> Result<CouchStatus, Error> {
         let response = self._client.get(&self.uri)
             .header(reqwest::header::ContentType::json())
-            .send()
-            .unwrap();
+            .send()?;
 
-        match from_reader(response) {
-            Ok(status) => return Some(Ok(status)),
-            Err(e) => {
-                let desc = s!(e.description());
-                return Some(Err(SofaError::from(desc)))
-            }
-        }
+        let status = from_reader(response)?;
+
+        Ok(status)
     }
 
     fn create_path(&self,
         path: String,
         args: Option<HashMap<String, String>>
-    ) -> String {
-        let mut uri = Url::parse(&self.uri);
-        uri = uri.unwrap().join(&path);
-
-        let mut final_uri = uri.unwrap();
+    ) -> Result<String, Error> {
+        let mut uri = Url::parse(&self.uri)?.join(&path)?;
 
         if let Some(ref map) = args {
-            let mut qp = final_uri.query_pairs_mut();
+            let mut qp = uri.query_pairs_mut();
             for (k, v) in map {
                 qp.append_pair(k, v);
             }
         }
 
-        final_uri.into_string()
+        Ok(uri.into_string())
     }
 
     pub fn req(&self,
         method: Method,
         path: String,
         opts: Option<HashMap<String, String>>
-    ) -> RequestBuilder {
-        let uri = self.create_path(path, opts);
+    ) -> Result<RequestBuilder, Error> {
+        let uri = self.create_path(path, opts)?;
         let mut req = self._client.request(method, &uri);
         req.header(reqwest::header::Referer::new(uri.clone()));
         req.header(reqwest::header::ContentType::json());
-        req
+
+        Ok(req)
     }
 
-    pub fn get(&self, path: String, args: Option<HashMap<String, String>>) -> RequestBuilder {
-        self.req(Method::Get, path, args)
+    pub fn get(&self, path: String, args: Option<HashMap<String, String>>) -> Result<RequestBuilder, Error> {
+        Ok(self.req(Method::Get, path, args)?)
     }
 
-    pub fn post(&self, path: String, body: String) -> RequestBuilder {
-        let mut req = self.req(Method::Post, path, None);
+    pub fn post(&self, path: String, body: String) -> Result<RequestBuilder, Error> {
+        let mut req = self.req(Method::Post, path, None)?;
         req.body(body);
-        req
+        Ok(req)
     }
 
-    pub fn put(&self, path: String, body: String) -> RequestBuilder {
-        let mut req = self.req(Method::Put, path, None);
+    pub fn put(&self, path: String, body: String) -> Result<RequestBuilder, Error> {
+        let mut req = self.req(Method::Put, path, None)?;
         req.body(body);
-        req
+        Ok(req)
     }
 
-    pub fn head(&self, path: String, args: Option<HashMap<String, String>>) -> RequestBuilder {
-        self.req(Method::Head, path, args)
+    pub fn head(&self, path: String, args: Option<HashMap<String, String>>) -> Result<RequestBuilder, Error> {
+        Ok(self.req(Method::Head, path, args)?)
     }
 
-    pub fn delete(&self, path: String, args: Option<HashMap<String, String>>) -> RequestBuilder {
-        self.req(Method::Delete, path, args)
+    pub fn delete(&self, path: String, args: Option<HashMap<String, String>>) -> Result<RequestBuilder, Error> {
+        Ok(self.req(Method::Delete, path, args)?)
     }
 }
