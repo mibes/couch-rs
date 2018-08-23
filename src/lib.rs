@@ -13,7 +13,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! sofa = "0.5.1"
+//! sofa = "0.6"
 //! ```
 //!
 //! ## Description
@@ -22,15 +22,30 @@
 //!
 //! Does not support `#![no_std]`
 //!
-//! After trying most crates for CouchDB in Rust (`chill`, `couchdb` in particular), none of them fit our needs hence the need to create our own.
+//! After trying most crates for CouchDB in Rust (`chill`, `couchdb` in particular), none of them fit our needs hence
+//! the need to create our own.
 //!
-//! No async I/O (yet), uses a mix of Reqwest and Serde under the hood, with a few nice abstractions out there.
+//! No async I/O (yet), uses a mix of Reqwest and Serde under the hood, with a
+//! few nice abstractions out there.
 //!
 //! **NOT 1.0 YET, so expect changes**
 //!
 //! **Supports CouchDB 2.0 and up.**
 //!
 //! Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/index.html) in detail to see what's possible.
+//!
+//! ## Running tests
+//!
+//! Make sure that you have an instance of CouchDB 2.0+ running, either via the
+//! supplied `docker-compose.yml` file or by yourself. It must be listening on
+//! the default port.
+//!
+//! And then
+//! `cargo test -- --test-threads=1`
+//!
+//! Single-threading the tests is very important because we need to make sure
+//! that the basic features are working before actually testing features on
+//! dbs/documents.
 //!
 //! ## Why the name "Sofa"
 //!
@@ -47,9 +62,11 @@
 //!
 //! ## Yellow Innovation
 //!
-//! Yellow Innovation is the innovation laboratory of the French postal service: La Poste.
+//! Yellow Innovation is the innovation laboratory of the French postal
+//! service: La Poste.
 //!
-//! We create innovative user experiences and journeys through services with a focus on IoT lately.
+//! We create innovative user experiences and journeys through services with a
+//! focus on IoT lately.
 //!
 //! [Yellow Innovation's website and works](http://yellowinnovation.fr/en/)
 
@@ -66,7 +83,8 @@ extern crate serde_derive;
 #[macro_use]
 extern crate pretty_assertions;
 
-/// Macros that the crate exports to facilitate most of the doc-to-json-to-string-related tasks
+/// Macros that the crate exports to facilitate most of the
+/// doc-to-json-to-string-related tasks
 #[allow(unused_macros)]
 #[macro_use]
 mod macros {
@@ -85,7 +103,8 @@ mod macros {
         };
     }
 
-    /// Automatic call to serde_json::to_string() function, with prior Document::get_data() call to get documents' inner data
+    /// Automatic call to serde_json::to_string() function, with prior
+    /// Document::get_data() call to get documents' inner data
     macro_rules! dtj {
         ($e:expr) => {
             js!(&$e.get_data())
@@ -228,7 +247,7 @@ mod sofa_tests {
 
         #[test]
         fn c_should_get_a_single_document() {
-            let (client, _, _) = setup("c_should_get_a_single_document");
+            let (client, ..) = setup("c_should_get_a_single_document");
             assert!(true);
             teardown(client, "c_should_get_a_single_document");
         }
@@ -277,8 +296,8 @@ mod sofa_tests {
         }
 
         #[test]
-        fn f_should_find_documents_in_db() {
-            let (client, db, doc) = setup_create_indexes("f_should_find_documents_in_db");
+        fn g_should_find_documents_in_db() {
+            let (client, db, doc) = setup_create_indexes("g_should_find_documents_in_db");
 
             let documents_res = db.find(json!({
                 "selector": {
@@ -294,7 +313,7 @@ mod sofa_tests {
             let documents = documents_res.unwrap();
             assert_eq!(documents.rows.len(), 1);
 
-            teardown(client, "f_should_find_documents_in_db");
+            teardown(client, "g_should_find_documents_in_db");
         }
     }
 }
