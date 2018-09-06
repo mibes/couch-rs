@@ -1,6 +1,7 @@
 # Sofa - CouchDB for Rust
 
-[![Crates.io](https://img.shields.io/crates/v/sofa.svg)](https://crates.io/crates/sofa)
+[![Crates.io](https://img.shields.io/crates/v/sofa.svg)](https://crates.io/crates/sofa)[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FYellowInnovation%2Fsofa.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FYellowInnovation%2Fsofa?ref=badge_shield)
+
 [![docs.rs](https://docs.rs/sofa/badge.svg)](https://docs.rs/sofa)
 
 ![sofa-logo](https://raw.githubusercontent.com/YellowInnovation/sofa/master/docs/logo-sofa.png "Logo Sofa")
@@ -53,6 +54,9 @@ Licensed under either of these:
    [https://www.apache.org/licenses/LICENSE-2.0](https://www.apache.org/licenses/LICENSE-2.0)
 * MIT license ([LICENSE-MIT](LICENSE-MIT) or
    [https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT))
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FYellowInnovation%2Fsofa.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FYellowInnovation%2Fsofa?ref=badge_large)
 
 ## Yellow Innovation
 
