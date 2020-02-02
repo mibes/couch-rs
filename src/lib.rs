@@ -141,19 +141,21 @@ use client::{Client};
 #[cfg(test)]
 mod sofa_tests {
     mod a_sys {
+        const DB_HOST: &'static str = "http://192.168.64.5:5984";
+
         use serde_json::{json};
         use crate::client::Client;
 
         #[test]
         fn a_should_check_couchdbs_status() {
-            let client = Client::new("http://localhost:5984".into()).unwrap();
+            let client = Client::new(DB_HOST.into()).unwrap();
             let status = client.check_status();
             assert!(status.is_ok());
         }
 
         #[test]
         fn b_should_create_sofa_test_db() {
-            let client = Client::new("http://localhost:5984".into()).unwrap();
+            let client = Client::new(DB_HOST.into()).unwrap();
             let dbw = client.db("b_should_create_sofa_test_db");
             assert!(dbw.is_ok());
 
@@ -162,7 +164,7 @@ mod sofa_tests {
 
         #[test]
         fn c_should_create_a_document() {
-            let client = Client::new("http://localhost:5984".into()).unwrap();
+            let client = Client::new(DB_HOST.into()).unwrap();
             let dbw = client.db("c_should_create_a_document");
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
@@ -181,7 +183,7 @@ mod sofa_tests {
 
         #[test]
         fn d_should_destroy_the_db() {
-            let client = Client::new("http://localhost:5984".into()).unwrap();
+            let client = Client::new(DB_HOST.into()).unwrap();
             let _ = client.db("d_should_destroy_the_db");
 
             assert!(client.destroy_db("d_should_destroy_the_db").unwrap());
@@ -195,8 +197,10 @@ mod sofa_tests {
         use crate::document::Document;
         use crate::types;
 
+        const DB_HOST: &'static str = "http://192.168.64.5:5984";
+
         fn setup(dbname: &'static str) -> (Client, Database, Document) {
-            let client = Client::new("http://localhost:5984".into()).unwrap();
+            let client = Client::new(DB_HOST.into()).unwrap();
             let dbw = client.db(dbname);
             assert!(dbw.is_ok());
             let db = dbw.unwrap();

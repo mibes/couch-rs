@@ -177,6 +177,7 @@ impl Database {
     pub fn find(&self, params: Value) -> Result<DocumentCollection, CouchError> {
         let path = self.create_document_path("_find".into());
         let response = self._client.post(path, js!(&params))?.send()?;
+        let status = response.status();
 
         let data: FindResult = from_reader(response)?;
         if let Some(doc_val) = data.docs {
@@ -192,7 +193,7 @@ impl Database {
 
             Ok(DocumentCollection::new_from_documents(documents))
         } else if let Some(err) = data.error {
-            Err(CouchError::new(err, response.status()).into())
+            Err(CouchError::new(err, status).into())
         } else {
             Ok(DocumentCollection::default())
         }
@@ -207,6 +208,7 @@ impl Database {
             .put(self.create_document_path(id), to_string(&raw)?)?
             .send()?;
 
+        let status = response.status();
         let data: DocumentCreatedResult = from_reader(response)?;
 
         match data.ok {
@@ -218,7 +220,7 @@ impl Database {
             }
             Some(false) | _ => {
                 let err = data.error.unwrap_or(s!("unspecified error"));
-                return Err(CouchError::new(err, response.status()).into());
+                return Err(CouchError::new(err, status).into());
             }
         }
     }
@@ -226,6 +228,7 @@ impl Database {
     /// Creates a document from a raw JSON document Value.
     pub fn create(&self, raw_doc: Value) -> Result<Document, CouchError> {
         let response = self._client.post(self.name.clone(), to_string(&raw_doc)?)?.send()?;
+        let status = response.status();
 
         let data: DocumentCreatedResult = from_reader(response)?;
 
@@ -233,12 +236,12 @@ impl Database {
             Some(true) => {
                 let data_id = match data.id {
                     Some(id) => id,
-                    _ => return Err(CouchError::new(s!("invalid id"), response.status()).into()),
+                    _ => return Err(CouchError::new(s!("invalid id"), status).into()),
                 };
 
                 let data_rev = match data.rev {
                     Some(rev) => rev,
-                    _ => return Err(CouchError::new(s!("invalid rev"), response.status()).into()),
+                    _ => return Err(CouchError::new(s!("invalid rev"), status).into()),
                 };
 
                 let mut val = raw_doc.clone();
@@ -249,7 +252,7 @@ impl Database {
             }
             Some(false) | _ => {
                 let err = data.error.unwrap_or(s!("unspecified error"));
-                return Err(CouchError::new(err, response.status()).into());
+                return Err(CouchError::new(err, status).into());
             }
         }
     }
@@ -292,11 +295,12 @@ impl Database {
             )?
             .send()?;
 
+        let status = response.status();
         let data: IndexCreated = from_reader(response)?;
 
         if data.error.is_some() {
             let err = data.error.unwrap_or(s!("unspecified error"));
-            Err(CouchError::new(err, response.status()).into())
+            Err(CouchError::new(err, status).into())
         } else {
             Ok(data)
         }

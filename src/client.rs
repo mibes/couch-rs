@@ -127,13 +127,13 @@ impl Client {
             .headers(construct_json_headers(None))
             .send()?;
 
+        let status = put_response.status();
         let s: CouchResponse = from_reader(put_response)?;
 
         match s.ok {
             Some(true) => Ok(db),
             Some(false) | _ => {
                 let err = s.error.unwrap_or(s!("unspecified error"));
-                let status = put_response.status();
                 Err(CouchError::new(err, status))
             },
         }
@@ -182,9 +182,10 @@ impl Client {
         opts: Option<HashMap<String, String>>
     ) -> Result<RequestBuilder, CouchError> {
         let uri = self.create_path(path, opts)?;
-        let mut req = self._client.request(method, &uri);
+        let mut req = self._client.request(method, &uri).
+            headers(construct_json_headers(Some(&uri)));
+
         // req.header(reqwest::header::Referer::new(uri.clone()));
-        req.headers(construct_json_headers(Some(&uri)));
 
         Ok(req)
     }
@@ -194,14 +195,12 @@ impl Client {
     }
 
     pub fn post(&self, path: String, body: String) -> Result<RequestBuilder, CouchError> {
-        let mut req = self.req(Method::POST, path, None)?;
-        req.body(body);
+        let mut req = self.req(Method::POST, path, None)?.body(body);
         Ok(req)
     }
 
     pub fn put(&self, path: String, body: String) -> Result<RequestBuilder, CouchError> {
-        let mut req = self.req(Method::PUT, path, None)?;
-        req.body(body);
+        let mut req = self.req(Method::PUT, path, None)?.body(body);
         Ok(req)
     }
 
