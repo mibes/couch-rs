@@ -1,3 +1,5 @@
+use serde::{Serialize, Deserialize};
+
 /// Couch vendor abstraction
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
 pub struct CouchVendor {

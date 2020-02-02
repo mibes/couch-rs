@@ -1,3 +1,5 @@
+use serde::{Serialize, Deserialize};
+
 /// String that represents a Document ID in CouchDB
 pub type DocumentId = String;
 

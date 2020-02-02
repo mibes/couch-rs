@@ -1,4 +1,7 @@
 use super::*;
+use serde::{Serialize, Deserialize};
+use find::{SortSpec};
+use document::{DocumentId};
 
 /// Index fields abstraction
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]

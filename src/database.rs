@@ -2,14 +2,14 @@ use std::collections::HashMap;
 
 use reqwest::StatusCode;
 
-use failure::Error;
 use serde_json;
-use serde_json::{from_reader, to_string, Value};
-
-use client::*;
-use document::*;
-use error::SofaError;
-use types::*;
+use serde_json::{from_reader, to_string, Value, json};
+use crate::document::{Document, DocumentCollection};
+use crate::error::CouchError;
+use crate::client::Client;
+use crate::types::document::{DocumentId, DocumentCreatedResult};
+use crate::types::find::FindResult;
+use crate::types::index::{IndexFields, IndexCreated, DatabaseIndexList};
 
 /// Database holds the logic of making operations on a CouchDB Database
 /// (sometimes called Collection in other NoSQL flavors such as MongoDB).
@@ -59,7 +59,7 @@ impl Database {
         request
             .and_then(|mut req| {
                 Ok(req.send()
-                    .and_then(|res| Ok(res.status() == StatusCode::Accepted))
+                    .and_then(|res| Ok(res.status() == StatusCode::ACCEPTED))
                     .unwrap_or(false))
             })
             .unwrap_or(false)
@@ -75,7 +75,7 @@ impl Database {
         request
             .and_then(|mut req| {
                 Ok(req.send()
-                    .and_then(|res| Ok(res.status() == StatusCode::Accepted))
+                    .and_then(|res| Ok(res.status() == StatusCode::ACCEPTED))
                     .unwrap_or(false))
             })
             .unwrap_or(false)
@@ -88,7 +88,7 @@ impl Database {
         request
             .and_then(|mut req| {
                 Ok(req.send()
-                    .and_then(|res| Ok(res.status() == StatusCode::Accepted))
+                    .and_then(|res| Ok(res.status() == StatusCode::ACCEPTED))
                     .unwrap_or(false))
             })
             .unwrap_or(false)
@@ -103,7 +103,7 @@ impl Database {
                 Ok(req.send()
                     .and_then(|res| {
                         Ok(match res.status() {
-                            StatusCode::Ok | StatusCode::NotModified => true,
+                            StatusCode::OK | StatusCode::NOT_MODIFIED => true,
                             _ => false,
                         })
                     })
@@ -113,14 +113,14 @@ impl Database {
     }
 
     /// Gets one document
-    pub fn get(&self, id: DocumentId) -> Result<Document, Error> {
+    pub fn get(&self, id: DocumentId) -> Result<Document, CouchError> {
         let response = self._client.get(self.create_document_path(id), None)?.send()?;
 
         Ok(Document::new(from_reader(response)?))
     }
 
     /// Gets documents in bulk with provided IDs list
-    pub fn get_bulk(&self, ids: Vec<DocumentId>) -> Result<DocumentCollection, Error> {
+    pub fn get_bulk(&self, ids: Vec<DocumentId>) -> Result<DocumentCollection, CouchError> {
         self.get_bulk_params(ids, None)
     }
 
@@ -129,7 +129,7 @@ impl Database {
         &self,
         ids: Vec<DocumentId>,
         params: Option<HashMap<String, String>>,
-    ) -> Result<DocumentCollection, Error> {
+    ) -> Result<DocumentCollection, CouchError> {
         let mut options;
         if let Some(opts) = params {
             options = opts;
@@ -151,12 +151,12 @@ impl Database {
     }
 
     /// Gets all the documents in database
-    pub fn get_all(&self) -> Result<DocumentCollection, Error> {
+    pub fn get_all(&self) -> Result<DocumentCollection, CouchError> {
         self.get_all_params(None)
     }
 
     /// Gets all the documents in database, with applied parameters. Parameters description can be found here: http://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view
-    pub fn get_all_params(&self, params: Option<HashMap<String, String>>) -> Result<DocumentCollection, Error> {
+    pub fn get_all_params(&self, params: Option<HashMap<String, String>>) -> Result<DocumentCollection, CouchError> {
         let mut options;
         if let Some(opts) = params {
             options = opts;
@@ -174,7 +174,7 @@ impl Database {
     }
 
     /// Finds a document in the database through a Mango query. Parameters here http://docs.couchdb.org/en/latest/api/database/find.html
-    pub fn find(&self, params: Value) -> Result<DocumentCollection, Error> {
+    pub fn find(&self, params: Value) -> Result<DocumentCollection, CouchError> {
         let path = self.create_document_path("_find".into());
         let response = self._client.post(path, js!(&params))?.send()?;
 
@@ -192,14 +192,14 @@ impl Database {
 
             Ok(DocumentCollection::new_from_documents(documents))
         } else if let Some(err) = data.error {
-            Err(SofaError(err).into())
+            Err(CouchError::new(err, response.status()).into())
         } else {
             Ok(DocumentCollection::default())
         }
     }
 
     /// Updates a document
-    pub fn save(&self, doc: Document) -> Result<Document, Error> {
+    pub fn save(&self, doc: Document) -> Result<Document, CouchError> {
         let id = doc._id.to_owned();
         let raw = doc.get_data();
 
@@ -218,13 +218,13 @@ impl Database {
             }
             Some(false) | _ => {
                 let err = data.error.unwrap_or(s!("unspecified error"));
-                return Err(SofaError(err).into());
+                return Err(CouchError::new(err, response.status()).into());
             }
         }
     }
 
     /// Creates a document from a raw JSON document Value.
-    pub fn create(&self, raw_doc: Value) -> Result<Document, Error> {
+    pub fn create(&self, raw_doc: Value) -> Result<Document, CouchError> {
         let response = self._client.post(self.name.clone(), to_string(&raw_doc)?)?.send()?;
 
         let data: DocumentCreatedResult = from_reader(response)?;
@@ -233,12 +233,12 @@ impl Database {
             Some(true) => {
                 let data_id = match data.id {
                     Some(id) => id,
-                    _ => return Err(SofaError(s!("invalid id")).into()),
+                    _ => return Err(CouchError::new(s!("invalid id"), response.status()).into()),
                 };
 
                 let data_rev = match data.rev {
                     Some(rev) => rev,
-                    _ => return Err(SofaError(s!("invalid rev")).into()),
+                    _ => return Err(CouchError::new(s!("invalid rev"), response.status()).into()),
                 };
 
                 let mut val = raw_doc.clone();
@@ -249,7 +249,7 @@ impl Database {
             }
             Some(false) | _ => {
                 let err = data.error.unwrap_or(s!("unspecified error"));
-                return Err(SofaError(err).into());
+                return Err(CouchError::new(err, response.status()).into());
             }
         }
     }
@@ -270,7 +270,7 @@ impl Database {
                 Ok(req.send()
                     .and_then(|res| {
                         Ok(match res.status() {
-                            StatusCode::Ok | StatusCode::Accepted => true,
+                            StatusCode::OK | StatusCode::ACCEPTED => true,
                             _ => false,
                         })
                     })
@@ -281,7 +281,7 @@ impl Database {
 
     /// Inserts an index in a naive way, if it already exists, will throw an
     /// `Err`
-    pub fn insert_index(&self, name: String, spec: IndexFields) -> Result<IndexCreated, Error> {
+    pub fn insert_index(&self, name: String, spec: IndexFields) -> Result<IndexCreated, CouchError> {
         let response = self._client
             .post(
                 self.create_document_path("_index".into()),
@@ -296,14 +296,14 @@ impl Database {
 
         if data.error.is_some() {
             let err = data.error.unwrap_or(s!("unspecified error"));
-            Err(SofaError(err).into())
+            Err(CouchError::new(err, response.status()).into())
         } else {
             Ok(data)
         }
     }
 
     /// Reads the database's indexes and returns them
-    pub fn read_indexes(&self) -> Result<DatabaseIndexList, Error> {
+    pub fn read_indexes(&self) -> Result<DatabaseIndexList, CouchError> {
         let response = self._client
             .get(self.create_document_path("_index".into()), None)?
             .send()?;
@@ -314,7 +314,7 @@ impl Database {
     /// Method to ensure an index is created on the database with the following
     /// spec. Returns `true` when we created a new one, or `false` when the
     /// index was already existing.
-    pub fn ensure_index(&self, name: String, spec: IndexFields) -> Result<bool, Error> {
+    pub fn ensure_index(&self, name: String, spec: IndexFields) -> Result<bool, CouchError> {
         let db_indexes = self.read_indexes()?;
 
         // We look for our index

@@ -1,5 +1,6 @@
 use serde_json::{Value};
 use std::collections::HashMap;
+use serde::{Serialize, Deserialize};
 
 /// Sort direction abstraction
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
@@ -54,8 +55,10 @@ pub struct FindResult {
     pub docs: Option<Vec<Value>>,
     pub warning: Option<String>,
     pub error: Option<String>,
-    pub reason: Option<String>
+    pub reason: Option<String>,
 }
+
+//todo: include status on structs
 
 /// Explain result abstraction
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]

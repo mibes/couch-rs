@@ -1,8 +1,9 @@
-use database::*;
 use serde_json;
 use serde_json::Value;
 use std::ops::{Index, IndexMut};
-use types::*;
+use serde::{Serialize, Deserialize};
+use crate::types::document::{DocumentId};
+use crate::database::Database;
 
 /// Document abstracts the handling of JSON values and provides direct access
 /// and casting to the fields of your documents You can get access to the

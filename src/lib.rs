@@ -70,19 +70,6 @@
 //!
 //! [Yellow Innovation's website and works](http://yellowinnovation.fr/en/)
 
-#[macro_use]
-extern crate failure;
-extern crate reqwest;
-extern crate serde;
-#[macro_use]
-extern crate serde_json;
-#[macro_use]
-extern crate serde_derive;
-
-#[cfg(test)]
-#[macro_use]
-extern crate pretty_assertions;
-
 /// Macros that the crate exports to facilitate most of the
 /// doc-to-json-to-string-related tasks
 #[allow(unused_macros)]
@@ -141,18 +128,21 @@ mod macros {
     }
 }
 
-mod_use!(client);
-mod_use!(database);
-mod_use!(document);
-mod_use!(error);
 pub mod types;
-mod_use!(model);
+mod document;
+mod database;
+mod client;
+mod error;
+mod model;
+
+use client::{Client};
 
 #[allow(unused_mut, unused_variables)]
 #[cfg(test)]
 mod sofa_tests {
     mod a_sys {
-        use *;
+        use serde_json::{json};
+        use crate::client::Client;
 
         #[test]
         fn a_should_check_couchdbs_status() {
@@ -199,7 +189,11 @@ mod sofa_tests {
     }
 
     mod b_db {
-        use *;
+        use serde_json::{json};
+        use crate::client::Client;
+        use crate::database::Database;
+        use crate::document::Document;
+        use crate::types;
 
         fn setup(dbname: &'static str) -> (Client, Database, Document) {
             let client = Client::new("http://localhost:5984".into()).unwrap();
@@ -255,7 +249,7 @@ mod sofa_tests {
         fn setup_create_indexes(dbname: &'static str) -> (Client, Database, Document) {
             let (client, db, doc) = setup(dbname);
 
-            let spec = types::IndexFields::new(vec![types::SortSpec::Simple(s!("thing"))]);
+            let spec = types::index::IndexFields::new(vec![types::find::SortSpec::Simple(s!("thing"))]);
 
             let res = db.insert_index("thing-index".into(), spec);
 
@@ -287,7 +281,7 @@ mod sofa_tests {
         fn f_should_ensure_index_in_db() {
             let (client, db, _) = setup("f_should_ensure_index_in_db");
 
-            let spec = types::IndexFields::new(vec![types::SortSpec::Simple(s!("thing"))]);
+            let spec = types::index::IndexFields::new(vec![types::find::SortSpec::Simple(s!("thing"))]);
 
             let res = db.ensure_index("thing-index".into(), spec);
             assert!(res.is_ok());

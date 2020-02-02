@@ -1,8 +1,8 @@
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 use serde_json::{from_value, to_value};
-use ::document::*;
 use std::marker::Sized;
+use crate::document::Document;
 
 /// Trait that provides methods that can be used to switch between abstract `Document` and concrete `Model` implementors (such as your custom data models)
 pub trait Model<T: Serialize + DeserializeOwned + Sized> {
