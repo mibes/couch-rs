@@ -1,7 +1,5 @@
 use std::error;
 use std::fmt;
-use reqwest::Error;
-use url::ParseError;
 
 // Define our error types. These may be customized for our error handling cases.
 // Now we will be able to write our own errors, defer to an underlying error

@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::time::Duration;
 use serde_json::from_reader;
-use serde::{Serialize, Deserialize};
 
 use reqwest::blocking::RequestBuilder;
 use reqwest::{self, Url, Method, StatusCode};
@@ -89,7 +88,7 @@ impl Client {
     }
 
     pub fn list_dbs(&self) -> Result<Vec<String>, CouchError> {
-        let mut response = self.get(String::from("/_all_dbs"), None)?.send()?;
+        let response = self.get(String::from("/_all_dbs"), None)?.send()?;
         let data = response.json()?;
 
         Ok(data)
@@ -182,7 +181,7 @@ impl Client {
         opts: Option<HashMap<String, String>>
     ) -> Result<RequestBuilder, CouchError> {
         let uri = self.create_path(path, opts)?;
-        let mut req = self._client.request(method, &uri).
+        let req = self._client.request(method, &uri).
             headers(construct_json_headers(Some(&uri)));
 
         // req.header(reqwest::header::Referer::new(uri.clone()));
@@ -195,12 +194,12 @@ impl Client {
     }
 
     pub fn post(&self, path: String, body: String) -> Result<RequestBuilder, CouchError> {
-        let mut req = self.req(Method::POST, path, None)?.body(body);
+        let req = self.req(Method::POST, path, None)?.body(body);
         Ok(req)
     }
 
     pub fn put(&self, path: String, body: String) -> Result<RequestBuilder, CouchError> {
-        let mut req = self.req(Method::PUT, path, None)?.body(body);
+        let req = self.req(Method::PUT, path, None)?.body(body);
         Ok(req)
     }
 

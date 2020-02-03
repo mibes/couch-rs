@@ -129,13 +129,13 @@ mod macros {
 }
 
 pub mod types;
-mod document;
-mod database;
+pub mod document;
+pub mod database;
 mod client;
-mod error;
-mod model;
+pub mod error;
+pub mod model;
 
-use client::{Client};
+pub use client::{Client};
 
 #[allow(unused_mut, unused_variables)]
 #[cfg(test)]
