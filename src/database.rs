@@ -139,9 +139,8 @@ impl Database {
         body.insert(s!("docs"), raw_docs);
 
         let response = self._client.post(self.create_document_path("_bulk_docs".into()), to_string(&body)?)?.send()?;
-        let status = response.status();
-
         let data: Vec<DocumentCreatedResult> = from_reader(response)?;
+
         Ok(data)
     }
 
