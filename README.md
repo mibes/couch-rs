@@ -49,6 +49,13 @@ Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/ind
 The 0.7 version is based on the 0.6 release from https://github.com/YellowInnovation/sofa.
 It has been updated to the Rust 2018 edition standards and compiles against the latest serde and reqwest libraries.
 
+## Example code
+
+You can launch the included example with:
+```shell script
+cargo run --example basic_operations
+```
+
 ## Running tests
 
 Make sure that you have an instance of CouchDB 2.0+ running, either via the supplied `docker-compose.yml` file or by yourself. It must be listening on the default port.
