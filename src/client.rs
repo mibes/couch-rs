@@ -34,6 +34,8 @@ pub struct Client {
 }
 
 impl Client {
+    /// new creates a new Couch client. The URI has to be in this format: http://hostname:5984,
+    /// for example: http://192.168.64.5:5984
     pub fn new(uri: &str) -> Result<Client, CouchError> {
         let client = reqwest::blocking::Client::builder()
             .gzip(true)

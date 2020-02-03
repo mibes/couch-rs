@@ -7,17 +7,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [0.6.0] - 2018-08-23
+## [0.7.0] - 2020-02-03
 
 ### Added
 
-- Added `failure` dependency
 - Added `Client::make_db`
 - Added `docker-compose.yml`
 - Added `.rustfmt.toml`
 
 ### Changed
 
+- Updated to the Rust 2018 edition standards
+- Compiles against the latest reqwest and serde libraries
 - Optimized memory consumption by moving `iter()` calls to `into_iter()` where needed
 - Changed `SofaError` to derive `failure`
 - Changed `Client::check_status` signature to remove potentially panicking `unwrap()` calls
@@ -45,3 +46,4 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 
 - Removed env files that were necessary for single-threaded test run. Added section in README to reflect that.
+- Removed the `failure` dependency

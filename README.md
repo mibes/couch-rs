@@ -1,10 +1,11 @@
 # Sofa - CouchDB for Rust
 
-[![Crates.io](https://img.shields.io/crates/v/sofa.svg)](https://crates.io/crates/sofa)[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FYellowInnovation%2Fsofa.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FYellowInnovation%2Fsofa?ref=badge_shield)
+[![Crates.io](https://img.shields.io/crates/v/sofa.svg)](https://crates.io/crates/sofa)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FYellowInnovation%2Fsofa.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FYellowInnovation%2Fsofa?ref=badge_shield)
 
 [![docs.rs](https://docs.rs/sofa/badge.svg)](https://docs.rs/sofa)
 
-![sofa-logo](https://raw.githubusercontent.com/YellowInnovation/sofa/master/docs/logo-sofa.png "Logo Sofa")
+![sofa-logo](https://raw.githubusercontent.com/mibes/sofa/master/docs/logo-sofa.png "Logo Sofa")
 
 ## Documentation
 
@@ -14,7 +15,7 @@ Here: [http://docs.rs/sofa](http://docs.rs/sofa)
 
 ```toml
 [dependencies]
-sofa = "0.6"
+sofa = "0.7"
 ```
 
 ## Description
@@ -32,6 +33,9 @@ No async I/O (yet), uses a mix of Reqwest and Serde under the hood, with a few n
 **Supports CouchDB 2.0 and up.**
 
 Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/index.html) in detail to see what's possible.
+
+The 0.7 version is based on the 0.6 release from https://github.com/YellowInnovation/sofa.
+It has been updated to the Rust 2018 edition standards and compiles against the latest serde and reqwest libraries.
 
 ## Running tests
 
