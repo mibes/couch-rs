@@ -124,6 +124,27 @@ impl Database {
         self.get_bulk_params(ids, None)
     }
 
+    /// Each time a document is stored or updated in CouchDB, the internal B-tree is updated.
+    /// Bulk insertion provides efficiency gains in both storage space, and time,
+    /// by consolidating many of the updates to intermediate B-tree nodes.
+    ///
+    /// See the documentation on how to use bulk_docs here: https://docs.couchdb.org/en/stable/api/database/bulk-api.html#db-bulk-docs
+    ///
+    /// raw_docs is a vector of documents with or without an ID
+    ///
+    /// This endpoint can also be used to delete a set of documents by including "_deleted": true, in the document to be deleted.
+    /// When deleting or updating, both _id and _rev are mandatory.
+    pub fn bulk_docs(&self, raw_docs: Vec<Value>) -> Result<Vec<DocumentCreatedResult>, CouchError> {
+        let mut body = HashMap::new();
+        body.insert(s!("docs"), raw_docs);
+
+        let response = self._client.post(self.create_document_path("_bulk_docs".into()), to_string(&body)?)?.send()?;
+        let status = response.status();
+
+        let data: Vec<DocumentCreatedResult> = from_reader(response)?;
+        Ok(data)
+    }
+
     /// Gets documents in bulk with provided IDs list, with added params. Params description can be found here: Parameters description can be found here: http://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view
     pub fn get_bulk_params(
         &self,
