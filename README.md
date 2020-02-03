@@ -13,9 +13,21 @@ Here: [http://docs.rs/sofa](http://docs.rs/sofa)
 
 ## Installation
 
+If you want to use this particular fork, clone the project locally:
+
+```bash
+git clone https://github.com/mibes/sofa.git
+```
+and include it in your Cargo.toml file:
 ```toml
 [dependencies]
-sofa = "0.7"
+sofa = { path = "../sofa" }
+```
+
+If you want to continue to use the "old" 0.6 version use this dependency instead:
+```toml
+[dependencies]
+sofa = "0.6"
 ```
 
 ## Description
