@@ -58,7 +58,7 @@ fn main() {
         Err(err) => panic!("Oops: {:?}", err),
     }
 
-    let mut first_doc_id = String::from("");
+    let mut first_doc_id: Option<String> = None;
 
     if db_initialized {
         // let's add some docs
@@ -66,8 +66,7 @@ fn main() {
             Ok(resp) => {
                 println!("Bulk docs completed");
 
-                let first_doc = resp.first().unwrap().clone();
-                first_doc_id = first_doc.id.unwrap_or(String::from(""));
+                first_doc_id = resp.first().unwrap().clone().id;
 
                 for r in resp {
                     println!("Id: {}, OK?: {}", r.id.unwrap_or("--".to_string()), r.ok.unwrap_or(false))
@@ -79,9 +78,9 @@ fn main() {
 
     println!("---");
 
-    if first_doc_id != "" {
+    if first_doc_id.is_some() {
         // we have an id of the first document we've just inserted
-        match db.get(first_doc_id) {
+        match db.get(first_doc_id.unwrap()) {
             Ok(doc) => { println!("First document: {}", doc.get_data().to_string()) }
             Err(err) => println!("Oops: {:?}", err),
         }
