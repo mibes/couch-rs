@@ -116,7 +116,11 @@ impl Database {
     pub fn get(&self, id: DocumentId) -> Result<Document, CouchError> {
         let response = self._client.get(self.create_document_path(id), None)?.send()?;
 
-        Ok(Document::new(from_reader(response)?))
+        match response.status() {
+            StatusCode::OK => Ok(Document::new(from_reader(response)?)),
+            StatusCode::NOT_FOUND => Err(CouchError::new("Document was not found".to_string(), StatusCode::NOT_FOUND)),
+            _ => Err(CouchError::new("Internal error".to_string(), response.status())),
+        }
     }
 
     /// Gets documents in bulk with provided IDs list

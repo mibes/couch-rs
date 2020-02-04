@@ -6,8 +6,8 @@ use std::fmt;
 // implementation, or do something in between.
 #[derive(Debug, Clone)]
 pub struct CouchError {
-    status: reqwest::StatusCode,
-    message: String,
+    pub status: reqwest::StatusCode,
+    pub message: String,
 }
 
 impl CouchError {
