@@ -152,6 +152,7 @@ pub struct DocumentCollection {
     pub offset: u32,
     pub rows: Vec<DocumentCollectionItem>,
     pub total_rows: u32,
+    pub bookmark: Option<String>,
 }
 
 impl DocumentCollection {
@@ -173,16 +174,18 @@ impl DocumentCollection {
             offset: json_extr!(doc["offset"]),
             total_rows: items.len() as u32,
             rows: items,
+            bookmark: Option::None,
         }
     }
 
-    pub fn new_from_documents(docs: Vec<Document>) -> DocumentCollection {
+    pub fn new_from_documents(docs: Vec<Document>, bookmark: String) -> DocumentCollection {
         let len = docs.len() as u32;
 
         DocumentCollection {
             offset: 0,
             total_rows: len,
             rows: docs.into_iter().map(|d| DocumentCollectionItem::new(d)).collect(),
+            bookmark: Option::from(bookmark),
         }
     }
 

@@ -204,6 +204,7 @@ impl Database {
         let status = response.status();
 
         let data: FindResult = from_reader(response)?;
+
         if let Some(doc_val) = data.docs {
             let documents: Vec<Document> = doc_val
                 .into_iter()
@@ -215,7 +216,7 @@ impl Database {
                 .map(|v| Document::new(v.clone()))
                 .collect();
 
-            Ok(DocumentCollection::new_from_documents(documents))
+            Ok(DocumentCollection::new_from_documents(documents, data.bookmark.unwrap_or("".to_string())))
         } else if let Some(err) = data.error {
             Err(CouchError::new(err, status).into())
         } else {
