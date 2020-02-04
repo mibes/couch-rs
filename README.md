@@ -42,7 +42,7 @@ No async I/O (yet), uses a mix of Reqwest and Serde under the hood, with a few n
 
 **NOT 1.0 YET, so expect changes**
 
-**Supports CouchDB 2.0 and up.**
+**Supports CouchDB 2.3.0 and up.**
 
 Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/index.html) in detail to see what's possible.
 
