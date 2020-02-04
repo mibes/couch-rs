@@ -216,7 +216,15 @@ impl Database {
                 .map(|v| Document::new(v.clone()))
                 .collect();
 
-            Ok(DocumentCollection::new_from_documents(documents, data.bookmark.unwrap_or("".to_string())))
+            let mut bookmark = Option::None;
+            let returned_bookmark = data.bookmark.unwrap_or_default();
+
+            if returned_bookmark != "nil" && returned_bookmark != "" {
+                // a valid bookmark has been returned
+                bookmark = Option::from(returned_bookmark);
+            }
+
+            Ok(DocumentCollection::new_from_documents(documents, bookmark))
         } else if let Some(err) = data.error {
             Err(CouchError::new(err, status).into())
         } else {

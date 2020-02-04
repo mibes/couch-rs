@@ -178,14 +178,14 @@ impl DocumentCollection {
         }
     }
 
-    pub fn new_from_documents(docs: Vec<Document>, bookmark: String) -> DocumentCollection {
+    pub fn new_from_documents(docs: Vec<Document>, bookmark: Option<String>) -> DocumentCollection {
         let len = docs.len() as u32;
 
         DocumentCollection {
             offset: 0,
             total_rows: len,
             rows: docs.into_iter().map(|d| DocumentCollectionItem::new(d)).collect(),
-            bookmark: Option::from(bookmark),
+            bookmark,
         }
     }
 
