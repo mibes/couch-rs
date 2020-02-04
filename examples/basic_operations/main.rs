@@ -17,7 +17,7 @@ extern crate sofa;
 use serde_json::{json, Value};
 
 /// Update DB_HOST to point to your running Couch instance
-const DB_HOST: &'static str = "http://192.168.64.5:5984";
+const DB_HOST: &'static str = "http://localhost:5984";
 const TEST_DB: &'static str = "test_db";
 
 /// test_docs generates a bunch of documents that can be used in the _bulk_docs operation.
