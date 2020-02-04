@@ -28,34 +28,40 @@ pub struct Client {
     _client: reqwest::blocking::Client,
     dbs: Vec<&'static str>,
     _gzip: bool,
-    _timeout: u8,
+    _timeout: u64,
     pub uri: String,
-    pub db_prefix: String
+    pub db_prefix: String,
 }
 
 impl Client {
-    /// new creates a new Couch client. The URI has to be in this format: http://hostname:5984,
-    /// for example: http://192.168.64.5:5984
+    /// new creates a new Couch client with a default timeout of 5 seconds.
+    /// The URI has to be in this format: http://hostname:5984, for example: http://192.168.64.5:5984
     pub fn new(uri: &str) -> Result<Client, CouchError> {
+        Client::new_with_timeout(uri, 10)
+    }
+
+    /// new_with_timeout creates a new Couch client. The URI has to be in this format: http://hostname:5984,
+    /// timeout is in seconds.
+    pub fn new_with_timeout(uri: &str, timeout: u64) -> Result<Client, CouchError> {
         let client = reqwest::blocking::Client::builder()
             .gzip(true)
-            .timeout(Duration::new(4, 0))
+            .timeout(Duration::new(timeout, 0))
             .build()?;
 
         Ok(Client {
             _client: client,
             uri: uri.to_string(),
             _gzip: true,
-            _timeout: 4,
+            _timeout: timeout,
             dbs: Vec::new(),
-            db_prefix: String::new()
+            db_prefix: String::new(),
         })
     }
 
     fn create_client(&self) -> Result<reqwest::blocking::Client, CouchError> {
         let client = reqwest::blocking::Client::builder()
             .gzip(self._gzip)
-            .timeout(Duration::new(self._timeout as u64, 0))
+            .timeout(Duration::new(self._timeout, 0))
             .build()?;
 
         Ok(client)
@@ -82,7 +88,7 @@ impl Client {
         Ok(self)
     }
 
-    pub fn timeout(&mut self, to: u8) -> Result<&Self, CouchError> {
+    pub fn timeout(&mut self, to: u64) -> Result<&Self, CouchError> {
         self._timeout = to;
         self._client = self.create_client()?;
 
