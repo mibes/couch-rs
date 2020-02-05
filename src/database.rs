@@ -221,7 +221,7 @@ impl Database {
 
             if returned_bookmark != "nil" && returned_bookmark != "" {
                 // a valid bookmark has been returned
-                bookmark = Option::from(returned_bookmark);
+                bookmark.replace(returned_bookmark);
             }
 
             Ok(DocumentCollection::new_from_documents(documents, bookmark))
