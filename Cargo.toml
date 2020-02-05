@@ -27,3 +27,4 @@ features = ["json", "gzip", "cookies", "blocking"]
 
 [dev-dependencies]
 pretty_assertions = "0.5"
+tokio = { version = "0.2.11", features = ["full"] }
