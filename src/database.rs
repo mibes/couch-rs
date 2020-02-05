@@ -8,8 +8,9 @@ use crate::document::{Document, DocumentCollection};
 use crate::error::CouchError;
 use crate::client::Client;
 use crate::types::document::{DocumentId, DocumentCreatedResult};
-use crate::types::find::FindResult;
+use crate::types::find::{FindResult, FindQuery};
 use crate::types::index::{IndexFields, IndexCreated, DatabaseIndexList};
+use std::sync::mpsc::{Sender};
 
 /// Database holds the logic of making operations on a CouchDB Database
 /// (sometimes called Collection in other NoSQL flavors such as MongoDB).
@@ -177,6 +178,54 @@ impl Database {
     /// Gets all the documents in database
     pub fn get_all(&self) -> Result<DocumentCollection, CouchError> {
         self.get_all_params(None)
+    }
+
+    /// Gets all documents in the database, using bookmarks to iterate through all the documents.
+    /// Results are returned through an mpcs channel for async processing. Use this for very large
+    /// databases only. Batch size can be requested. A value of 0, means the default batch_size of
+    /// 1000 is used. max_results of 0 means all documents will be returned. A given max_results is
+    /// always rounded *up* to the nearest multiplication of batch_size.
+    pub fn get_all_batched(&self, tx: Sender<DocumentCollection>, batch_size: u64, max_results: u64) -> u64 {
+        let mut bookmark = Option::None;
+        let limit = if batch_size > 0 {
+            batch_size
+        } else {
+            1000
+        };
+
+        let mut results: u64 = 0;
+
+        loop {
+            let mut query = FindQuery::find_all();
+
+            query.limit = Option::Some(limit);
+            query.bookmark = bookmark.clone();
+
+            let all_docs = self.find(
+                serde_json::to_value(query).unwrap()).unwrap();
+
+            if all_docs.total_rows == 0 {
+                // no more rows
+                break;
+            }
+
+            if all_docs.bookmark.is_some() && all_docs.bookmark != bookmark {
+                bookmark.replace(all_docs.bookmark.clone().unwrap_or_default());
+            } else {
+                // no bookmark, break the query loop
+                break;
+            }
+
+            results += all_docs.total_rows.clone() as u64;
+
+            tx.send(all_docs).unwrap();
+
+            if max_results > 0 && results >= max_results {
+                break;
+            }
+        }
+
+        results
     }
 
     /// Gets all the documents in database, with applied parameters. Parameters description can be found here: http://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view
