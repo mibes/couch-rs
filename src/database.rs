@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use reqwest::StatusCode;
 
 use serde_json;
-use serde_json::{from_reader, to_string, Value, json};
+use serde_json::{to_string, Value, json};
 use crate::document::{Document, DocumentCollection};
 use crate::error::CouchError;
 use crate::client::Client;
@@ -118,7 +118,7 @@ impl Database {
         let response = self._client.get(self.create_document_path(id), None)?.send()?;
 
         match response.status() {
-            StatusCode::OK => Ok(Document::new(from_reader(response)?)),
+            StatusCode::OK => Ok(Document::new(response.json()?)),
             StatusCode::NOT_FOUND => Err(CouchError::new("Document was not found".to_string(), StatusCode::NOT_FOUND)),
             _ => Err(CouchError::new("Internal error".to_string(), response.status())),
         }
@@ -144,7 +144,7 @@ impl Database {
         body.insert(s!("docs"), raw_docs);
 
         let response = self._client.post(self.create_document_path("_bulk_docs".into()), to_string(&body)?)?.send()?;
-        let data: Vec<DocumentCreatedResult> = from_reader(response)?;
+        let data: Vec<DocumentCreatedResult> = response.json()?;
 
         Ok(data)
     }
@@ -172,7 +172,7 @@ impl Database {
             .body(to_string(&body)?)
             .send()?;
 
-        Ok(DocumentCollection::new(from_reader(response)?))
+        Ok(DocumentCollection::new(response.json()?))
     }
 
     /// Gets all the documents in database
@@ -243,7 +243,7 @@ impl Database {
             .get(self.create_document_path("_all_docs".into()), Some(options))?
             .send()?;
 
-        Ok(DocumentCollection::new(from_reader(response)?))
+        Ok(DocumentCollection::new(response.json()?))
     }
 
     /// Finds a document in the database through a Mango query. Parameters here http://docs.couchdb.org/en/latest/api/database/find.html
@@ -251,8 +251,7 @@ impl Database {
         let path = self.create_document_path("_find".into());
         let response = self._client.post(path, js!(&params))?.send()?;
         let status = response.status();
-
-        let data: FindResult = from_reader(response)?;
+        let data: FindResult = response.json().unwrap();
 
         if let Some(doc_val) = data.docs {
             let documents: Vec<Document> = doc_val
@@ -291,7 +290,7 @@ impl Database {
             .send()?;
 
         let status = response.status();
-        let data: DocumentCreatedResult = from_reader(response)?;
+        let data: DocumentCreatedResult = response.json()?;
 
         match data.ok {
             Some(true) => {
@@ -312,7 +311,7 @@ impl Database {
         let response = self._client.post(self.name.clone(), to_string(&raw_doc)?)?.send()?;
         let status = response.status();
 
-        let data: DocumentCreatedResult = from_reader(response)?;
+        let data: DocumentCreatedResult = response.json()?;
 
         match data.ok {
             Some(true) => {
@@ -378,7 +377,7 @@ impl Database {
             .send()?;
 
         let status = response.status();
-        let data: IndexCreated = from_reader(response)?;
+        let data: IndexCreated = response.json()?;
 
         if data.error.is_some() {
             let err = data.error.unwrap_or(s!("unspecified error"));
@@ -394,7 +393,7 @@ impl Database {
             .get(self.create_document_path("_index".into()), None)?
             .send()?;
 
-        Ok(from_reader(response)?)
+        Ok(response.json()?)
     }
 
     /// Method to ensure an index is created on the database with the following
