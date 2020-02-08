@@ -29,8 +29,6 @@ sofa = "0.6"
 
 This crate is an interface to CouchDB HTTP REST API. Works with stable Rust.
 
-Does not support `#![no_std]`
-
 After trying most crates for CouchDB in Rust (`chill`, `couchdb` in particular), none of them fit our needs hence the need to create our own.
 
 Uses async I/O, with a mix of Reqwest and Serde under the hood, and a few nice abstractions out there.
@@ -42,7 +40,8 @@ Uses async I/O, with a mix of Reqwest and Serde under the hood, and a few nice a
 Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/index.html) in detail to see what's possible.
 
 The 0.7 version is based on the 0.6 release from https://github.com/YellowInnovation/sofa.
-It has been updated to the Rust 2018 edition standards and compiles against the latest serde and reqwest libraries.
+It has been updated to the Rust 2018 edition standards, uses async I/O, and compiles against the latest serde and 
+reqwest libraries.
 
 ## Example code
 
