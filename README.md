@@ -33,7 +33,7 @@ Does not support `#![no_std]`
 
 After trying most crates for CouchDB in Rust (`chill`, `couchdb` in particular), none of them fit our needs hence the need to create our own.
 
-No async I/O (yet), uses a mix of Reqwest and Serde under the hood, with a few nice abstractions out there.
+Uses async I/O, with a mix of Reqwest and Serde under the hood, and a few nice abstractions out there.
 
 **NOT 1.0 YET, so expect changes**
 
