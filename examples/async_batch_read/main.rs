@@ -1,8 +1,8 @@
 extern crate sofa;
 
 use std::time::SystemTime;
-use std::sync::mpsc::{Sender, Receiver};
-use std::sync::mpsc;
+use tokio::sync::mpsc::{Sender, Receiver};
+use tokio::sync::mpsc;
 use sofa::document::DocumentCollection;
 use std::fs::File;
 use std::io::prelude::*;
@@ -16,7 +16,7 @@ async fn main() {
     let now = SystemTime::now();
 
     // Create a sender and receiver channel pair
-    let (tx, rx): (Sender<DocumentCollection>, Receiver<DocumentCollection>) = mpsc::channel();
+    let (tx, mut rx): (Sender<DocumentCollection>, Receiver<DocumentCollection>) = mpsc::channel(100);
 
     // Spawn a separate thread to retrieve the batches from Couch
     let t = tokio::spawn(async move {
@@ -31,8 +31,8 @@ async fn main() {
 
     // Loop until the receiving channel is closed.
     loop {
-        match rx.recv() {
-            Ok(all_docs) => {
+        match rx.recv().await {
+            Some(all_docs) => {
                 println!("Received {} docs", all_docs.total_rows);
 
                 // unmarshal the documents and write them to a file.
@@ -41,7 +41,7 @@ async fn main() {
                     file.write_all(serde_json::to_string(&row.doc).unwrap().as_bytes()).unwrap();
                 }
             }
-            Err(_e) => {
+            None => {
                 break;
             }
         }

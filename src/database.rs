@@ -10,7 +10,7 @@ use crate::client::Client;
 use crate::types::document::{DocumentId, DocumentCreatedResult};
 use crate::types::find::{FindResult, FindQuery};
 use crate::types::index::{IndexFields, IndexCreated, DatabaseIndexList};
-use std::sync::mpsc::{Sender};
+use tokio::sync::mpsc::{Sender};
 
 /// Database holds the logic of making operations on a CouchDB Database
 /// (sometimes called Collection in other NoSQL flavors such as MongoDB).
@@ -183,7 +183,7 @@ impl Database {
     /// databases only. Batch size can be requested. A value of 0, means the default batch_size of
     /// 1000 is used. max_results of 0 means all documents will be returned. A given max_results is
     /// always rounded *up* to the nearest multiplication of batch_size.
-    pub async fn get_all_batched(&self, tx: Sender<DocumentCollection>, batch_size: u64, max_results: u64) -> u64 {
+    pub async fn get_all_batched(&self, mut tx: Sender<DocumentCollection>, batch_size: u64, max_results: u64) -> u64 {
         let mut bookmark = Option::None;
         let limit = if batch_size > 0 {
             batch_size
@@ -216,7 +216,7 @@ impl Database {
 
             results += all_docs.total_rows.clone() as u64;
 
-            tx.send(all_docs).unwrap();
+            tx.send(all_docs).await.unwrap();
 
             if max_results > 0 && results >= max_results {
                 break;
