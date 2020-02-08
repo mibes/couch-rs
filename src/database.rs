@@ -1,7 +1,5 @@
 use std::collections::HashMap;
-
-use reqwest::StatusCode;
-
+use reqwest::{StatusCode, RequestBuilder};
 use serde_json;
 use serde_json::{to_string, Value, json};
 use crate::document::{Document, DocumentCollection};
@@ -10,7 +8,7 @@ use crate::client::Client;
 use crate::types::document::{DocumentId, DocumentCreatedResult};
 use crate::types::find::{FindResult, FindQuery};
 use crate::types::index::{IndexFields, IndexCreated, DatabaseIndexList};
-use tokio::sync::mpsc::{Sender};
+use tokio::sync::mpsc::Sender;
 
 /// Database holds the logic of making operations on a CouchDB Database
 /// (sometimes called Collection in other NoSQL flavors such as MongoDB).
@@ -50,13 +48,7 @@ impl Database {
         result
     }
 
-    /// Launches the compact process
-    pub async fn compact(&self) -> bool {
-        let mut path: String = self.name.clone();
-        path.push_str("/_compact");
-
-        let request = self._client.post(path, "".into());
-
+    async fn is_accepted(&self, request: Result<RequestBuilder, CouchError>) -> bool {
         if let Ok(req) = request {
             if let Ok(res) = req.send().await {
                 return res.status() == StatusCode::ACCEPTED;
@@ -64,6 +56,28 @@ impl Database {
         }
 
         return false;
+    }
+
+    async fn is_ok(&self, request: Result<RequestBuilder, CouchError>) -> bool {
+        if let Ok(req) = request {
+            if let Ok(res) = req.send().await {
+                return match res.status() {
+                    StatusCode::OK | StatusCode::NOT_MODIFIED => true,
+                    _ => false,
+                };
+            }
+        }
+
+        return false;
+    }
+
+    /// Launches the compact process
+    pub async fn compact(&self) -> bool {
+        let mut path: String = self.name.clone();
+        path.push_str("/_compact");
+
+        let request = self._client.post(path, "".into());
+        self.is_accepted(request).await
     }
 
     /// Starts the compaction of all views
@@ -72,43 +86,19 @@ impl Database {
         path.push_str("/_view_cleanup");
 
         let request = self._client.post(path, "".into());
-
-        if let Ok(req) = request {
-            if let Ok(res) = req.send().await {
-                return res.status() == StatusCode::ACCEPTED;
-            }
-        }
-
-        return false;
+        self.is_accepted(request).await
     }
 
     /// Starts the compaction of a given index
     pub async fn compact_index(&self, index: &'static str) -> bool {
         let request = self._client.post(self.create_compact_path(index), "".into());
-
-        if let Ok(req) = request {
-            if let Ok(res) = req.send().await {
-                return res.status() == StatusCode::ACCEPTED;
-            }
-        }
-
-        return false;
+        self.is_accepted(request).await
     }
 
     /// Checks if a document ID exists
     pub async fn exists(&self, id: DocumentId) -> bool {
         let request = self._client.head(self.create_document_path(id), None);
-
-        if let Ok(req) = request {
-            if let Ok(res) = req.send().await {
-                return match res.status() {
-                    StatusCode::OK | StatusCode::NOT_MODIFIED => true,
-                    _ => false,
-                }
-            }
-        }
-
-        return false;
+        self.is_ok(request).await
     }
 
     /// Gets one document
@@ -347,16 +337,7 @@ impl Database {
             }),
         );
 
-        if let Ok(req) = request {
-            if let Ok(res) = req.send().await {
-                return match res.status() {
-                    StatusCode::OK | StatusCode::NOT_MODIFIED => true,
-                    _ => false,
-                }
-            }
-        }
-
-        return false;
+        self.is_ok(request).await
     }
 
     /// Inserts an index in a naive way, if it already exists, will throw an
