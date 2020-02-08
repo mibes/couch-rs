@@ -69,7 +69,7 @@ impl Document {
 
     /// Recursively populates field (must be an array of IDs from another
     /// database) with provided database documents
-    pub fn populate(&mut self, field: &String, db: Database) -> &Self {
+    pub async fn populate(&mut self, field: &String, db: Database) -> &Self {
         let ref val = self[field].clone();
         if *val == Value::Null {
             return self;
@@ -81,7 +81,7 @@ impl Document {
             .map(|v| s!(v.as_str().unwrap_or("")))
             .collect();
 
-        let data = db.get_bulk(ids).and_then(|docs| Ok(docs.get_data()));
+        let data = db.get_bulk(ids).await.and_then(|docs| Ok(docs.get_data()));
 
         match data {
             Ok(data) => {

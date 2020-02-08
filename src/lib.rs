@@ -146,32 +146,32 @@ mod sofa_tests {
         use serde_json::{json};
         use crate::client::Client;
 
-        #[test]
-        fn a_should_check_couchdbs_status() {
+        #[tokio::test]
+        async fn a_should_check_couchdbs_status() {
             let client = Client::new(DB_HOST.into()).unwrap();
-            let status = client.check_status();
+            let status = client.check_status().await;
             assert!(status.is_ok());
         }
 
-        #[test]
-        fn b_should_create_sofa_test_db() {
+        #[tokio::test]
+        async fn b_should_create_sofa_test_db() {
             let client = Client::new(DB_HOST.into()).unwrap();
-            let dbw = client.db("b_should_create_sofa_test_db");
+            let dbw = client.db("b_should_create_sofa_test_db").await;
             assert!(dbw.is_ok());
 
             let _ = client.destroy_db("b_should_create_sofa_test_db");
         }
 
-        #[test]
-        fn c_should_create_a_document() {
+        #[tokio::test]
+        async fn c_should_create_a_document() {
             let client = Client::new(DB_HOST.into()).unwrap();
-            let dbw = client.db("c_should_create_a_document");
+            let dbw = client.db("c_should_create_a_document").await;
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
 
             let ndoc_result = db.create(json!({
                 "thing": true
-            }));
+            })).await;
 
             assert!(ndoc_result.is_ok());
 
@@ -181,12 +181,12 @@ mod sofa_tests {
             let _ = client.destroy_db("c_should_create_a_document");
         }
 
-        #[test]
-        fn d_should_destroy_the_db() {
+        #[tokio::test]
+        async fn d_should_destroy_the_db() {
             let client = Client::new(DB_HOST.into()).unwrap();
-            let _ = client.db("d_should_destroy_the_db");
+            let _ = client.db("d_should_destroy_the_db").await;
 
-            assert!(client.destroy_db("d_should_destroy_the_db").unwrap());
+            assert!(client.destroy_db("d_should_destroy_the_db").await.unwrap());
         }
     }
 
@@ -199,15 +199,15 @@ mod sofa_tests {
 
         const DB_HOST: &'static str = "http://192.168.64.5:5984";
 
-        fn setup(dbname: &'static str) -> (Client, Database, Document) {
+        async fn setup(dbname: &'static str) -> (Client, Database, Document) {
             let client = Client::new(DB_HOST.into()).unwrap();
-            let dbw = client.db(dbname);
+            let dbw = client.db(dbname).await;
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
 
             let ndoc_result = db.create(json!({
                 "thing": true
-            }));
+            })).await;
 
             assert!(ndoc_result.is_ok());
 
@@ -217,85 +217,85 @@ mod sofa_tests {
             (client, db, doc)
         }
 
-        fn teardown(client: Client, dbname: &'static str) {
-            assert!(client.destroy_db(dbname).unwrap())
+        async fn teardown(client: Client, dbname: &'static str) {
+            assert!(client.destroy_db(dbname).await.unwrap())
         }
 
-        #[test]
-        fn a_should_update_a_document() {
-            let (client, db, mut doc) = setup("a_should_update_a_document");
+        #[tokio::test]
+        async fn a_should_update_a_document() {
+            let (client, db, mut doc) = setup("a_should_update_a_document").await;
 
             doc["thing"] = json!(false);
 
-            let save_result = db.save(doc);
+            let save_result = db.save(doc).await;
             assert!(save_result.is_ok());
             let new_doc = save_result.unwrap();
             assert_eq!(new_doc["thing"], json!(false));
 
-            teardown(client, "a_should_update_a_document");
+            teardown(client, "a_should_update_a_document").await;
         }
 
-        #[test]
-        fn b_should_remove_a_document() {
-            let (client, db, doc) = setup("b_should_remove_a_document");
-            assert!(db.remove(doc));
+        #[tokio::test]
+        async fn b_should_remove_a_document() {
+            let (client, db, doc) = setup("b_should_remove_a_document").await;
+            assert!(db.remove(doc).await);
 
-            teardown(client, "b_should_remove_a_document");
+            teardown(client, "b_should_remove_a_document").await;
         }
 
-        #[test]
-        fn c_should_get_a_single_document() {
-            let (client, ..) = setup("c_should_get_a_single_document");
+        #[tokio::test]
+        async fn c_should_get_a_single_document() {
+            let (client, ..) = setup("c_should_get_a_single_document").await;
             assert!(true);
-            teardown(client, "c_should_get_a_single_document");
+            teardown(client, "c_should_get_a_single_document").await;
         }
 
-        fn setup_create_indexes(dbname: &'static str) -> (Client, Database, Document) {
-            let (client, db, doc) = setup(dbname);
+        async fn setup_create_indexes(dbname: &'static str) -> (Client, Database, Document) {
+            let (client, db, doc) = setup(dbname).await;
 
             let spec = types::index::IndexFields::new(vec![types::find::SortSpec::Simple(s!("thing"))]);
 
-            let res = db.insert_index("thing-index".into(), spec);
+            let res = db.insert_index("thing-index".into(), spec).await;
 
             assert!(res.is_ok());
 
             (client, db, doc)
         }
 
-        #[test]
-        fn d_should_create_index_in_db() {
-            let (client, db, _) = setup_create_indexes("d_should_create_index_in_db");
+        #[tokio::test]
+        async fn d_should_create_index_in_db() {
+            let (client, db, _) = setup_create_indexes("d_should_create_index_in_db").await;
             assert!(true);
-            teardown(client, "d_should_create_index_in_db");
+            teardown(client, "d_should_create_index_in_db").await;
         }
 
-        #[test]
-        fn e_should_list_indexes_in_db() {
-            let (client, db, _) = setup_create_indexes("e_should_list_indexes_in_db");
+        #[tokio::test]
+        async fn e_should_list_indexes_in_db() {
+            let (client, db, _) = setup_create_indexes("e_should_list_indexes_in_db").await;
 
-            let index_list = db.read_indexes().unwrap();
+            let index_list = db.read_indexes().await.unwrap();
             assert!(index_list.indexes.len() > 1);
             let ref findex = index_list.indexes[1];
 
             assert_eq!(findex.name.as_str(), "thing-index");
-            teardown(client, "e_should_list_indexes_in_db");
+            teardown(client, "e_should_list_indexes_in_db").await;
         }
 
-        #[test]
-        fn f_should_ensure_index_in_db() {
-            let (client, db, _) = setup("f_should_ensure_index_in_db");
+        #[tokio::test]
+        async fn f_should_ensure_index_in_db() {
+            let (client, db, _) = setup("f_should_ensure_index_in_db").await;
 
             let spec = types::index::IndexFields::new(vec![types::find::SortSpec::Simple(s!("thing"))]);
 
-            let res = db.ensure_index("thing-index".into(), spec);
+            let res = db.ensure_index("thing-index".into(), spec).await;
             assert!(res.is_ok());
 
-            teardown(client, "f_should_ensure_index_in_db");
+            teardown(client, "f_should_ensure_index_in_db").await;
         }
 
-        #[test]
-        fn g_should_find_documents_in_db() {
-            let (client, db, doc) = setup_create_indexes("g_should_find_documents_in_db");
+        #[tokio::test]
+        async fn g_should_find_documents_in_db() {
+            let (client, db, doc) = setup_create_indexes("g_should_find_documents_in_db").await;
 
             let documents_res = db.find(json!({
                 "selector": {
@@ -305,13 +305,13 @@ mod sofa_tests {
                 "sort": [{
                     "thing": "desc"
                 }]
-            }));
+            })).await;
 
             assert!(documents_res.is_ok());
             let documents = documents_res.unwrap();
             assert_eq!(documents.rows.len(), 1);
 
-            teardown(client, "g_should_find_documents_in_db");
+            teardown(client, "g_should_find_documents_in_db").await;
         }
     }
 }

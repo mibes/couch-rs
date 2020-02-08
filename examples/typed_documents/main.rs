@@ -25,7 +25,8 @@ pub struct TestDoc {
     pub last_name: String,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     println!("Connecting...");
 
     // Prepare the Sofa client
@@ -33,7 +34,7 @@ fn main() {
 
     // This command gets a reference to an existing database, or it creates a new one when it does
     // not yet exist.
-    let db = client.db(TEST_DB).unwrap();
+    let db = client.db(TEST_DB).await.unwrap();
 
     let td = TestDoc {
         _id: "1234".to_string(),
@@ -43,7 +44,7 @@ fn main() {
     };
 
     // check if the document already exists
-    match db.get("1234".to_string()) {
+    match db.get("1234".to_string()).await {
         Ok(existing) => {
             println!("Document has been previously created with Rev: {}", existing._rev);
             let e: TestDoc = serde_json::from_value(existing.get_data()).unwrap();
@@ -53,7 +54,7 @@ fn main() {
             match e.status {
                 StatusCode::NOT_FOUND => {
                     // create the document
-                    match db.create(serde_json::to_value(td).unwrap()) {
+                    match db.create(serde_json::to_value(td).unwrap()).await {
                         Ok(r) => println!("Document was created with ID: {} and Rev: {}", r._id, r._rev),
                         Err(err) => println!("Oops: {:?}", err),
                     }

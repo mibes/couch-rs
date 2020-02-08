@@ -19,11 +19,11 @@ async fn main() {
     let (tx, rx): (Sender<DocumentCollection>, Receiver<DocumentCollection>) = mpsc::channel();
 
     // Spawn a separate thread to retrieve the batches from Couch
-    let t = tokio::task::spawn_blocking(move || {
+    let t = tokio::spawn(async move {
         let client = sofa::Client::new_with_timeout(DB_HOST, 120).unwrap();
-        let db = client.db(TEST_DB).unwrap();
+        let db = client.db(TEST_DB).await.unwrap();
 
-        db.get_all_batched(tx, 0, 0);
+        db.get_all_batched(tx, 0, 0).await;
     });
 
     // Open a file for writing

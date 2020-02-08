@@ -51,82 +51,80 @@ impl Database {
     }
 
     /// Launches the compact process
-    pub fn compact(&self) -> bool {
+    pub async fn compact(&self) -> bool {
         let mut path: String = self.name.clone();
         path.push_str("/_compact");
 
         let request = self._client.post(path, "".into());
 
-        request
-            .and_then(|req| {
-                Ok(req.send()
-                    .and_then(|res| Ok(res.status() == StatusCode::ACCEPTED))
-                    .unwrap_or(false))
-            })
-            .unwrap_or(false)
+        if let Ok(req) = request {
+            if let Ok(res) = req.send().await {
+                return res.status() == StatusCode::ACCEPTED;
+            }
+        }
+
+        return false;
     }
 
     /// Starts the compaction of all views
-    pub fn compact_views(&self) -> bool {
+    pub async fn compact_views(&self) -> bool {
         let mut path: String = self.name.clone();
         path.push_str("/_view_cleanup");
 
         let request = self._client.post(path, "".into());
 
-        request
-            .and_then(|req| {
-                Ok(req.send()
-                    .and_then(|res| Ok(res.status() == StatusCode::ACCEPTED))
-                    .unwrap_or(false))
-            })
-            .unwrap_or(false)
+        if let Ok(req) = request {
+            if let Ok(res) = req.send().await {
+                return res.status() == StatusCode::ACCEPTED;
+            }
+        }
+
+        return false;
     }
 
     /// Starts the compaction of a given index
-    pub fn compact_index(&self, index: &'static str) -> bool {
+    pub async fn compact_index(&self, index: &'static str) -> bool {
         let request = self._client.post(self.create_compact_path(index), "".into());
 
-        request
-            .and_then(|req| {
-                Ok(req.send()
-                    .and_then(|res| Ok(res.status() == StatusCode::ACCEPTED))
-                    .unwrap_or(false))
-            })
-            .unwrap_or(false)
+        if let Ok(req) = request {
+            if let Ok(res) = req.send().await {
+                return res.status() == StatusCode::ACCEPTED;
+            }
+        }
+
+        return false;
     }
 
     /// Checks if a document ID exists
-    pub fn exists(&self, id: DocumentId) -> bool {
+    pub async fn exists(&self, id: DocumentId) -> bool {
         let request = self._client.head(self.create_document_path(id), None);
 
-        request
-            .and_then(|req| {
-                Ok(req.send()
-                    .and_then(|res| {
-                        Ok(match res.status() {
-                            StatusCode::OK | StatusCode::NOT_MODIFIED => true,
-                            _ => false,
-                        })
-                    })
-                    .unwrap_or(false))
-            })
-            .unwrap_or(false)
+        if let Ok(req) = request {
+            if let Ok(res) = req.send().await {
+                return match res.status() {
+                    StatusCode::OK | StatusCode::NOT_MODIFIED => true,
+                    _ => false,
+                }
+            }
+        }
+
+        return false;
     }
 
     /// Gets one document
-    pub fn get(&self, id: DocumentId) -> Result<Document, CouchError> {
-        let response = self._client.get(self.create_document_path(id), None)?.send()?;
+    pub async fn get(&self, id: DocumentId) -> Result<Document, CouchError> {
+        let response = self._client.get(self.create_document_path(id), None)?.send().await?;
 
         match response.status() {
-            StatusCode::OK => Ok(Document::new(response.json()?)),
+            StatusCode::OK => Ok(Document::new(response.json().await?)),
             StatusCode::NOT_FOUND => Err(CouchError::new("Document was not found".to_string(), StatusCode::NOT_FOUND)),
             _ => Err(CouchError::new("Internal error".to_string(), response.status())),
         }
     }
 
     /// Gets documents in bulk with provided IDs list
-    pub fn get_bulk(&self, ids: Vec<DocumentId>) -> Result<DocumentCollection, CouchError> {
-        self.get_bulk_params(ids, None)
+    pub async fn get_bulk(&self, ids: Vec<DocumentId>) -> Result<DocumentCollection, CouchError> {
+        self.get_bulk_params(ids, None).await
     }
 
     /// Each time a document is stored or updated in CouchDB, the internal B-tree is updated.
@@ -139,18 +137,18 @@ impl Database {
     ///
     /// This endpoint can also be used to delete a set of documents by including "_deleted": true, in the document to be deleted.
     /// When deleting or updating, both _id and _rev are mandatory.
-    pub fn bulk_docs(&self, raw_docs: Vec<Value>) -> Result<Vec<DocumentCreatedResult>, CouchError> {
+    pub async fn bulk_docs(&self, raw_docs: Vec<Value>) -> Result<Vec<DocumentCreatedResult>, CouchError> {
         let mut body = HashMap::new();
         body.insert(s!("docs"), raw_docs);
 
-        let response = self._client.post(self.create_document_path("_bulk_docs".into()), to_string(&body)?)?.send()?;
-        let data: Vec<DocumentCreatedResult> = response.json()?;
+        let response = self._client.post(self.create_document_path("_bulk_docs".into()), to_string(&body)?)?.send().await?;
+        let data: Vec<DocumentCreatedResult> = response.json().await?;
 
         Ok(data)
     }
 
     /// Gets documents in bulk with provided IDs list, with added params. Params description can be found here: Parameters description can be found here: http://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view
-    pub fn get_bulk_params(
+    pub async fn get_bulk_params(
         &self,
         ids: Vec<DocumentId>,
         params: Option<HashMap<String, String>>,
@@ -170,14 +168,14 @@ impl Database {
         let response = self._client
             .get(self.create_document_path("_all_docs".into()), Some(options))?
             .body(to_string(&body)?)
-            .send()?;
+            .send().await?;
 
-        Ok(DocumentCollection::new(response.json()?))
+        Ok(DocumentCollection::new(response.json().await?))
     }
 
     /// Gets all the documents in database
-    pub fn get_all(&self) -> Result<DocumentCollection, CouchError> {
-        self.get_all_params(None)
+    pub async fn get_all(&self) -> Result<DocumentCollection, CouchError> {
+        self.get_all_params(None).await
     }
 
     /// Gets all documents in the database, using bookmarks to iterate through all the documents.
@@ -185,7 +183,7 @@ impl Database {
     /// databases only. Batch size can be requested. A value of 0, means the default batch_size of
     /// 1000 is used. max_results of 0 means all documents will be returned. A given max_results is
     /// always rounded *up* to the nearest multiplication of batch_size.
-    pub fn get_all_batched(&self, tx: Sender<DocumentCollection>, batch_size: u64, max_results: u64) -> u64 {
+    pub async fn get_all_batched(&self, tx: Sender<DocumentCollection>, batch_size: u64, max_results: u64) -> u64 {
         let mut bookmark = Option::None;
         let limit = if batch_size > 0 {
             batch_size
@@ -202,7 +200,7 @@ impl Database {
             query.bookmark = bookmark.clone();
 
             let all_docs = self.find(
-                serde_json::to_value(query).unwrap()).unwrap();
+                serde_json::to_value(query).unwrap()).await.unwrap();
 
             if all_docs.total_rows == 0 {
                 // no more rows
@@ -229,7 +227,7 @@ impl Database {
     }
 
     /// Gets all the documents in database, with applied parameters. Parameters description can be found here: http://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view
-    pub fn get_all_params(&self, params: Option<HashMap<String, String>>) -> Result<DocumentCollection, CouchError> {
+    pub async fn get_all_params(&self, params: Option<HashMap<String, String>>) -> Result<DocumentCollection, CouchError> {
         let mut options;
         if let Some(opts) = params {
             options = opts;
@@ -241,17 +239,17 @@ impl Database {
 
         let response = self._client
             .get(self.create_document_path("_all_docs".into()), Some(options))?
-            .send()?;
+            .send().await?;
 
-        Ok(DocumentCollection::new(response.json()?))
+        Ok(DocumentCollection::new(response.json().await?))
     }
 
     /// Finds a document in the database through a Mango query. Parameters here http://docs.couchdb.org/en/latest/api/database/find.html
-    pub fn find(&self, params: Value) -> Result<DocumentCollection, CouchError> {
+    pub async fn find(&self, params: Value) -> Result<DocumentCollection, CouchError> {
         let path = self.create_document_path("_find".into());
-        let response = self._client.post(path, js!(&params))?.send()?;
+        let response = self._client.post(path, js!(&params))?.send().await?;
         let status = response.status();
-        let data: FindResult = response.json().unwrap();
+        let data: FindResult = response.json().await.unwrap();
 
         if let Some(doc_val) = data.docs {
             let documents: Vec<Document> = doc_val
@@ -281,16 +279,16 @@ impl Database {
     }
 
     /// Updates a document
-    pub fn save(&self, doc: Document) -> Result<Document, CouchError> {
+    pub async fn save(&self, doc: Document) -> Result<Document, CouchError> {
         let id = doc._id.to_owned();
         let raw = doc.get_data();
 
         let response = self._client
             .put(self.create_document_path(id), to_string(&raw)?)?
-            .send()?;
+            .send().await?;
 
         let status = response.status();
-        let data: DocumentCreatedResult = response.json()?;
+        let data: DocumentCreatedResult = response.json().await?;
 
         match data.ok {
             Some(true) => {
@@ -307,11 +305,11 @@ impl Database {
     }
 
     /// Creates a document from a raw JSON document Value.
-    pub fn create(&self, raw_doc: Value) -> Result<Document, CouchError> {
-        let response = self._client.post(self.name.clone(), to_string(&raw_doc)?)?.send()?;
+    pub async fn create(&self, raw_doc: Value) -> Result<Document, CouchError> {
+        let response = self._client.post(self.name.clone(), to_string(&raw_doc)?)?.send().await?;
         let status = response.status();
 
-        let data: DocumentCreatedResult = response.json()?;
+        let data: DocumentCreatedResult = response.json().await?;
 
         match data.ok {
             Some(true) => {
@@ -339,7 +337,7 @@ impl Database {
     }
 
     /// Removes a document from the database. Returns success in a `bool`
-    pub fn remove(&self, doc: Document) -> bool {
+    pub async fn remove(&self, doc: Document) -> bool {
         let request = self._client.delete(
             self.create_document_path(doc._id.clone()),
             Some({
@@ -349,23 +347,21 @@ impl Database {
             }),
         );
 
-        request
-            .and_then(|req| {
-                Ok(req.send()
-                    .and_then(|res| {
-                        Ok(match res.status() {
-                            StatusCode::OK | StatusCode::ACCEPTED => true,
-                            _ => false,
-                        })
-                    })
-                    .unwrap_or(false))
-            })
-            .unwrap_or(false)
+        if let Ok(req) = request {
+            if let Ok(res) = req.send().await {
+                return match res.status() {
+                    StatusCode::OK | StatusCode::NOT_MODIFIED => true,
+                    _ => false,
+                }
+            }
+        }
+
+        return false;
     }
 
     /// Inserts an index in a naive way, if it already exists, will throw an
     /// `Err`
-    pub fn insert_index(&self, name: String, spec: IndexFields) -> Result<IndexCreated, CouchError> {
+    pub async fn insert_index(&self, name: String, spec: IndexFields) -> Result<IndexCreated, CouchError> {
         let response = self._client
             .post(
                 self.create_document_path("_index".into()),
@@ -374,10 +370,10 @@ impl Database {
                 "index": spec
             })),
             )?
-            .send()?;
+            .send().await?;
 
         let status = response.status();
-        let data: IndexCreated = response.json()?;
+        let data: IndexCreated = response.json().await?;
 
         if data.error.is_some() {
             let err = data.error.unwrap_or(s!("unspecified error"));
@@ -388,19 +384,19 @@ impl Database {
     }
 
     /// Reads the database's indexes and returns them
-    pub fn read_indexes(&self) -> Result<DatabaseIndexList, CouchError> {
+    pub async fn read_indexes(&self) -> Result<DatabaseIndexList, CouchError> {
         let response = self._client
             .get(self.create_document_path("_index".into()), None)?
-            .send()?;
+            .send().await?;
 
-        Ok(response.json()?)
+        Ok(response.json().await?)
     }
 
     /// Method to ensure an index is created on the database with the following
     /// spec. Returns `true` when we created a new one, or `false` when the
     /// index was already existing.
-    pub fn ensure_index(&self, name: String, spec: IndexFields) -> Result<bool, CouchError> {
-        let db_indexes = self.read_indexes()?;
+    pub async fn ensure_index(&self, name: String, spec: IndexFields) -> Result<bool, CouchError> {
+        let db_indexes = self.read_indexes().await?;
 
         // We look for our index
         for i in db_indexes.indexes.into_iter() {
@@ -411,7 +407,7 @@ impl Database {
         }
 
         // Let's create it then
-        let _ = self.insert_index(name, spec)?;
+        let _ = self.insert_index(name, spec).await?;
 
         // Created and alright
         Ok(true)

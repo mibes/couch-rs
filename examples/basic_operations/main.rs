@@ -31,7 +31,8 @@ fn test_docs(amount: i32) -> Vec<Value> {
     result
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     println!("Connecting...");
 
     // Prepare the Sofa client
@@ -40,11 +41,11 @@ fn main() {
 
     // This command gets a reference to an existing database, or it creates a new one when it does
     // not yet exist.
-    let db = client.db(TEST_DB).unwrap();
+    let db = client.db(TEST_DB).await.unwrap();
 
     // List the existing databases. The db_initialized is superfluous, since we just created it in
     // the previous step. It is for educational purposes only.
-    match client.list_dbs() {
+    match client.list_dbs().await {
         Ok(dbs) => {
             println!("Existing databases:");
             for db in dbs {
@@ -62,7 +63,7 @@ fn main() {
 
     if db_initialized {
         // let's add some docs
-        match db.bulk_docs(test_docs(100)) {
+        match db.bulk_docs(test_docs(100)).await {
             Ok(resp) => {
                 println!("Bulk docs completed");
 
@@ -80,7 +81,7 @@ fn main() {
 
     if first_doc_id.is_some() {
         // we have an id of the first document we've just inserted
-        match db.get(first_doc_id.unwrap()) {
+        match db.get(first_doc_id.unwrap()).await {
             Ok(doc) => { println!("First document: {}", doc.get_data().to_string()) }
             Err(err) => println!("Oops: {:?}", err),
         }

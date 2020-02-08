@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::time::Duration;
-use serde_json::from_reader;
-
-use reqwest::blocking::RequestBuilder;
+use reqwest::RequestBuilder;
 use reqwest::{self, Url, Method, StatusCode};
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT, CONTENT_TYPE, REFERER};
 use crate::database::Database;
@@ -25,7 +23,7 @@ fn construct_json_headers(uri: Option<&str>) -> HeaderMap {
 /// It is also responsible for the creation/access/destruction of databases.
 #[derive(Debug, Clone)]
 pub struct Client {
-    _client: reqwest::blocking::Client,
+    _client: reqwest::Client,
     dbs: Vec<&'static str>,
     _gzip: bool,
     _timeout: u64,
@@ -43,7 +41,7 @@ impl Client {
     /// new_with_timeout creates a new Couch client. The URI has to be in this format: http://hostname:5984,
     /// timeout is in seconds.
     pub fn new_with_timeout(uri: &str, timeout: u64) -> Result<Client, CouchError> {
-        let client = reqwest::blocking::Client::builder()
+        let client = reqwest::Client::builder()
             .gzip(true)
             .timeout(Duration::new(timeout, 0))
             .build()?;
@@ -58,8 +56,8 @@ impl Client {
         })
     }
 
-    fn create_client(&self) -> Result<reqwest::blocking::Client, CouchError> {
-        let client = reqwest::blocking::Client::builder()
+    fn create_client(&self) -> Result<reqwest::Client, CouchError> {
+        let client = reqwest::Client::builder()
             .gzip(self._gzip)
             .timeout(Duration::new(self._timeout, 0))
             .build()?;
@@ -95,9 +93,9 @@ impl Client {
         Ok(self)
     }
 
-    pub fn list_dbs(&self) -> Result<Vec<String>, CouchError> {
-        let response = self.get(String::from("/_all_dbs"), None)?.send()?;
-        let data = response.json()?;
+    pub async fn list_dbs(&self) -> Result<Vec<String>, CouchError> {
+        let response = self.get(String::from("/_all_dbs"), None)?.send().await?;
+        let data = response.json().await?;
 
         Ok(data)
     }
@@ -106,7 +104,7 @@ impl Client {
         self.db_prefix.clone() + dbname
     }
 
-    pub fn db(&self, dbname: &'static str) -> Result<Database, CouchError> {
+    pub async fn db(&self, dbname: &'static str) -> Result<Database, CouchError> {
         let name = self.build_dbname(dbname);
 
         let db = Database::new(name.clone(), self.clone());
@@ -115,15 +113,15 @@ impl Client {
 
         let head_response = self._client.head(&path)
             .headers(construct_json_headers(None))
-            .send()?;
+            .send().await?;
 
         match head_response.status() {
             StatusCode::OK => Ok(db),
-            _ => self.make_db(dbname),
+            _ => self.make_db(dbname).await,
         }
     }
 
-    pub fn make_db(&self, dbname: &'static str) -> Result<Database, CouchError> {
+    pub async fn make_db(&self, dbname: &'static str) -> Result<Database, CouchError> {
         let name = self.build_dbname(dbname);
 
         let db = Database::new(name.clone(), self.clone());
@@ -132,10 +130,10 @@ impl Client {
 
         let put_response = self._client.put(&path)
             .headers(construct_json_headers(None))
-            .send()?;
+            .send().await?;
 
         let status = put_response.status();
-        let s: CouchResponse = from_reader(put_response)?;
+        let s: CouchResponse = put_response.json().await?;
 
         match s.ok {
             Some(true) => Ok(db),
@@ -146,23 +144,23 @@ impl Client {
         }
     }
 
-    pub fn destroy_db(&self, dbname: &'static str) -> Result<bool, CouchError> {
+    pub async fn destroy_db(&self, dbname: &'static str) -> Result<bool, CouchError> {
         let path = self.create_path(self.build_dbname(dbname), None)?;
         let response = self._client.delete(&path)
             .headers(construct_json_headers(None))
-            .send()?;
+            .send().await?;
 
-        let s: CouchResponse = from_reader(response)?;
+        let s: CouchResponse = response.json().await?;
 
         Ok(s.ok.unwrap_or(false))
     }
 
-    pub fn check_status(&self) -> Result<CouchStatus, CouchError> {
+    pub async fn check_status(&self) -> Result<CouchStatus, CouchError> {
         let response = self._client.get(&self.uri)
             .headers(construct_json_headers(None))
-            .send()?;
+            .send().await?;
 
-        let status = from_reader(response)?;
+        let status = response.json().await?;
 
         Ok(status)
     }
