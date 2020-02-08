@@ -141,7 +141,7 @@ pub use client::{Client};
 #[cfg(test)]
 mod sofa_tests {
     mod a_sys {
-        const DB_HOST: &'static str = "http://192.168.64.5:5984";
+        const DB_HOST: &'static str = "http://127.0.0.1:5984";
 
         use serde_json::{json};
         use crate::client::Client;
@@ -197,7 +197,7 @@ mod sofa_tests {
         use crate::document::Document;
         use crate::types;
 
-        const DB_HOST: &'static str = "http://192.168.64.5:5984";
+        const DB_HOST: &'static str = "http://127.0.0.1:5984";
 
         async fn setup(dbname: &'static str) -> (Client, Database, Document) {
             let client = Client::new(DB_HOST.into()).unwrap();
