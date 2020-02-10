@@ -154,21 +154,21 @@ pub use client::{Client};
 #[cfg(test)]
 mod sofa_tests {
     mod a_sys {
-        const DB_HOST: &'static str = "http://127.0.0.1:5984";
+        const DB_HOST: &str = "http://127.0.0.1:5984";
 
         use serde_json::{json};
         use crate::client::Client;
 
         #[tokio::test]
         async fn a_should_check_couchdbs_status() {
-            let client = Client::new(DB_HOST.into()).unwrap();
+            let client = Client::new(DB_HOST).unwrap();
             let status = client.check_status().await;
             assert!(status.is_ok());
         }
 
         #[tokio::test]
         async fn b_should_create_sofa_test_db() {
-            let client = Client::new(DB_HOST.into()).unwrap();
+            let client = Client::new(DB_HOST).unwrap();
             let dbw = client.db("b_should_create_sofa_test_db").await;
             assert!(dbw.is_ok());
 
@@ -177,7 +177,7 @@ mod sofa_tests {
 
         #[tokio::test]
         async fn c_should_create_a_document() {
-            let client = Client::new(DB_HOST.into()).unwrap();
+            let client = Client::new(DB_HOST).unwrap();
             let dbw = client.db("c_should_create_a_document").await;
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
@@ -196,7 +196,7 @@ mod sofa_tests {
 
         #[tokio::test]
         async fn d_should_destroy_the_db() {
-            let client = Client::new(DB_HOST.into()).unwrap();
+            let client = Client::new(DB_HOST).unwrap();
             let _ = client.db("d_should_destroy_the_db").await;
 
             assert!(client.destroy_db("d_should_destroy_the_db").await.unwrap());
@@ -210,10 +210,10 @@ mod sofa_tests {
         use crate::document::Document;
         use crate::types;
 
-        const DB_HOST: &'static str = "http://127.0.0.1:5984";
+        const DB_HOST: &str = "http://127.0.0.1:5984";
 
         async fn setup(dbname: &'static str) -> (Client, Database, Document) {
-            let client = Client::new(DB_HOST.into()).unwrap();
+            let client = Client::new(DB_HOST).unwrap();
             let dbw = client.db(dbname).await;
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
@@ -259,7 +259,6 @@ mod sofa_tests {
         #[tokio::test]
         async fn c_should_get_a_single_document() {
             let (client, ..) = setup("c_should_get_a_single_document").await;
-            assert!(true);
             teardown(client, "c_should_get_a_single_document").await;
         }
 
@@ -278,7 +277,6 @@ mod sofa_tests {
         #[tokio::test]
         async fn d_should_create_index_in_db() {
             let (client, db, _) = setup_create_indexes("d_should_create_index_in_db").await;
-            assert!(true);
             teardown(client, "d_should_create_index_in_db").await;
         }
 
@@ -288,7 +286,7 @@ mod sofa_tests {
 
             let index_list = db.read_indexes().await.unwrap();
             assert!(index_list.indexes.len() > 1);
-            let ref findex = index_list.indexes[1];
+            let findex = &index_list.indexes[1];
 
             assert_eq!(findex.name.as_str(), "thing-index");
             teardown(client, "e_should_list_indexes_in_db").await;

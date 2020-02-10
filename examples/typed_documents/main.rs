@@ -5,8 +5,8 @@ use serde::{Serialize, Deserialize};
 use reqwest::StatusCode;
 
 /// Update DB_HOST to point to your running Couch instance
-const DB_HOST: &'static str = "http://localhost:5984";
-const TEST_DB: &'static str = "test_db";
+const DB_HOST: &str = "http://localhost:5984";
+const TEST_DB: &str = "test_db";
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct TestDoc {

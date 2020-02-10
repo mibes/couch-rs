@@ -12,7 +12,7 @@ pub struct IndexFields {
 impl IndexFields {
     pub fn new(fields: Vec<SortSpec>) -> IndexFields {
         IndexFields {
-            fields: fields
+            fields
         }
     }
 }

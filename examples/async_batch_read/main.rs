@@ -7,8 +7,8 @@ use sofa::document::DocumentCollection;
 use std::fs::File;
 use std::io::prelude::*;
 
-const DB_HOST: &'static str = "http://127.0.0.1:5984";
-const TEST_DB: &'static str = "test_db";
+const DB_HOST: &str = "http://127.0.0.1:5984";
+const TEST_DB: &str = "test_db";
 
 #[tokio::main]
 async fn main() {
@@ -30,20 +30,13 @@ async fn main() {
     let mut file = File::create("test_db.json").unwrap();
 
     // Loop until the receiving channel is closed.
-    loop {
-        match rx.recv().await {
-            Some(all_docs) => {
-                println!("Received {} docs", all_docs.total_rows);
+    while let Some(all_docs) = rx.recv().await {
+        println!("Received {} docs", all_docs.total_rows);
 
-                // unmarshal the documents and write them to a file.
-                // (there is probably a more efficient way of doing this...)
-                for row in all_docs.rows {
-                    file.write_all(serde_json::to_string(&row.doc).unwrap().as_bytes()).unwrap();
-                }
-            }
-            None => {
-                break;
-            }
+        // unmarshal the documents and write them to a file.
+        // (there is probably a more efficient way of doing this...)
+        for row in all_docs.rows {
+            file.write_all(serde_json::to_string(&row.doc).unwrap().as_bytes()).unwrap();
         }
     }
 

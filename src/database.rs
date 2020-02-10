@@ -22,7 +22,7 @@ impl Database {
     pub fn new(name: String, client: Client) -> Database {
         Database {
             _client: client,
-            name: name,
+            name,
         }
     }
 
@@ -55,7 +55,7 @@ impl Database {
             }
         }
 
-        return false;
+        false
     }
 
     async fn is_ok(&self, request: Result<RequestBuilder, CouchError>) -> bool {
@@ -68,7 +68,7 @@ impl Database {
             }
         }
 
-        return false;
+        false
     }
 
     /// Launches the compact process
@@ -204,7 +204,7 @@ impl Database {
                 break;
             }
 
-            results += all_docs.total_rows.clone() as u64;
+            results += all_docs.total_rows as u64;
 
             tx.send(all_docs).await.unwrap();
 
@@ -249,7 +249,7 @@ impl Database {
                     let id: String = json_extr!(d["_id"]);
                     !id.starts_with('_')
                 })
-                .map(|v| Document::new(v.clone()))
+                .map(Document::new)
                 .collect();
 
             let mut bookmark = Option::None;
@@ -262,7 +262,7 @@ impl Database {
 
             Ok(DocumentCollection::new_from_documents(documents, bookmark))
         } else if let Some(err) = data.error {
-            Err(CouchError::new(err, status).into())
+            Err(CouchError::new(err, status))
         } else {
             Ok(DocumentCollection::default())
         }
@@ -288,8 +288,8 @@ impl Database {
                 Ok(Document::new(val))
             }
             Some(false) | _ => {
-                let err = data.error.unwrap_or(s!("unspecified error"));
-                return Err(CouchError::new(err, status).into());
+                let err = data.error.unwrap_or_else(|| s!("unspecified error"));
+                Err(CouchError::new(err, status))
             }
         }
     }
@@ -305,12 +305,12 @@ impl Database {
             Some(true) => {
                 let data_id = match data.id {
                     Some(id) => id,
-                    _ => return Err(CouchError::new(s!("invalid id"), status).into()),
+                    _ => return Err(CouchError::new(s!("invalid id"), status)),
                 };
 
                 let data_rev = match data.rev {
                     Some(rev) => rev,
-                    _ => return Err(CouchError::new(s!("invalid rev"), status).into()),
+                    _ => return Err(CouchError::new(s!("invalid rev"), status)),
                 };
 
                 let mut val = raw_doc.clone();
@@ -320,8 +320,8 @@ impl Database {
                 Ok(Document::new(val))
             }
             Some(false) | _ => {
-                let err = data.error.unwrap_or(s!("unspecified error"));
-                return Err(CouchError::new(err, status).into());
+                let err = data.error.unwrap_or_else(|| s!("unspecified error"));
+                Err(CouchError::new(err, status))
             }
         }
     }
@@ -357,8 +357,8 @@ impl Database {
         let data: IndexCreated = response.json().await?;
 
         if data.error.is_some() {
-            let err = data.error.unwrap_or(s!("unspecified error"));
-            Err(CouchError::new(err, status).into())
+            let err = data.error.unwrap_or_else(|| s!("unspecified error"));
+            Err(CouchError::new(err, status))
         } else {
             Ok(data)
         }

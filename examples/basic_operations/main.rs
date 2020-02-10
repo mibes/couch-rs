@@ -17,8 +17,8 @@ extern crate sofa;
 use serde_json::{json, Value};
 
 /// Update DB_HOST to point to your running Couch instance
-const DB_HOST: &'static str = "http://localhost:5984";
-const TEST_DB: &'static str = "test_db";
+const DB_HOST: &str = "http://localhost:5984";
+const TEST_DB: &str = "test_db";
 
 /// test_docs generates a bunch of documents that can be used in the _bulk_docs operation.
 fn test_docs(amount: i32) -> Vec<Value> {
@@ -70,7 +70,7 @@ async fn main() {
                 first_doc_id = resp.first().unwrap().clone().id;
 
                 for r in resp {
-                    println!("Id: {}, OK?: {}", r.id.unwrap_or("--".to_string()), r.ok.unwrap_or(false))
+                    println!("Id: {}, OK?: {}", r.id.unwrap_or_else(|| "--".to_string()), r.ok.unwrap_or(false))
                 }
             }
             Err(err) => println!("Oops: {:?}", err),

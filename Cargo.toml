@@ -24,7 +24,7 @@ tokio = { version = "0.2.11", features = ["full"] }
 
 [dependencies.reqwest]
 version = "0.10.1"
-features = ["json", "gzip", "cookies", "blocking"]
+features = ["json", "gzip", "cookies"]
 
 [dev-dependencies]
 pretty_assertions = "0.5"

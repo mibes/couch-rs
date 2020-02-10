@@ -26,7 +26,7 @@ impl Document {
         Document {
             _id: json_extr!(doc["_id"]),
             _rev: json_extr!(doc["_rev"]),
-            doc: doc,
+            doc,
         }
     }
 
@@ -69,15 +69,15 @@ impl Document {
 
     /// Recursively populates field (must be an array of IDs from another
     /// database) with provided database documents
-    pub async fn populate(&mut self, field: &String, db: Database) -> &Self {
-        let ref val = self[field].clone();
+    pub async fn populate(&mut self, field: &str, db: Database) -> &Self {
+        let val = &self[field].clone();
         if *val == Value::Null {
             return self;
         }
 
         let ids = val.as_array()
             .unwrap_or(&Vec::new())
-            .into_iter()
+            .iter()
             .map(|v| s!(v.as_str().unwrap_or("")))
             .collect();
 
@@ -140,7 +140,7 @@ pub struct DocumentCollectionItem {
 impl DocumentCollectionItem {
     pub fn new(doc: Document) -> DocumentCollectionItem {
         let id = doc._id.clone();
-        DocumentCollectionItem { doc: doc, id: id }
+        DocumentCollectionItem { doc, id }
     }
 }
 
@@ -184,7 +184,7 @@ impl DocumentCollection {
         DocumentCollection {
             offset: 0,
             total_rows: len,
-            rows: docs.into_iter().map(|d| DocumentCollectionItem::new(d)).collect(),
+            rows: docs.into_iter().map(DocumentCollectionItem::new).collect(),
             bookmark,
         }
     }
