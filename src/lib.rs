@@ -1,86 +1,86 @@
 //! # Sofa - CouchDB for Rust
-//! 
+//!
 //! [![Crates.io](https://img.shields.io/crates/v/sofa.svg)](https://crates.io/crates/sofa)
 //! [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FYellowInnovation%2Fsofa.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FYellowInnovation%2Fsofa?ref=badge_shield)
-//! 
+//!
 //! [![docs.rs](https://docs.rs/sofa/badge.svg)](https://docs.rs/sofa)
-//! 
+//!
 //! ![sofa-logo](https://raw.githubusercontent.com/mibes/sofa/master/docs/logo-sofa.png "Logo Sofa")
-//! 
+//!
 //! ## Documentation
-//! 
+//!
 //! Here: [http://docs.rs/sofa](http://docs.rs/sofa)
-//! 
+//!
 //! ## Installation
-//! 
+//!
 //! If you want to use this particular fork, include this dependency in the Cargo.toml file:
 //! ```toml
 //! [dependencies.sofa]
 //! git = "https://github.com/mibes/sofa.git"
 //! ```
-//! 
+//!
 //! If you want to continue to use the "old" 0.6 version use this dependency instead:
 //! ```toml
 //! [dependencies]
 //! sofa = "0.6"
 //! ```
-//! 
+//!
 //! ## Description
-//! 
+//!
 //! This crate is an interface to CouchDB HTTP REST API. Works with stable Rust.
-//! 
+//!
 //! After trying most crates for CouchDB in Rust (`chill`, `couchdb` in particular), none of them fit our needs hence the need to create our own.
-//! 
+//!
 //! Uses async I/O, with a mix of Reqwest and Serde under the hood, and a few nice abstractions out there.
-//! 
+//!
 //! **NOT 1.0 YET, so expect changes**
-//! 
+//!
 //! **Supports CouchDB 2.3.0 and up.**
-//! 
+//!
 //! Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/index.html) in detail to see what's possible.
-//! 
+//!
 //! The 0.7 version is based on the 0.6 release from https://github.com/YellowInnovation/sofa.
-//! It has been updated to the Rust 2018 edition standards, uses async I/O, and compiles against the latest serde and 
+//! It has been updated to the Rust 2018 edition standards, uses async I/O, and compiles against the latest serde and
 //! reqwest libraries.
-//! 
+//!
 //! ## Example code
-//! 
+//!
 //! You can launch the included example with:
 //! ```shell script
 //! cargo run --example basic_operations
 //! ```
-//! 
+//!
 //! ## Running tests
-//! 
+//!
 //! Make sure that you have an instance of CouchDB 2.0+ running, either via the supplied `docker-compose.yml` file or by yourself. It must be listening on the default port.
-//! 
+//!
 //! And then
 //! `cargo test -- --test-threads=1`
-//! 
+//!
 //! Single-threading the tests is very important because we need to make sure that the basic features are working before actually testing features on dbs/documents.
-//! 
+//!
 //! ## Why the name "Sofa"
-//! 
+//!
 //! CouchDB has a nice name, and I wanted to reflect that.
-//! 
+//!
 //! ## License
-//! 
+//!
 //! Licensed under either of these:
-//! 
+//!
 //! * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or
 //!    [https://www.apache.org/licenses/LICENSE-2.0](https://www.apache.org/licenses/LICENSE-2.0)
 //! * MIT license ([LICENSE-MIT](LICENSE-MIT) or
 //!    [https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT))
-//! 
-//! 
+//!
+//!
 //! [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FYellowInnovation%2Fsofa.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FYellowInnovation%2Fsofa?ref=badge_large)
-//! 
+//!
 //! ## Yellow Innovation
-//! 
+//!
 //! Yellow Innovation is the innovation laboratory of the French postal service: La Poste.
-//! 
+//!
 //! We create innovative user experiences and journeys through services with a focus on IoT lately.
-//! 
+//!
 //! [Yellow Innovation's website and works](http://yellowinnovation.fr/en/)
 
 /// Macros that the crate exports to facilitate most of the
@@ -141,23 +141,23 @@ mod macros {
     }
 }
 
-pub mod types;
-pub mod document;
-pub mod database;
 mod client;
+pub mod database;
+pub mod document;
 pub mod error;
 pub mod model;
+pub mod types;
 
-pub use client::{Client};
+pub use client::Client;
 
 #[allow(unused_mut, unused_variables)]
 #[cfg(test)]
 mod sofa_tests {
     mod a_sys {
-        const DB_HOST: &str = "http://127.0.0.1:5984";
+        const DB_HOST: &str = "http://admin:password@localhost:5984";
 
-        use serde_json::{json};
         use crate::client::Client;
+        use serde_json::json;
 
         #[tokio::test]
         async fn a_should_check_couchdbs_status() {
@@ -182,9 +182,11 @@ mod sofa_tests {
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
 
-            let ndoc_result = db.create(json!({
-                "thing": true
-            })).await;
+            let ndoc_result = db
+                .create(json!({
+                    "thing": true
+                }))
+                .await;
 
             assert!(ndoc_result.is_ok());
 
@@ -204,13 +206,13 @@ mod sofa_tests {
     }
 
     mod b_db {
-        use serde_json::{json};
         use crate::client::Client;
         use crate::database::Database;
         use crate::document::Document;
         use crate::types;
+        use serde_json::json;
 
-        const DB_HOST: &str = "http://127.0.0.1:5984";
+        const DB_HOST: &str = "http://admin:password@localhost:5984";
 
         async fn setup(dbname: &'static str) -> (Client, Database, Document) {
             let client = Client::new(DB_HOST).unwrap();
@@ -218,9 +220,11 @@ mod sofa_tests {
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
 
-            let ndoc_result = db.create(json!({
-                "thing": true
-            })).await;
+            let ndoc_result = db
+                .create(json!({
+                    "thing": true
+                }))
+                .await;
 
             assert!(ndoc_result.is_ok());
 
@@ -308,15 +312,17 @@ mod sofa_tests {
         async fn g_should_find_documents_in_db() {
             let (client, db, doc) = setup_create_indexes("g_should_find_documents_in_db").await;
 
-            let documents_res = db.find(json!({
-                "selector": {
-                    "thing": true
-                },
-                "limit": 1,
-                "sort": [{
-                    "thing": "desc"
-                }]
-            })).await;
+            let documents_res = db
+                .find(json!({
+                    "selector": {
+                        "thing": true
+                    },
+                    "limit": 1,
+                    "sort": [{
+                        "thing": "desc"
+                    }]
+                }))
+                .await;
 
             assert!(documents_res.is_ok());
             let documents = documents_res.unwrap();

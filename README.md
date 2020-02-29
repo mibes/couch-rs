@@ -53,6 +53,12 @@ cargo run --example basic_operations
 ## Running tests
 
 Make sure that you have an instance of CouchDB 2.0+ running, either via the supplied `docker-compose.yml` file or by yourself. It must be listening on the default port.
+Since Couch 3.0 the "Admin Party" mode is no longer supported. This means you need to provide a username and password during launch. 
+The tests and examples assume an "admin" CouchDB user with a "password" CouchDB password. Docker run command:
+
+```shell script
+docker run --rm -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password couchdb:3.0
+```
 
 And then
 `cargo test -- --test-threads=1`
