@@ -1,13 +1,13 @@
 extern crate sofa;
 
-use std::time::SystemTime;
-use tokio::sync::mpsc::{Sender, Receiver};
-use tokio::sync::mpsc;
 use sofa::document::DocumentCollection;
 use std::fs::File;
 use std::io::prelude::*;
+use std::time::SystemTime;
+use tokio::sync::mpsc;
+use tokio::sync::mpsc::{Receiver, Sender};
 
-const DB_HOST: &str = "http://127.0.0.1:5984";
+const DB_HOST: &str = "http://admin:password@localhost:5984";
 const TEST_DB: &str = "test_db";
 
 #[tokio::main]
@@ -36,7 +36,8 @@ async fn main() {
         // unmarshal the documents and write them to a file.
         // (there is probably a more efficient way of doing this...)
         for row in all_docs.rows {
-            file.write_all(serde_json::to_string(&row.doc).unwrap().as_bytes()).unwrap();
+            file.write_all(serde_json::to_string(&row.doc).unwrap().as_bytes())
+                .unwrap();
         }
     }
 

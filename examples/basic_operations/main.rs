@@ -11,13 +11,12 @@
 /// Depending on the Docker framework you are using it may listen to "localhost" or to some other
 /// automatically assigned IP address. Minikube for example generates a unique IP on start-up. You
 /// can obtain it with: `minikube ip`
-
 extern crate sofa;
 
 use serde_json::{json, Value};
 
 /// Update DB_HOST to point to your running Couch instance
-const DB_HOST: &str = "http://localhost:5984";
+const DB_HOST: &str = "http://admin:password@localhost:5984";
 const TEST_DB: &str = "test_db";
 
 /// test_docs generates a bunch of documents that can be used in the _bulk_docs operation.
@@ -70,7 +69,11 @@ async fn main() {
                 first_doc_id = resp.first().unwrap().clone().id;
 
                 for r in resp {
-                    println!("Id: {}, OK?: {}", r.id.unwrap_or_else(|| "--".to_string()), r.ok.unwrap_or(false))
+                    println!(
+                        "Id: {}, OK?: {}",
+                        r.id.unwrap_or_else(|| "--".to_string()),
+                        r.ok.unwrap_or(false)
+                    )
                 }
             }
             Err(err) => println!("Oops: {:?}", err),
@@ -82,7 +85,7 @@ async fn main() {
     if first_doc_id.is_some() {
         // we have an id of the first document we've just inserted
         match db.get(first_doc_id.unwrap()).await {
-            Ok(doc) => { println!("First document: {}", doc.get_data().to_string()) }
+            Ok(doc) => println!("First document: {}", doc.get_data().to_string()),
             Err(err) => println!("Oops: {:?}", err),
         }
     }

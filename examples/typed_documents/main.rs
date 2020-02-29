@@ -1,11 +1,11 @@
 extern crate sofa;
 
-use sofa::types::document::DocumentId;
-use serde::{Serialize, Deserialize};
 use reqwest::StatusCode;
+use serde::{Deserialize, Serialize};
+use sofa::types::document::DocumentId;
 
 /// Update DB_HOST to point to your running Couch instance
-const DB_HOST: &str = "http://localhost:5984";
+const DB_HOST: &str = "http://admin:password@localhost:5984";
 const TEST_DB: &str = "test_db";
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
@@ -49,7 +49,7 @@ async fn main() {
             println!("Document has been previously created with Rev: {}", existing._rev);
             let e: TestDoc = serde_json::from_value(existing.get_data()).unwrap();
             println!("Name: {} {}", e.first_name, e.last_name);
-        },
+        }
         Err(e) => {
             match e.status {
                 StatusCode::NOT_FOUND => {
