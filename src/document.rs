@@ -160,9 +160,15 @@ impl DocumentCollection {
         let rows: Vec<Value> = json_extr!(doc["rows"]);
         let items: Vec<DocumentCollectionItem> = rows.into_iter()
             .filter(|d| {
-                // Remove _design documents
-                let id: String = json_extr!(d["doc"]["_id"]);
-                !id.starts_with('_')
+                let maybe_err: Option<String> = json_extr!(d["error"]);
+                if let Some(_) = maybe_err {
+                    // remove errors
+                    false
+                } else {
+                    // Remove _design documents
+                    let id: String = json_extr!(d["doc"]["_id"]);
+                    !id.starts_with('_')
+                }
             })
             .map(|d| {
                 let document: Value = json_extr!(d["doc"]);

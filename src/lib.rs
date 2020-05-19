@@ -343,5 +343,19 @@ mod sofa_tests {
 
             teardown(client, "h_should_bulk_get_a_document").await;
         }
+
+
+        #[tokio::test]
+        async fn i_should_bulk_get_invalid_documents() {
+            let (client, db, doc) = setup("i_should_bulk_get_invalid_documents").await;
+            let id = doc._id.clone();
+            let invalid_id = "does_not_exist".to_string();
+
+            let collection = db.get_bulk(vec![id, invalid_id]).await.unwrap();
+            assert_eq!(collection.rows.len(), 1);
+            assert!(db.remove(doc).await);
+
+            teardown(client, "i_should_bulk_get_invalid_documents").await;
+        }
     }
 }
