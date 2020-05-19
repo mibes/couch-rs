@@ -156,8 +156,8 @@ impl Database {
         body.insert(s!("keys"), ids);
 
         let response = self._client
-            .get(self.create_document_path("_all_docs".into()), Some(options))?
-            .body(to_string(&body)?)
+            .post(self.create_document_path("_all_docs".into()), to_string(&body)?)?
+            .query(&options)
             .send().await?;
 
         Ok(DocumentCollection::new(response.json().await?))

@@ -330,5 +330,18 @@ mod sofa_tests {
 
             teardown(client, "g_should_find_documents_in_db").await;
         }
+
+
+        #[tokio::test]
+        async fn h_should_bulk_get_a_document() {
+            let (client, db, doc) = setup("h_should_bulk_get_a_document").await;
+            let id = doc._id.clone();
+
+            let collection = db.get_bulk(vec![id]).await.unwrap();
+            assert_eq!(collection.rows.len(), 1);
+            assert!(db.remove(doc).await);
+
+            teardown(client, "h_should_bulk_get_a_document").await;
+        }
     }
 }

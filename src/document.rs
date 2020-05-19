@@ -149,7 +149,7 @@ impl DocumentCollectionItem {
 /// implementation of `Index` and `IndexMut`
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct DocumentCollection {
-    pub offset: u32,
+    pub offset: Option<u32>,
     pub rows: Vec<DocumentCollectionItem>,
     pub total_rows: u32,
     pub bookmark: Option<String>,
@@ -182,7 +182,7 @@ impl DocumentCollection {
         let len = docs.len() as u32;
 
         DocumentCollection {
-            offset: 0,
+            offset: Some(0),
             total_rows: len,
             rows: docs.into_iter().map(DocumentCollectionItem::new).collect(),
             bookmark,
