@@ -7,8 +7,10 @@ use crate::error::CouchError;
 use crate::client::Client;
 use crate::types::document::{DocumentId, DocumentCreatedResult};
 use crate::types::find::{FindResult, FindQuery};
-use crate::types::index::{IndexFields, IndexCreated, DatabaseIndexList};
+use crate::types::index::{IndexFields, DatabaseIndexList};
 use tokio::sync::mpsc::Sender;
+use crate::types::design::DesignCreated;
+use crate::types::view::ViewCollection;
 
 /// Database holds the logic of making operations on a CouchDB Database
 /// (sometimes called Collection in other NoSQL flavors such as MongoDB).
@@ -33,10 +35,18 @@ impl Database {
         result
     }
 
-    #[allow(dead_code)]
     fn create_design_path(&self, id: DocumentId) -> String {
         let mut result: String = self.name.clone();
         result.push_str("/_design/");
+        result.push_str(&id);
+        result
+    }
+
+    fn create_execute_view_path(&self, id: DocumentId) -> String {
+        let mut result: String = self.name.clone();
+        result.push_str("/_design/");
+        result.push_str(&id);
+        result.push_str("/_view/");
         result.push_str(&id);
         result
     }
@@ -326,6 +336,23 @@ impl Database {
         }
     }
 
+    /// Creates a view document.
+    pub async fn create_view(&self, view_name: String, doc: Value) -> Result<DesignCreated, CouchError> {
+        let response = self._client.put(self.create_design_path(view_name), to_string(&doc)?)?.send().await?;
+
+        Ok(response.json().await?)
+
+    }
+
+    /// Executes a view.
+    pub async fn execute_view(&self, view_name: String, options: Option<HashMap<String, String>>) -> Result<ViewCollection, CouchError> {
+        let response = self._client.get(self.create_execute_view_path(view_name), options)?.send().await?;
+
+        dbg!(&response);
+        Ok(response.json().await?)
+
+    }
+
     /// Removes a document from the database. Returns success in a `bool`
     pub async fn remove(&self, doc: Document) -> bool {
         let request = self._client.delete(
@@ -342,7 +369,7 @@ impl Database {
 
     /// Inserts an index in a naive way, if it already exists, will throw an
     /// `Err`
-    pub async fn insert_index(&self, name: String, spec: IndexFields) -> Result<IndexCreated, CouchError> {
+    pub async fn insert_index(&self, name: String, spec: IndexFields) -> Result<DesignCreated, CouchError> {
         let response = self._client
             .post(
                 self.create_document_path("_index".into()),
@@ -354,7 +381,7 @@ impl Database {
             .send().await?;
 
         let status = response.status();
-        let data: IndexCreated = response.json().await?;
+        let data: DesignCreated = response.json().await?;
 
         if data.error.is_some() {
             let err = data.error.unwrap_or_else(|| s!("unspecified error"));
