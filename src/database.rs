@@ -1,16 +1,16 @@
-use std::collections::HashMap;
-use reqwest::{StatusCode, RequestBuilder};
-use serde_json;
-use serde_json::{to_string, Value, json};
+use crate::client::Client;
 use crate::document::{Document, DocumentCollection};
 use crate::error::CouchError;
-use crate::client::Client;
-use crate::types::document::{DocumentId, DocumentCreatedResult};
-use crate::types::find::{FindResult, FindQuery};
-use crate::types::index::{IndexFields, DatabaseIndexList};
-use tokio::sync::mpsc::Sender;
 use crate::types::design::DesignCreated;
+use crate::types::document::{DocumentCreatedResult, DocumentId};
+use crate::types::find::{FindQuery, FindResult};
+use crate::types::index::{DatabaseIndexList, IndexFields};
 use crate::types::view::ViewCollection;
+use reqwest::{RequestBuilder, StatusCode};
+use serde_json;
+use serde_json::{json, to_string, Value};
+use std::collections::HashMap;
+use tokio::sync::mpsc::Sender;
 
 /// Database holds the logic of making operations on a CouchDB Database
 /// (sometimes called Collection in other NoSQL flavors such as MongoDB).
@@ -22,10 +22,7 @@ pub struct Database {
 
 impl Database {
     pub fn new(name: String, client: Client) -> Database {
-        Database {
-            _client: client,
-            name,
-        }
+        Database { _client: client, name }
     }
 
     fn create_document_path(&self, id: DocumentId) -> String {
@@ -117,7 +114,10 @@ impl Database {
 
         match response.status() {
             StatusCode::OK => Ok(Document::new(response.json().await?)),
-            StatusCode::NOT_FOUND => Err(CouchError::new("Document was not found".to_string(), StatusCode::NOT_FOUND)),
+            StatusCode::NOT_FOUND => Err(CouchError::new(
+                "Document was not found".to_string(),
+                StatusCode::NOT_FOUND,
+            )),
             _ => Err(CouchError::new("Internal error".to_string(), response.status())),
         }
     }
@@ -141,7 +141,11 @@ impl Database {
         let mut body = HashMap::new();
         body.insert(s!("docs"), raw_docs);
 
-        let response = self._client.post(self.create_document_path("_bulk_docs".into()), to_string(&body)?)?.send().await?;
+        let response = self
+            ._client
+            .post(self.create_document_path("_bulk_docs".into()), to_string(&body)?)?
+            .send()
+            .await?;
         let data: Vec<DocumentCreatedResult> = response.json().await?;
 
         Ok(data)
@@ -165,10 +169,12 @@ impl Database {
         let mut body = HashMap::new();
         body.insert(s!("keys"), ids);
 
-        let response = self._client
+        let response = self
+            ._client
             .post(self.create_document_path("_all_docs".into()), to_string(&body)?)?
             .query(&options)
-            .send().await?;
+            .send()
+            .await?;
 
         Ok(DocumentCollection::new(response.json().await?))
     }
@@ -185,11 +191,7 @@ impl Database {
     /// always rounded *up* to the nearest multiplication of batch_size.
     pub async fn get_all_batched(&self, mut tx: Sender<DocumentCollection>, batch_size: u64, max_results: u64) -> u64 {
         let mut bookmark = Option::None;
-        let limit = if batch_size > 0 {
-            batch_size
-        } else {
-            1000
-        };
+        let limit = if batch_size > 0 { batch_size } else { 1000 };
 
         let mut results: u64 = 0;
 
@@ -199,8 +201,7 @@ impl Database {
             query.limit = Option::Some(limit);
             query.bookmark = bookmark.clone();
 
-            let all_docs = self.find(
-                serde_json::to_value(query).unwrap()).await.unwrap();
+            let all_docs = self.find(serde_json::to_value(query).unwrap()).await.unwrap();
 
             if all_docs.total_rows == 0 {
                 // no more rows
@@ -227,7 +228,10 @@ impl Database {
     }
 
     /// Gets all the documents in database, with applied parameters. Parameters description can be found here: http://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view
-    pub async fn get_all_params(&self, params: Option<HashMap<String, String>>) -> Result<DocumentCollection, CouchError> {
+    pub async fn get_all_params(
+        &self,
+        params: Option<HashMap<String, String>>,
+    ) -> Result<DocumentCollection, CouchError> {
         let mut options;
         if let Some(opts) = params {
             options = opts;
@@ -237,9 +241,11 @@ impl Database {
 
         options.insert(s!("include_docs"), s!("true"));
 
-        let response = self._client
+        let response = self
+            ._client
             .get(self.create_document_path("_all_docs".into()), Some(options))?
-            .send().await?;
+            .send()
+            .await?;
 
         Ok(DocumentCollection::new(response.json().await?))
     }
@@ -283,9 +289,11 @@ impl Database {
         let id = doc._id.to_owned();
         let raw = doc.get_data();
 
-        let response = self._client
+        let response = self
+            ._client
             .put(self.create_document_path(id), to_string(&raw)?)?
-            .send().await?;
+            .send()
+            .await?;
 
         let status = response.status();
         let data: DocumentCreatedResult = response.json().await?;
@@ -306,7 +314,11 @@ impl Database {
 
     /// Creates a document from a raw JSON document Value.
     pub async fn create(&self, raw_doc: Value) -> Result<Document, CouchError> {
-        let response = self._client.post(self.name.clone(), to_string(&raw_doc)?)?.send().await?;
+        let response = self
+            ._client
+            .post(self.name.clone(), to_string(&raw_doc)?)?
+            .send()
+            .await?;
         let status = response.status();
 
         let data: DocumentCreatedResult = response.json().await?;
@@ -338,19 +350,35 @@ impl Database {
 
     /// Creates a view document.
     pub async fn create_view(&self, view_name: String, doc: Value) -> Result<DesignCreated, CouchError> {
-        let response = self._client.put(self.create_design_path(view_name), to_string(&doc)?)?.send().await?;
+        let response = self
+            ._client
+            .put(self.create_design_path(view_name), to_string(&doc)?)?
+            .send()
+            .await?;
 
-        Ok(response.json().await?)
-
+        let result: DesignCreated = response.json().await?;
+        match result.error {
+            Some(e) => Err(CouchError {
+                status: reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+                message: e,
+            }),
+            None => Ok(result),
+        }
     }
 
     /// Executes a view.
-    pub async fn execute_view(&self, view_name: String, options: Option<HashMap<String, String>>) -> Result<ViewCollection, CouchError> {
-        let response = self._client.get(self.create_execute_view_path(view_name), options)?.send().await?;
+    pub async fn execute_view(
+        &self,
+        view_name: String,
+        options: Option<HashMap<String, String>>,
+    ) -> Result<ViewCollection, CouchError> {
+        let response = self
+            ._client
+            .get(self.create_execute_view_path(view_name), options)?
+            .send()
+            .await?;
 
-        dbg!(&response);
         Ok(response.json().await?)
-
     }
 
     /// Removes a document from the database. Returns success in a `bool`
@@ -370,15 +398,17 @@ impl Database {
     /// Inserts an index in a naive way, if it already exists, will throw an
     /// `Err`
     pub async fn insert_index(&self, name: String, spec: IndexFields) -> Result<DesignCreated, CouchError> {
-        let response = self._client
+        let response = self
+            ._client
             .post(
                 self.create_document_path("_index".into()),
                 js!(json!({
-                "name": name,
-                "index": spec
-            })),
+                    "name": name,
+                    "index": spec
+                })),
             )?
-            .send().await?;
+            .send()
+            .await?;
 
         let status = response.status();
         let data: DesignCreated = response.json().await?;
@@ -393,9 +423,11 @@ impl Database {
 
     /// Reads the database's indexes and returns them
     pub async fn read_indexes(&self) -> Result<DatabaseIndexList, CouchError> {
-        let response = self._client
+        let response = self
+            ._client
             .get(self.create_document_path("_index".into()), None)?
-            .send().await?;
+            .send()
+            .await?;
 
         Ok(response.json().await?)
     }
@@ -415,9 +447,14 @@ impl Database {
         }
 
         // Let's create it then
-        let _ = self.insert_index(name, spec).await?;
-
-        // Created and alright
-        Ok(true)
+        let result: DesignCreated = self.insert_index(name, spec).await?;
+        match result.error {
+            Some(e) => Err(CouchError {
+                status: reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+                message: e,
+            }),
+            // Created and alright
+            None => Ok(true),
+        }
     }
 }
