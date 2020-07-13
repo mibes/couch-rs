@@ -27,16 +27,6 @@ pub struct Index {
     pub def: IndexFields
 }
 
-/// Index created abstraction
-#[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
-pub struct IndexCreated {
-    pub result: Option<String>,
-    pub id: Option<String>,
-    pub name: Option<String>,
-    pub error: Option<String>,
-    pub reason: Option<String>
-}
-
 /// Database index list abstraction
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct DatabaseIndexList {
