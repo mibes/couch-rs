@@ -100,11 +100,11 @@ impl Client {
         Ok(data)
     }
 
-    fn build_dbname(&self, dbname: &'static str) -> String {
+    fn build_dbname(&self, dbname: &str) -> String {
         self.db_prefix.clone() + dbname
     }
 
-    pub async fn db(&self, dbname: &'static str) -> Result<Database, CouchError> {
+    pub async fn db(&self, dbname: &str) -> Result<Database, CouchError> {
         let name = self.build_dbname(dbname);
 
         let db = Database::new(name.clone(), self.clone());
@@ -121,7 +121,7 @@ impl Client {
         }
     }
 
-    pub async fn make_db(&self, dbname: &'static str) -> Result<Database, CouchError> {
+    pub async fn make_db(&self, dbname: &str) -> Result<Database, CouchError> {
         let name = self.build_dbname(dbname);
 
         let db = Database::new(name.clone(), self.clone());
@@ -144,7 +144,7 @@ impl Client {
         }
     }
 
-    pub async fn destroy_db(&self, dbname: &'static str) -> Result<bool, CouchError> {
+    pub async fn destroy_db(&self, dbname: &str) -> Result<bool, CouchError> {
         let path = self.create_path(self.build_dbname(dbname), None)?;
         let response = self._client.delete(&path)
             .headers(construct_json_headers(None))

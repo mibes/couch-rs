@@ -214,7 +214,7 @@ mod sofa_tests {
 
         const DB_HOST: &str = "http://admin:password@localhost:5984";
 
-        async fn setup(dbname: &'static str) -> (Client, Database, Document) {
+        async fn setup(dbname: &str) -> (Client, Database, Document) {
             let client = Client::new(DB_HOST).unwrap();
             let dbw = client.db(dbname).await;
             assert!(dbw.is_ok());
@@ -234,7 +234,7 @@ mod sofa_tests {
             (client, db, doc)
         }
 
-        async fn teardown(client: Client, dbname: &'static str) {
+        async fn teardown(client: Client, dbname: &str) {
             assert!(client.destroy_db(dbname).await.unwrap())
         }
 
@@ -266,7 +266,7 @@ mod sofa_tests {
             teardown(client, "c_should_get_a_single_document").await;
         }
 
-        async fn setup_create_indexes(dbname: &'static str) -> (Client, Database, Document) {
+        async fn setup_create_indexes(dbname: &str) -> (Client, Database, Document) {
             let (client, db, doc) = setup(dbname).await;
 
             let spec = types::index::IndexFields::new(vec![types::find::SortSpec::Simple(s!("thing"))]);
