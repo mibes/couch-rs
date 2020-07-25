@@ -1,7 +1,4 @@
-use super::*;
 use serde::{Serialize, Deserialize};
-use find::{SortSpec};
-use document::{DocumentId};
 
 /// Design document created abstraction
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]

@@ -137,7 +137,7 @@ impl Client {
 
         match s.ok {
             Some(true) => Ok(db),
-            Some(false) | _ => {
+            _ => {
                 let err = s.error.unwrap_or_else(|| s!("unspecified error"));
                 Err(CouchError::new(err, status))
             },

@@ -14,7 +14,7 @@ impl From<String> for SortDirection {
     fn from(original: String) -> SortDirection {
         match original.as_ref() {
             "desc" => SortDirection::Desc,
-            "asc" | _ => SortDirection::Asc
+            _ => SortDirection::Asc
         }
     }
 }

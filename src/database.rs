@@ -7,7 +7,6 @@ use crate::types::find::{FindQuery, FindResult};
 use crate::types::index::{DatabaseIndexList, IndexFields};
 use crate::types::view::ViewCollection;
 use reqwest::{RequestBuilder, StatusCode};
-use serde_json;
 use serde_json::{json, to_string, Value};
 use std::collections::HashMap;
 use tokio::sync::mpsc::Sender;
@@ -305,7 +304,7 @@ impl Database {
 
                 Ok(Document::new(val))
             }
-            Some(false) | _ => {
+            _ => {
                 let err = data.error.unwrap_or_else(|| s!("unspecified error"));
                 Err(CouchError::new(err, status))
             }
@@ -341,7 +340,7 @@ impl Database {
 
                 Ok(Document::new(val))
             }
-            Some(false) | _ => {
+            _ => {
                 let err = data.error.unwrap_or_else(|| s!("unspecified error"));
                 Err(CouchError::new(err, status))
             }

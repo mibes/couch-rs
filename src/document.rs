@@ -1,4 +1,3 @@
-use serde_json;
 use serde_json::Value;
 use std::ops::{Index, IndexMut};
 use serde::{Serialize, Deserialize};
@@ -81,7 +80,7 @@ impl Document {
             .map(|v| s!(v.as_str().unwrap_or("")))
             .collect();
 
-        let data = db.get_bulk(ids).await.and_then(|docs| Ok(docs.get_data()));
+        let data = db.get_bulk(ids).await.map(|docs| docs.get_data());
 
         match data {
             Ok(data) => {
@@ -161,7 +160,7 @@ impl DocumentCollection {
         let items: Vec<DocumentCollectionItem> = rows.into_iter()
             .filter(|d| {
                 let maybe_err: Option<String> = json_extr!(d["error"]);
-                if let Some(_) = maybe_err {
+                if maybe_err.is_some() {
                     // remove errors
                     false
                 } else {
