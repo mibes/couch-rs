@@ -24,6 +24,11 @@ impl Database {
         Database { _client: client, name }
     }
 
+    // convenience function to retrieve the name of the database
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     fn create_document_path(&self, id: DocumentId) -> String {
         let mut result: String = self.name.clone();
         result.push_str("/");
