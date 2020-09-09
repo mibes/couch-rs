@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
+use std::fmt::Display;
+use serde::export::Formatter;
 
 /// Sort direction abstraction
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
@@ -115,6 +117,19 @@ impl Into<serde_json::Value> for FindQuery {
     }
 }
 
+impl Into<serde_json::Value> for &FindQuery {
+    fn into(self) -> Value {
+        serde_json::to_value(&self).expect("can not convert into json")
+    }
+}
+
+impl Display for FindQuery {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let json: Value = self.into();
+        f.write_str(&json.to_string())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -128,7 +143,7 @@ mod tests {
         query.limit = Some(10);
         query.skip = Some(20);
         query.sort = Some(SortSpec::Complex(sort));
-        let json: Value = query.into();
-        assert_eq!(r#"{"limit":10,"selector":{"_id":{"$ne":null}},"skip":20,"sort":{"first_name":"desc"}}"#, json.to_string())
+        let json = query.to_string();
+        assert_eq!(r#"{"limit":10,"selector":{"_id":{"$ne":null}},"skip":20,"sort":{"first_name":"desc"}}"#, json)
     }
 }

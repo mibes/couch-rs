@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.7.8] - 2020-09-09
+- Implemented Display for FindQuery
+
 ## [0.7.7] - 2020-09-09
 - Allow FindQuery to be converted to Value
 
