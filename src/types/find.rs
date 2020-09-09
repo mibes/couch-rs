@@ -108,3 +108,27 @@ impl FindQuery {
         }
     }
 }
+
+impl Into<serde_json::Value> for FindQuery {
+    fn into(self) -> Value {
+        serde_json::to_value(&self).expect("can not convert into json")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_convert_to_value() {
+        let mut sort = HashMap::new();
+        sort.insert("first_name".to_string(), "desc".to_string());
+
+        let mut query = FindQuery::find_all();
+        query.limit = Some(10);
+        query.skip = Some(20);
+        query.sort = Some(SortSpec::Complex(sort));
+        let json: Value = query.into();
+        assert_eq!(r#"{"limit":10,"selector":{"_id":{"$ne":null}},"skip":20,"sort":{"first_name":"desc"}}"#, json.to_string())
+    }
+}
