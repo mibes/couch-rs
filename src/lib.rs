@@ -96,10 +96,11 @@ mod macros {
         };
     }
 
-    /// Extracts a JSON Value to a defined Struct
+    /// Extracts a JSON Value to a defined Struct; Returns the default value when the field can not be found
+    /// or converted
     macro_rules! json_extr {
         ($e:expr) => {
-            serde_json::from_value($e.to_owned()).unwrap()
+            serde_json::from_value($e.to_owned()).unwrap_or_default()
         };
     }
 

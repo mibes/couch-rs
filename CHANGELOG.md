@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.7.9] - 2020-09-09
+- `json_extr!` does not panic when called on a non-existent field. Like in find for _id, 
+   when the find result does not include an _id.
+
 ## [0.7.8] - 2020-09-09
 - Implemented Display for FindQuery
 
