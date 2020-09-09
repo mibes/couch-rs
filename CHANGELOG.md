@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.7.7] - 2020-09-09
+- Allow FindQuery to be converted to Value
+
 ## [0.7.6] - 2020-09-09
 - Added `find_batched` to allow asynchronous customized searches 
 
