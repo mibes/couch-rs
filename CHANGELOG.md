@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.7.6] - 2020-09-09
+- Added `find_batched` to allow asynchronous customized searches 
+
 ## [0.7.0] - 2020-02-03
 
 ### Added

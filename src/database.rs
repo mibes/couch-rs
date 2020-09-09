@@ -193,19 +193,28 @@ impl Database {
     /// databases only. Batch size can be requested. A value of 0, means the default batch_size of
     /// 1000 is used. max_results of 0 means all documents will be returned. A given max_results is
     /// always rounded *up* to the nearest multiplication of batch_size.
-    pub async fn get_all_batched(&self, mut tx: Sender<DocumentCollection>, batch_size: u64, max_results: u64) -> u64 {
+    /// This operation is identical to find_batched(FindQuery::find_all(), tx, batch_size, max_results)
+    pub async fn get_all_batched(&self, tx: Sender<DocumentCollection>, batch_size: u64, max_results: u64) -> u64 {
+        let query = FindQuery::find_all();
+        self.find_batched(query, tx, batch_size, max_results).await
+    }
+
+    /// Finds documents in the database, using bookmarks to iterate through all the documents.
+    /// Results are returned through an mpcs channel for async processing. Use this for very large
+    /// databases only. Batch size can be requested. A value of 0, means the default batch_size of
+    /// 1000 is used. max_results of 0 means all documents will be returned. A given max_results is
+    /// always rounded *up* to the nearest multiplication of batch_size.
+    pub async fn find_batched(&self, mut query: FindQuery, mut tx: Sender<DocumentCollection>, batch_size: u64, max_results: u64) -> u64 {
         let mut bookmark = Option::None;
         let limit = if batch_size > 0 { batch_size } else { 1000 };
 
         let mut results: u64 = 0;
+        query.limit = Option::Some(limit);
 
         loop {
-            let mut query = FindQuery::find_all();
-
-            query.limit = Option::Some(limit);
-            query.bookmark = bookmark.clone();
-
-            let all_docs = self.find(serde_json::to_value(query).unwrap()).await.unwrap();
+            let mut segment_query = query.clone();
+            segment_query.bookmark = bookmark.clone();
+            let all_docs = self.find(serde_json::to_value(segment_query).unwrap()).await.unwrap();
 
             if all_docs.total_rows == 0 {
                 // no more rows

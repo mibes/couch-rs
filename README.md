@@ -16,7 +16,7 @@ Here: [http://docs.rs/sofa](http://docs.rs/sofa)
 If you want to use this particular fork, include this dependency in the Cargo.toml file:
 ```toml
 [dependencies]
-sofa = { git = "https://github.com/mibes/sofa.git", version = "0.7.5" }
+sofa = { git = "https://github.com/mibes/sofa.git", version = "0.7.6" }
 ```
 
 If you want to continue to use the "old" 0.6 version use this dependency instead:
@@ -57,7 +57,7 @@ Since Couch 3.0 the "Admin Party" mode is no longer supported. This means you ne
 The tests and examples assume an "admin" CouchDB user with a "password" CouchDB password. Docker run command:
 
 ```shell script
-docker run --rm -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password couchdb:3.0
+docker run --rm -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password couchdb:3
 ```
 
 And then
