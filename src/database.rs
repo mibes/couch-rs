@@ -44,12 +44,12 @@ impl Database {
         result
     }
 
-    fn create_execute_view_path(&self, id: DocumentId) -> String {
+    fn create_query_view_path(&self, design_id: DocumentId, view_id: DocumentId) -> String {
         let mut result: String = self.name.clone();
         result.push_str("/_design/");
-        result.push_str(&id);
+        result.push_str(&design_id);
         result.push_str("/_view/");
-        result.push_str(&id);
+        result.push_str(&view_id);
         result
     }
 
@@ -365,10 +365,10 @@ impl Database {
     }
 
     /// Creates a view document.
-    pub async fn create_view(&self, view_name: String, doc: Value) -> Result<DesignCreated, CouchError> {
+    pub async fn create_view(&self, design_name: String, doc: Value) -> Result<DesignCreated, CouchError> {
         let response = self
             ._client
-            .put(self.create_design_path(view_name), to_string(&doc)?)?
+            .put(self.create_design_path(design_name), to_string(&doc)?)?
             .send()
             .await?;
 
@@ -382,7 +382,23 @@ impl Database {
         }
     }
 
-    /// Executes a view.
+    /// Executes a query against a view.
+    pub async fn query(
+        &self,
+        design_name: String,
+        view_name: String,
+        options: Option<HashMap<String, String>>,
+    ) -> Result<ViewCollection, CouchError> {
+        let response = self
+            ._client
+            .get(self.create_query_view_path(design_name, view_name), options)?
+            .send()
+            .await?;
+
+        Ok(response.json().await?)
+    }
+
+    /// Convenience function to executes a view name matches design name.
     pub async fn execute_view(
         &self,
         view_name: String,
@@ -390,7 +406,7 @@ impl Database {
     ) -> Result<ViewCollection, CouchError> {
         let response = self
             ._client
-            .get(self.create_execute_view_path(view_name), options)?
+            .get(self.create_query_view_path(view_name.clone(), view_name), options)?
             .send()
             .await?;
 

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.7.11] - 2020-09-09
+- Allow to query a view with a different design name
+
 ## [0.7.10] - 2020-09-09
 - BREAKING CHANGE: get_all_params now takes a typed QueryParams as input.
 - get_all_params uses POST, instead of GET, for greater flexibility.
