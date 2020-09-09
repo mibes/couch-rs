@@ -10,6 +10,7 @@ use reqwest::{RequestBuilder, StatusCode};
 use serde_json::{json, to_string, Value};
 use std::collections::HashMap;
 use tokio::sync::mpsc::Sender;
+use crate::types::query::QueryParams;
 
 /// Database holds the logic of making operations on a CouchDB Database
 /// (sometimes called Collection in other NoSQL flavors such as MongoDB).
@@ -243,20 +244,22 @@ impl Database {
     /// Gets all the documents in database, with applied parameters. Parameters description can be found here: http://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view
     pub async fn get_all_params(
         &self,
-        params: Option<HashMap<String, String>>,
+        params: Option<QueryParams>,
     ) -> Result<DocumentCollection, CouchError> {
         let mut options;
         if let Some(opts) = params {
             options = opts;
         } else {
-            options = HashMap::new();
+            options = QueryParams::default();
         }
 
-        options.insert(s!("include_docs"), s!("true"));
+        options.include_docs = Some(true);
 
+        // we use POST here, because this allows for a larger set of keys to be provided, compared
+        // to a GET call. It provides the same functionality
         let response = self
             ._client
-            .get(self.create_document_path("_all_docs".into()), Some(options))?
+            .post(self.create_document_path("_all_docs".into()), js!(&options))?
             .send()
             .await?;
 

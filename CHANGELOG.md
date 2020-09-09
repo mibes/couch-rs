@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.7.10] - 2020-09-09
+- BREAKING CHANGE: get_all_params now takes a typed QueryParams as input.
+- get_all_params uses POST, instead of GET, for greater flexibility.
+
 ## [0.7.9] - 2020-09-09
 - `json_extr!` does not panic when called on a non-existent field. Like in find for _id, 
    when the find result does not include an _id.

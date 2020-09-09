@@ -211,7 +211,8 @@ mod sofa_tests {
         use crate::database::Database;
         use crate::document::Document;
         use crate::types;
-        use serde_json::json;
+        use serde_json::{json};
+        use crate::types::query::QueryParams;
 
         const DB_HOST: &str = "http://admin:password@localhost:5984";
 
@@ -357,6 +358,21 @@ mod sofa_tests {
             assert!(db.remove(doc).await);
 
             teardown(client, "i_should_bulk_get_invalid_documents").await;
+        }
+
+
+        #[tokio::test]
+        async fn j_should_get_all_documents_with_keys() {
+            let (client, db, doc) = setup("j_should_get_all_documents_with_keys").await;
+            let id = doc._id.clone();
+
+            let params = QueryParams::from_keys(vec![id]);
+
+            let collection = db.get_all_params(Some(params)).await.unwrap();
+            assert_eq!(collection.rows.len(), 1);
+            assert!(db.remove(doc).await);
+
+            teardown(client, "j_should_get_all_documents_with_keys").await;
         }
     }
 }
