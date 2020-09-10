@@ -372,13 +372,19 @@ impl Database {
             .send()
             .await?;
 
+        let response_status = response.status();
         let result: DesignCreated = response.json().await?;
-        match result.error {
-            Some(e) => Err(CouchError {
-                status: reqwest::StatusCode::INTERNAL_SERVER_ERROR,
-                message: e,
-            }),
-            None => Ok(result),
+
+        if response_status.is_success() {
+            Ok(result)
+        } else {
+            match result.error {
+                Some(e) => Err(CouchError {
+                    status: response_status,
+                    message: e,
+                }),
+                None => Ok(result),
+            }
         }
     }
 

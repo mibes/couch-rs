@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.7.12] - 2020-09-10
+- Check response success for create_view()
+
 ## [0.7.11] - 2020-09-09
 - Allow to query a view with a different design name
 
