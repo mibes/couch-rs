@@ -53,12 +53,19 @@ impl Database {
         result
     }
 
-    fn create_update_function_path(&self, design_id: DocumentId, view_id: DocumentId) -> String {
+    fn create_update_function_path(
+        &self,
+        design_id: DocumentId,
+        update_id: DocumentId,
+        document_id: DocumentId,
+    ) -> String {
         let mut result: String = self.name.clone();
         result.push_str("/_design/");
         result.push_str(&design_id);
         result.push_str("/_update/");
-        result.push_str(&view_id);
+        result.push_str(&update_id);
+        result.push_str("/");
+        result.push_str(&document_id);
         result
     }
 
@@ -432,7 +439,13 @@ impl Database {
     }
 
     /// Convenience function to execute an update function whose name matches design name.
-    pub async fn execute_update(&self, name: String, body: Option<Value>) -> Result<String, CouchError> {
+    pub async fn execute_update(
+        &self,
+        design_id: String,
+        name: String,
+        document_id: String,
+        body: Option<Value>,
+    ) -> Result<String, CouchError> {
         let body = match body {
             Some(v) => to_string(&v)?,
             None => "".to_string(),
@@ -440,9 +453,10 @@ impl Database {
 
         let response = self
             ._client
-            .post(self.create_update_function_path(name.clone(), name), body)?
+            .put(self.create_update_function_path(design_id, name, document_id), body)?
             .send()
-            .await?;
+            .await?
+            .error_for_status()?;
 
         Ok(response.text().await?)
     }
