@@ -53,7 +53,7 @@ impl Database {
         result
     }
 
-    fn create_update_function_path(
+    fn create_execute_update_path(
         &self,
         design_id: DocumentId,
         update_id: DocumentId,
@@ -453,7 +453,7 @@ impl Database {
 
         let response = self
             ._client
-            .put(self.create_update_function_path(design_id, name, document_id), body)?
+            .put(self.create_execute_update_path(design_id, name, document_id), body)?
             .send()
             .await?
             .error_for_status()?;
