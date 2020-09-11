@@ -53,7 +53,7 @@ impl Database {
         result
     }
 
-    fn create_compact_path(&self, design_name: &'static str) -> String {
+    fn create_compact_path(&self, design_name: &str) -> String {
         let mut result: String = self.name.clone();
         result.push_str("/_compact/");
         result.push_str(design_name);
@@ -102,7 +102,7 @@ impl Database {
     }
 
     /// Starts the compaction of a given index
-    pub async fn compact_index(&self, index: &'static str) -> bool {
+    pub async fn compact_index(&self, index: &str) -> bool {
         let request = self._client.post(self.create_compact_path(index), "".into());
         self.is_accepted(request).await
     }
