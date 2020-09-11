@@ -23,7 +23,9 @@ async fn main() {
         let client = sofa::Client::new_with_timeout(DB_HOST, 120).unwrap();
         let db = client.db(TEST_DB).await.unwrap();
 
-        db.get_all_batched(tx, 0, 0).await;
+        if let Err(err) = db.get_all_batched(tx, 0, 0).await {
+            println!("error during batch read: {:?}", err);
+        }
     });
 
     // Open a file for writing

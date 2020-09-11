@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.7.13] - 2020-09-11
+- Use reqwest's `error_for_status()` on responses, where we are not actively checking the result.
+- Return an Error when one occurs during batch reading.
+- Removed the `'static` lifetime on some of the `str` parameters; contribution from kallisti5
+- Included `execute_update()` operation; contribution from horacimacias 
+
 ## [0.7.12] - 2020-09-10
 - Check response success for create_view()
 

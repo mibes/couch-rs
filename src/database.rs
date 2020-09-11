@@ -131,16 +131,8 @@ impl Database {
 
     /// Gets one document
     pub async fn get(&self, id: DocumentId) -> Result<Document, CouchError> {
-        let response = self._client.get(self.create_document_path(id), None)?.send().await?;
-
-        match response.status() {
-            StatusCode::OK => Ok(Document::new(response.json().await?)),
-            StatusCode::NOT_FOUND => Err(CouchError::new(
-                "Document was not found".to_string(),
-                StatusCode::NOT_FOUND,
-            )),
-            _ => Err(CouchError::new("Internal error".to_string(), response.status())),
-        }
+        let response = self._client.get(self.create_document_path(id), None)?.send().await?.error_for_status()?;
+        Ok(Document::new(response.json().await?))
     }
 
     /// Gets documents in bulk with provided IDs list
@@ -167,6 +159,7 @@ impl Database {
             .post(self.create_document_path("_bulk_docs".into()), to_string(&body)?)?
             .send()
             .await?;
+
         let data: Vec<DocumentCreatedResult> = response.json().await?;
 
         Ok(data)
@@ -195,7 +188,8 @@ impl Database {
             .post(self.create_document_path("_all_docs".into()), to_string(&body)?)?
             .query(&options)
             .send()
-            .await?;
+            .await?
+            .error_for_status()?;
 
         Ok(DocumentCollection::new(response.json().await?))
     }
@@ -211,7 +205,7 @@ impl Database {
     /// 1000 is used. max_results of 0 means all documents will be returned. A given max_results is
     /// always rounded *up* to the nearest multiplication of batch_size.
     /// This operation is identical to find_batched(FindQuery::find_all(), tx, batch_size, max_results)
-    pub async fn get_all_batched(&self, tx: Sender<DocumentCollection>, batch_size: u64, max_results: u64) -> u64 {
+    pub async fn get_all_batched(&self, tx: Sender<DocumentCollection>, batch_size: u64, max_results: u64) -> Result<u64, CouchError> {
         let query = FindQuery::find_all();
         self.find_batched(query, tx, batch_size, max_results).await
     }
@@ -227,28 +221,33 @@ impl Database {
         mut tx: Sender<DocumentCollection>,
         batch_size: u64,
         max_results: u64,
-    ) -> u64 {
+    ) -> Result<u64, CouchError> {
         let mut bookmark = Option::None;
         let limit = if batch_size > 0 { batch_size } else { 1000 };
 
         let mut results: u64 = 0;
         query.limit = Option::Some(limit);
 
-        loop {
+        let maybe_err = loop {
             let mut segment_query = query.clone();
             segment_query.bookmark = bookmark.clone();
-            let all_docs = self.find(serde_json::to_value(segment_query).unwrap()).await.unwrap();
+            let all_docs = match self.find(serde_json::to_value(segment_query).unwrap()).await {
+                Ok(docs) => docs,
+                Err(err) => {
+                    break Some(err)
+                },
+            };
 
             if all_docs.total_rows == 0 {
                 // no more rows
-                break;
+                break None;
             }
 
             if all_docs.bookmark.is_some() && all_docs.bookmark != bookmark {
                 bookmark.replace(all_docs.bookmark.clone().unwrap_or_default());
             } else {
                 // no bookmark, break the query loop
-                break;
+                break None;
             }
 
             results += all_docs.total_rows as u64;
@@ -256,11 +255,15 @@ impl Database {
             tx.send(all_docs).await.unwrap();
 
             if max_results > 0 && results >= max_results {
-                break;
+                break None;
             }
-        }
+        };
 
-        results
+        if let Some(err) = maybe_err {
+            Err(err)
+        } else {
+            Ok(results)
+        }
     }
 
     /// Gets all the documents in database, with applied parameters. Parameters description can be found here: http://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view
@@ -280,7 +283,7 @@ impl Database {
             ._client
             .post(self.create_document_path("_all_docs".into()), js!(&options))?
             .send()
-            .await?;
+            .await?.error_for_status()?;
 
         Ok(DocumentCollection::new(response.json().await?))
     }
@@ -354,8 +357,8 @@ impl Database {
             .post(self.name.clone(), to_string(&raw_doc)?)?
             .send()
             .await?;
-        let status = response.status();
 
+        let status = response.status();
         let data: DocumentCreatedResult = response.json().await?;
 
         match data.ok {
@@ -402,7 +405,10 @@ impl Database {
                     status: response_status,
                     message: e,
                 }),
-                None => Ok(result),
+                None => Err(CouchError {
+                    status: response_status,
+                    message: s!("unspecified error"),
+                }),
             }
         }
     }
@@ -418,7 +424,8 @@ impl Database {
             ._client
             .get(self.create_query_view_path(design_name, view_name), options)?
             .send()
-            .await?;
+            .await?
+            .error_for_status()?;
 
         Ok(response.json().await?)
     }
@@ -433,7 +440,8 @@ impl Database {
             ._client
             .get(self.create_query_view_path(view_name.clone(), view_name), options)?
             .send()
-            .await?;
+            .await?
+            .error_for_status()?;
 
         Ok(response.json().await?)
     }
