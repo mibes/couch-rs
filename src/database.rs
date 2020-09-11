@@ -5,12 +5,12 @@ use crate::types::design::DesignCreated;
 use crate::types::document::{DocumentCreatedResult, DocumentId};
 use crate::types::find::{FindQuery, FindResult};
 use crate::types::index::{DatabaseIndexList, IndexFields};
+use crate::types::query::QueryParams;
 use crate::types::view::ViewCollection;
 use reqwest::{RequestBuilder, StatusCode};
 use serde_json::{json, to_string, Value};
 use std::collections::HashMap;
 use tokio::sync::mpsc::Sender;
-use crate::types::query::QueryParams;
 
 /// Database holds the logic of making operations on a CouchDB Database
 /// (sometimes called Collection in other NoSQL flavors such as MongoDB).
@@ -50,6 +50,22 @@ impl Database {
         result.push_str(&design_id);
         result.push_str("/_view/");
         result.push_str(&view_id);
+        result
+    }
+
+    fn create_execute_update_path(
+        &self,
+        design_id: DocumentId,
+        update_id: DocumentId,
+        document_id: DocumentId,
+    ) -> String {
+        let mut result: String = self.name.clone();
+        result.push_str("/_design/");
+        result.push_str(&design_id);
+        result.push_str("/_update/");
+        result.push_str(&update_id);
+        result.push_str("/");
+        result.push_str(&document_id);
         result
     }
 
@@ -205,7 +221,13 @@ impl Database {
     /// databases only. Batch size can be requested. A value of 0, means the default batch_size of
     /// 1000 is used. max_results of 0 means all documents will be returned. A given max_results is
     /// always rounded *up* to the nearest multiplication of batch_size.
-    pub async fn find_batched(&self, mut query: FindQuery, mut tx: Sender<DocumentCollection>, batch_size: u64, max_results: u64) -> u64 {
+    pub async fn find_batched(
+        &self,
+        mut query: FindQuery,
+        mut tx: Sender<DocumentCollection>,
+        batch_size: u64,
+        max_results: u64,
+    ) -> u64 {
         let mut bookmark = Option::None;
         let limit = if batch_size > 0 { batch_size } else { 1000 };
 
@@ -242,10 +264,7 @@ impl Database {
     }
 
     /// Gets all the documents in database, with applied parameters. Parameters description can be found here: http://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view
-    pub async fn get_all_params(
-        &self,
-        params: Option<QueryParams>,
-    ) -> Result<DocumentCollection, CouchError> {
+    pub async fn get_all_params(&self, params: Option<QueryParams>) -> Result<DocumentCollection, CouchError> {
         let mut options;
         if let Some(opts) = params {
             options = opts;
@@ -417,6 +436,29 @@ impl Database {
             .await?;
 
         Ok(response.json().await?)
+    }
+
+    /// Convenience function to execute an update function whose name matches design name.
+    pub async fn execute_update(
+        &self,
+        design_id: String,
+        name: String,
+        document_id: String,
+        body: Option<Value>,
+    ) -> Result<String, CouchError> {
+        let body = match body {
+            Some(v) => to_string(&v)?,
+            None => "".to_string(),
+        };
+
+        let response = self
+            ._client
+            .put(self.create_execute_update_path(design_id, name, document_id), body)?
+            .send()
+            .await?
+            .error_for_status()?;
+
+        Ok(response.text().await?)
     }
 
     /// Removes a document from the database. Returns success in a `bool`
