@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.7.16] - 2020-09-14
+- Make total_rows in ViewCollection optional.
+
 ## [0.7.15] - 2020-09-14
 - Make id in ViewItem optional.
 

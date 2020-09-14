@@ -5,7 +5,7 @@ use serde_json::Value;
 pub struct ViewCollection {
     pub offset: Option<u32>,
     pub rows: Vec<ViewItem>,
-    pub total_rows: u32,
+    pub total_rows: Option<u32>,
 }
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
