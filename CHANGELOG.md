@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.7.14] - 2020-09-14
+- Return value in ViewItem as a Value, not String
+
 ## [0.7.13] - 2020-09-11
 - Use reqwest's `error_for_status()` on responses, where we are not actively checking the result.
 - Return an Error when one occurs during batch reading.

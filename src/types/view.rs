@@ -1,4 +1,5 @@
 use serde::{Serialize, Deserialize};
+use serde_json::Value;
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct ViewCollection {
@@ -11,5 +12,5 @@ pub struct ViewCollection {
 pub struct ViewItem {
     pub id: String,
     pub key: String,
-    pub value: String,
+    pub value: Value,
 }
