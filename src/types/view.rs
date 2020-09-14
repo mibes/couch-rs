@@ -10,7 +10,7 @@ pub struct ViewCollection {
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct ViewItem {
-    pub id: String,
     pub key: String,
     pub value: Value,
+    pub id: Option<String>,
 }
