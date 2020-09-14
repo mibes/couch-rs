@@ -51,8 +51,8 @@ pub struct FindQuery {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub skip: Option<u64>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub sort: Option<SortSpec>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub sort: Vec<SortSpec>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fields: Option<Vec<String>>,
@@ -103,7 +103,7 @@ impl FindQuery {
             selector: json!({ "_id" : {"$ne": null}}),
             limit: None,
             skip: None,
-            sort: None,
+            sort: vec![],
             fields: None,
             use_index: None,
             bookmark: None,
@@ -142,8 +142,8 @@ mod tests {
         let mut query = FindQuery::find_all();
         query.limit = Some(10);
         query.skip = Some(20);
-        query.sort = Some(SortSpec::Complex(sort));
+        query.sort = vec![SortSpec::Complex(sort)];
         let json = query.to_string();
-        assert_eq!(r#"{"limit":10,"selector":{"_id":{"$ne":null}},"skip":20,"sort":{"first_name":"desc"}}"#, json)
+        assert_eq!(r#"{"limit":10,"selector":{"_id":{"$ne":null}},"skip":20,"sort":[{"first_name":"desc"}]}"#, json)
     }
 }

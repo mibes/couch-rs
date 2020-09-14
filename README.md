@@ -16,7 +16,7 @@ Here: [http://docs.rs/sofa](http://docs.rs/sofa)
 If you want to use this particular fork, include this dependency in the Cargo.toml file:
 ```toml
 [dependencies]
-sofa = { git = "https://github.com/mibes/sofa.git", version = "0.7.16" }
+sofa = { git = "https://github.com/mibes/sofa.git", version = "0.7.17" }
 ```
 
 If you want to continue to use the "old" 0.6 version use this dependency instead:

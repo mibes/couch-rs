@@ -1,6 +1,6 @@
 [package]
 name = "sofa"
-version = "0.7.16"
+version = "0.7.17"
 authors = ["Mathieu Amiot <mathieu.amiot@yellowinnovation.fr>", "mibes <mibes@mibesco.com>"]
 license = "MIT/Apache-2.0"
 description = "Sofa - CouchDB for Rust"

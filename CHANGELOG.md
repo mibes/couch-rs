@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.7.17] - 2020-09-14
+- Sort takes an array of key/value pairs, like: [{"first_name":"desc"}]
+
 ## [0.7.16] - 2020-09-14
 - Make total_rows in ViewCollection optional.
 
