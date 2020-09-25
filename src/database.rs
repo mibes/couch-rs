@@ -131,7 +131,12 @@ impl Database {
 
     /// Gets one document
     pub async fn get(&self, id: DocumentId) -> Result<Document, CouchError> {
-        let response = self._client.get(self.create_document_path(id), None)?.send().await?.error_for_status()?;
+        let response = self
+            ._client
+            .get(self.create_document_path(id), None)?
+            .send()
+            .await?
+            .error_for_status()?;
         Ok(Document::new(response.json().await?))
     }
 
@@ -205,7 +210,12 @@ impl Database {
     /// 1000 is used. max_results of 0 means all documents will be returned. A given max_results is
     /// always rounded *up* to the nearest multiplication of batch_size.
     /// This operation is identical to find_batched(FindQuery::find_all(), tx, batch_size, max_results)
-    pub async fn get_all_batched(&self, tx: Sender<DocumentCollection>, batch_size: u64, max_results: u64) -> Result<u64, CouchError> {
+    pub async fn get_all_batched(
+        &self,
+        tx: Sender<DocumentCollection>,
+        batch_size: u64,
+        max_results: u64,
+    ) -> Result<u64, CouchError> {
         let query = FindQuery::find_all();
         self.find_batched(query, tx, batch_size, max_results).await
     }
@@ -233,9 +243,7 @@ impl Database {
             segment_query.bookmark = bookmark.clone();
             let all_docs = match self.find(serde_json::to_value(segment_query).unwrap()).await {
                 Ok(docs) => docs,
-                Err(err) => {
-                    break Some(err)
-                },
+                Err(err) => break Some(err),
             };
 
             if all_docs.total_rows == 0 {
@@ -283,7 +291,8 @@ impl Database {
             ._client
             .post(self.create_document_path("_all_docs".into()), js!(&options))?
             .send()
-            .await?.error_for_status()?;
+            .await?
+            .error_for_status()?;
 
         Ok(DocumentCollection::new(response.json().await?))
     }
@@ -418,27 +427,11 @@ impl Database {
         &self,
         design_name: String,
         view_name: String,
-        options: Option<HashMap<String, String>>,
+        options: Option<QueryParams>,
     ) -> Result<ViewCollection, CouchError> {
         let response = self
             ._client
-            .get(self.create_query_view_path(design_name, view_name), options)?
-            .send()
-            .await?
-            .error_for_status()?;
-
-        Ok(response.json().await?)
-    }
-
-    /// Convenience function to executes a view name matches design name.
-    pub async fn execute_view(
-        &self,
-        view_name: String,
-        options: Option<HashMap<String, String>>,
-    ) -> Result<ViewCollection, CouchError> {
-        let response = self
-            ._client
-            .get(self.create_query_view_path(view_name.clone(), view_name), options)?
+            .post(self.create_query_view_path(design_name, view_name), js!(&options))?
             .send()
             .await?
             .error_for_status()?;
