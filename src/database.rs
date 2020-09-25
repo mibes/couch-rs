@@ -427,11 +427,11 @@ impl Database {
         &self,
         design_name: String,
         view_name: String,
-        options: Option<HashMap<String, String>>,
+        options: Option<QueryParams>,
     ) -> Result<ViewCollection, CouchError> {
         let response = self
             ._client
-            .get(self.create_query_view_path(design_name, view_name), options)?
+            .post(self.create_query_view_path(design_name, view_name), js!(&options))?
             .send()
             .await?
             .error_for_status()?;
