@@ -7,13 +7,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.7.18] - 2020-09-25
+
+- Views now use QueryParams instead of an untyped map.
+- Views can now return the optional "doc" item.
+- BREAKING CHANGE: `execute_view` has been removed. Use `query` instead.
+
 ## [0.7.17] - 2020-09-14
+
 - Sort takes an array of key/value pairs, like: [{"first_name":"desc"}]
 
 ## [0.7.16] - 2020-09-14
+
 - Make total_rows in ViewCollection optional.
 
 ## [0.7.15] - 2020-09-14
+
 - Make id in ViewItem optional.
 
 ## [0.7.14] - 2020-09-14
