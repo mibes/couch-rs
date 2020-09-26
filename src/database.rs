@@ -5,7 +5,7 @@ use crate::types::design::DesignCreated;
 use crate::types::document::{DocumentCreatedResult, DocumentId};
 use crate::types::find::{FindQuery, FindResult};
 use crate::types::index::{DatabaseIndexList, IndexFields};
-use crate::types::query::QueryParams;
+use crate::types::query::{QueriesCollection, QueriesParams, QueryParams};
 use crate::types::view::ViewCollection;
 use reqwest::{RequestBuilder, StatusCode};
 use serde_json::{json, to_string, Value};
@@ -277,6 +277,44 @@ impl Database {
         } else {
             Ok(results)
         }
+    }
+
+    /// Executes multiple specified built-in view queries of all documents in this database.
+    /// This enables you to request multiple queries in a single request, in place of multiple POST /{db}/_all_docs requests.
+    /// [More information](https://docs.couchdb.org/en/stable/api/database/bulk-api.html#sending-multiple-queries-to-a-database)
+    /// Parameters description can be found [here](https://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view)
+    pub async fn get_all_many(&self, queries: QueriesParams) -> Result<Vec<ViewCollection>, CouchError> {
+        self.query_view_many(self.create_document_path("_all_docs/queries".into()), queries)
+            .await
+    }
+
+    /// Executes multiple queries against a view.
+    pub async fn query_many(
+        &self,
+        design_name: String,
+        view_name: String,
+        queries: QueriesParams,
+    ) -> Result<Vec<ViewCollection>, CouchError> {
+        self.query_view_many(self.create_query_view_path(design_name, view_name), queries)
+            .await
+    }
+
+    async fn query_view_many(
+        &self,
+        view_path: String,
+        queries: QueriesParams,
+    ) -> Result<Vec<ViewCollection>, CouchError> {
+        // we use POST here, because this allows for a larger set of keys to be provided, compared
+        // to a GET call. It provides the same functionality
+
+        let response = self
+            ._client
+            .post(view_path, js!(&queries))?
+            .send()
+            .await?
+            .error_for_status()?;
+        let results: QueriesCollection = response.json().await?;
+        Ok(results.results)
     }
 
     /// Gets all the documents in database, with applied parameters.

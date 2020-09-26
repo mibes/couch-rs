@@ -171,7 +171,7 @@ mod rust_rs_tests {
         use crate::document::Document;
         use crate::types;
         use crate::types::find::FindQuery;
-        use crate::types::query::QueryParams;
+        use crate::types::query::{QueriesParams, QueryParams};
         use serde_json::json;
 
         const DB_HOST: &str = "http://admin:password@localhost:5984";
@@ -329,6 +329,35 @@ mod rust_rs_tests {
             assert!(db.remove(doc).await);
 
             teardown(client, "j_should_get_all_documents_with_keys").await;
+        }
+
+        #[tokio::test]
+        async fn j_should_get_many_all_documents_with_keys() {
+            let dbname = "j_should_get_many_all_documents_with_keys";
+            let (client, db, doc) = setup(dbname).await;
+            let mut params1 = QueryParams::default();
+            params1.key = Some(doc._id.clone());
+            let mut params2 = QueryParams::default();
+            params2.include_docs = Some(true);
+            let mut params3 = QueryParams::default();
+
+            let params = vec![params1, params2, params3];
+
+            let collections = db.get_all_many(QueriesParams::new(params)).await.unwrap();
+            assert_eq!(collections.len(), 3);
+            assert_eq!(collections.get(0).unwrap().rows.len(), 1);
+            // first result has no docs and only 1 row
+            assert!(collections.get(0).unwrap().rows.get(0).unwrap().doc.is_none());
+            // second result has 4 rows with docs
+            assert_eq!(collections.get(1).unwrap().rows.len(), 4);
+            assert!(collections.get(1).unwrap().rows.get(0).unwrap().doc.is_some());
+            // third result has 4 rows without docs
+            assert_eq!(collections.get(2).unwrap().rows.len(), 4);
+            assert!(collections.get(2).unwrap().rows.get(0).unwrap().doc.is_none());
+
+            assert!(db.remove(doc).await);
+
+            teardown(client, dbname).await;
         }
     }
 }
