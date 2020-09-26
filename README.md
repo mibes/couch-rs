@@ -12,7 +12,7 @@ Here: [http://docs.rs/couch_rs](http://docs.rs/couch_rs)
 Include this dependency in the Cargo.toml file:
 ```toml
 [dependencies]
-couch_rs = "0.8.0"
+couch_rs = "0.8"
 ```
 
 ## Description

@@ -1,20 +1,5 @@
 //! # CouchDB library for Rust
 //!
-//! [![Crates.io](https://img.shields.io/crates/v/couch-rs.svg)](https://crates.io/crates/couch-rs)
-//! [![docs.rs](https://docs.rs/couch-rs/badge.svg)](https://docs.rs/couch-rs)
-//!
-//! ## Documentation
-//!
-//! Here: [http://docs.rs/couch-rs](http://docs.rs/couch-rs)
-//!
-//! ## Installation
-//!
-//! Include this dependency in the Cargo.toml file:
-//! ```toml
-//! [dependencies]
-//! couch-rs = "0.8.0"
-//! ```
-//!
 //! ## Description
 //!
 //! This crate is an interface to CouchDB HTTP REST API. Works with stable Rust.
@@ -56,23 +41,6 @@
 //!
 //! Single-threading the tests is very important because we need to make sure that the basic features are working before actually testing features on dbs/documents.
 //!
-//! ## License
-//!
-//! Licensed under either of these:
-//!
-//! * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or
-//! [https://www.apache.org/licenses/LICENSE-2.0](https://www.apache.org/licenses/LICENSE-2.0)
-//! * MIT license ([LICENSE-MIT](LICENSE-MIT) or
-//! [https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT))
-//!
-//!
-//! ## DISCLAIMER
-//!
-//! Please note: all content in this repository is released for use "AS IS" without any warranties of any kind, including, but not limited to their installation, use, or performance. We disclaim any and all warranties, either express or implied, including but not limited to any warranty of noninfringement, merchantability, and/ or fitness for a particular purpose. We do not warrant that the technology will meet your requirements, that the operation thereof will be uninterrupted or error-free, or that any errors will be corrected.
-//!
-//! Any use of these scripts and tools is at your own risk. There is no guarantee that they have been through thorough testing in a comparable environment and we are not responsible for any damage or data loss incurred with their use.
-//!
-//! You are responsible for reviewing and testing any generated code you run thoroughly before use in any non-testing environment.
 
 /// Macros that the crate exports to facilitate most of the
 /// doc-to-json-to-string-related tasks
