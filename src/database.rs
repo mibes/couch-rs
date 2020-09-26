@@ -210,6 +210,8 @@ impl Database {
     /// 1000 is used. max_results of 0 means all documents will be returned. A given max_results is
     /// always rounded *up* to the nearest multiplication of batch_size.
     /// This operation is identical to find_batched(FindQuery::find_all(), tx, batch_size, max_results)
+    ///
+    /// Check out the async_batch_read example for usage details
     pub async fn get_all_batched(
         &self,
         tx: Sender<DocumentCollection>,
@@ -225,6 +227,8 @@ impl Database {
     /// databases only. Batch size can be requested. A value of 0, means the default batch_size of
     /// 1000 is used. max_results of 0 means all documents will be returned. A given max_results is
     /// always rounded *up* to the nearest multiplication of batch_size.
+    ///
+    /// Check out the async_batch_read example for usage details
     pub async fn find_batched(
         &self,
         mut query: FindQuery,
@@ -274,7 +278,8 @@ impl Database {
         }
     }
 
-    /// Gets all the documents in database, with applied parameters. Parameters description can be found here: http://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view
+    /// Gets all the documents in database, with applied parameters.
+    /// Parameters description can be found here: [api-ddoc-view](https://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view)
     pub async fn get_all_params(&self, params: Option<QueryParams>) -> Result<DocumentCollection, CouchError> {
         let mut options;
         if let Some(opts) = params {
@@ -298,6 +303,23 @@ impl Database {
     }
 
     /// Finds a document in the database through a Mango query.
+    /// Usage:
+    /// ```
+    /// use couch_rs::types::find::FindQuery;
+    /// use std::error::Error;
+    ///
+    /// const DB_HOST: &str = "http://admin:password@localhost:5984";
+    /// const TEST_DB: &str = "test_db";
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn Error>> {
+    ///     let client = couch_rs::Client::new(DB_HOST).unwrap();
+    ///     let db = client.db(TEST_DB).await.unwrap();
+    ///     let find_all = FindQuery::find_all();
+    ///     let docs = db.find(&find_all).await.unwrap();
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn find(&self, query: &FindQuery) -> Result<DocumentCollection, CouchError> {
         let path = self.create_document_path("_find".into());
         let response = self._client.post(path, js!(query))?.send().await?;
@@ -331,7 +353,8 @@ impl Database {
         }
     }
 
-    /// Updates a document
+    /// Updates a document. Save will create the document when it does not yet exists, otherwise
+    /// it will attempt to update it.
     pub async fn save(&self, doc: Document) -> Result<Document, CouchError> {
         let id = doc._id.to_owned();
         let raw = doc.get_data();
@@ -439,7 +462,7 @@ impl Database {
         Ok(response.json().await?)
     }
 
-    /// Convenience function to execute an update function whose name matches design name.
+    /// Executes an update function.
     pub async fn execute_update(
         &self,
         design_id: String,

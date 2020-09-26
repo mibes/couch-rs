@@ -1,4 +1,3 @@
-use couch_rs::types::find::FindQuery;
 /// This example demonstrates some basic Couch operations: connecting, listing databases and
 /// inserting some documents in bulk.
 ///
@@ -12,6 +11,7 @@ use couch_rs::types::find::FindQuery;
 /// Depending on the Docker framework you are using it may listen to "localhost" or to some other
 /// automatically assigned IP address. Minikube for example generates a unique IP on start-up. You
 /// can obtain it with: `minikube ip`
+use couch_rs::types::find::FindQuery;
 use serde_json::{json, Value};
 use std::error::Error;
 

@@ -42,7 +42,7 @@ pub enum IndexSpec {
 }
 
 /// Find query abstraction
-/// Parameters here http://docs.couchdb.org/en/latest/api/database/find.html
+/// Parameters here [/db/_find](https://docs.couchdb.org/en/latest/api/database/find.html)
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct FindQuery {
     pub selector: Value,
