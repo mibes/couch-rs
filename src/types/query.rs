@@ -1,4 +1,21 @@
-use serde::{Serialize, Deserialize};
+use crate::types::view::ViewCollection;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+pub struct QueriesParams {
+    queries: Vec<QueryParams>,
+}
+
+impl QueriesParams {
+    pub fn new(params: Vec<QueryParams>) -> Self {
+        QueriesParams { queries: params }
+    }
+}
+
+#[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
+pub struct QueriesCollection {
+    pub results: Vec<ViewCollection>,
+}
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct QueryParams {
