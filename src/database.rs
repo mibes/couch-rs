@@ -171,7 +171,7 @@ impl Database {
     }
 
     /// Gets documents in bulk with provided IDs list, with added params. Params description can be found here:
-    /// [api-ddoc-view](http://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view)
+    /// [api-ddoc-view](https://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view)
     pub async fn get_bulk_params(
         &self,
         ids: Vec<DocumentId>,
