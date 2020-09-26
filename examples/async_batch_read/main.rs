@@ -1,6 +1,4 @@
-extern crate sofa;
-
-use sofa::document::DocumentCollection;
+use couch_rs::document::DocumentCollection;
 use std::fs::File;
 use std::io::prelude::*;
 use std::time::SystemTime;
@@ -20,7 +18,7 @@ async fn main() {
 
     // Spawn a separate thread to retrieve the batches from Couch
     let t = tokio::spawn(async move {
-        let client = sofa::Client::new_with_timeout(DB_HOST, 120).unwrap();
+        let client = couch_rs::Client::new_with_timeout(DB_HOST, 120).unwrap();
         let db = client.db(TEST_DB).await.unwrap();
 
         if let Err(err) = db.get_all_batched(tx, 0, 0).await {

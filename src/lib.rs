@@ -1,47 +1,38 @@
-//! # Sofa - CouchDB for Rust
+//! # CouchDB library for Rust
 //!
-//! [![Crates.io](https://img.shields.io/crates/v/sofa.svg)](https://crates.io/crates/sofa)
-//! [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FYellowInnovation%2Fsofa.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FYellowInnovation%2Fsofa?ref=badge_shield)
-//!
-//! [![docs.rs](https://docs.rs/sofa/badge.svg)](https://docs.rs/sofa)
-//!
-//! ![sofa-logo](https://raw.githubusercontent.com/mibes/sofa/master/docs/logo-sofa.png "Logo Sofa")
+//! [![Crates.io](https://img.shields.io/crates/v/couch-rs.svg)](https://crates.io/crates/couch-rs)
+//! [![docs.rs](https://docs.rs/couch-rs/badge.svg)](https://docs.rs/couch-rs)
 //!
 //! ## Documentation
 //!
-//! Here: [http://docs.rs/sofa](http://docs.rs/sofa)
+//! Here: [http://docs.rs/couch-rs](http://docs.rs/couch-rs)
 //!
 //! ## Installation
 //!
-//! If you want to use this particular fork, include this dependency in the Cargo.toml file:
-//! ```toml
-//! [dependencies.sofa]
-//! git = "https://github.com/mibes/sofa.git"
-//! ```
-//!
-//! If you want to continue to use the "old" 0.6 version use this dependency instead:
+//! Include this dependency in the Cargo.toml file:
 //! ```toml
 //! [dependencies]
-//! sofa = "0.6"
+//! couch-rs = "0.8.0"
 //! ```
 //!
 //! ## Description
 //!
 //! This crate is an interface to CouchDB HTTP REST API. Works with stable Rust.
 //!
-//! After trying most crates for CouchDB in Rust (`chill`, `couchdb` in particular), none of them fit our needs hence the need to create our own.
+//! This library is a spin-off based on the excellent work done by Mathieu Amiot and others at Yellow Innovation on the
+//! Sofa library. The original project can be found at https://github.com/YellowInnovation/sofa
 //!
-//! Uses async I/O, with a mix of Reqwest and Serde under the hood, and a few nice abstractions out there.
+//! The Sofa library lacked support for async I/O, and missed a few essential operations we needed on our projects. That's
+//! why I've decided to create a new project based on the original Sofa code.
+//!
+//! The rust-rs library has been updated to the Rust 2018 edition standards, uses async I/O, and compiles against the latest serde and
+//! reqwest libraries.
 //!
 //! **NOT 1.0 YET, so expect changes**
 //!
-//! **Supports CouchDB 2.3.0 and up.**
+//! **Supports CouchDB 2.3.0 and up, including the newly released 3.0 version.**
 //!
 //! Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/index.html) in detail to see what's possible.
-//!
-//! The 0.7 version is based on the 0.6 release from https://github.com/YellowInnovation/sofa.
-//! It has been updated to the Rust 2018 edition standards, uses async I/O, and compiles against the latest serde and
-//! reqwest libraries.
 //!
 //! ## Example code
 //!
@@ -53,35 +44,35 @@
 //! ## Running tests
 //!
 //! Make sure that you have an instance of CouchDB 2.0+ running, either via the supplied `docker-compose.yml` file or by yourself. It must be listening on the default port.
+//! Since Couch 3.0 the "Admin Party" mode is no longer supported. This means you need to provide a username and password during launch.
+//! The tests and examples assume an "admin" CouchDB user with a "password" CouchDB password. Docker run command:
+//!
+//! ```shell script
+//! docker run --rm -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password couchdb:3
+//! ```
 //!
 //! And then
 //! `cargo test -- --test-threads=1`
 //!
 //! Single-threading the tests is very important because we need to make sure that the basic features are working before actually testing features on dbs/documents.
 //!
-//! ## Why the name "Sofa"
-//!
-//! CouchDB has a nice name, and I wanted to reflect that.
-//!
 //! ## License
 //!
 //! Licensed under either of these:
 //!
 //! * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or
-//!    [https://www.apache.org/licenses/LICENSE-2.0](https://www.apache.org/licenses/LICENSE-2.0)
+//! [https://www.apache.org/licenses/LICENSE-2.0](https://www.apache.org/licenses/LICENSE-2.0)
 //! * MIT license ([LICENSE-MIT](LICENSE-MIT) or
-//!    [https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT))
+//! [https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT))
 //!
 //!
-//! [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FYellowInnovation%2Fsofa.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FYellowInnovation%2Fsofa?ref=badge_large)
+//! ## DISCLAIMER
 //!
-//! ## Yellow Innovation
+//! Please note: all content in this repository is released for use "AS IS" without any warranties of any kind, including, but not limited to their installation, use, or performance. We disclaim any and all warranties, either express or implied, including but not limited to any warranty of noninfringement, merchantability, and/ or fitness for a particular purpose. We do not warrant that the technology will meet your requirements, that the operation thereof will be uninterrupted or error-free, or that any errors will be corrected.
 //!
-//! Yellow Innovation is the innovation laboratory of the French postal service: La Poste.
+//! Any use of these scripts and tools is at your own risk. There is no guarantee that they have been through thorough testing in a comparable environment and we are not responsible for any damage or data loss incurred with their use.
 //!
-//! We create innovative user experiences and journeys through services with a focus on IoT lately.
-//!
-//! [Yellow Innovation's website and works](http://yellowinnovation.fr/en/)
+//! You are responsible for reviewing and testing any generated code you run thoroughly before use in any non-testing environment.
 
 /// Macros that the crate exports to facilitate most of the
 /// doc-to-json-to-string-related tasks
@@ -153,7 +144,7 @@ pub use client::Client;
 
 #[allow(unused_mut, unused_variables)]
 #[cfg(test)]
-mod sofa_tests {
+mod rust_rs_tests {
     mod a_sys {
         const DB_HOST: &str = "http://admin:password@localhost:5984";
 
@@ -168,12 +159,12 @@ mod sofa_tests {
         }
 
         #[tokio::test]
-        async fn b_should_create_sofa_test_db() {
+        async fn b_should_create_test_db() {
             let client = Client::new(DB_HOST).unwrap();
-            let dbw = client.db("b_should_create_sofa_test_db").await;
+            let dbw = client.db("b_should_create_test_db").await;
             assert!(dbw.is_ok());
 
-            let _ = client.destroy_db("b_should_create_sofa_test_db");
+            let _ = client.destroy_db("b_should_create_test_db");
         }
 
         #[tokio::test]

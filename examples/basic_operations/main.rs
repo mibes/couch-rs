@@ -1,3 +1,4 @@
+use couch_rs::types::find::FindQuery;
 /// This example demonstrates some basic Couch operations: connecting, listing databases and
 /// inserting some documents in bulk.
 ///
@@ -11,10 +12,7 @@
 /// Depending on the Docker framework you are using it may listen to "localhost" or to some other
 /// automatically assigned IP address. Minikube for example generates a unique IP on start-up. You
 /// can obtain it with: `minikube ip`
-extern crate sofa;
-
 use serde_json::{json, Value};
-use sofa::types::find::FindQuery;
 use std::error::Error;
 
 /// Update DB_HOST to point to your running Couch instance
@@ -37,7 +35,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("Connecting...");
 
     // Prepare the Sofa client
-    let client = sofa::Client::new(DB_HOST).unwrap();
+    let client = couch_rs::Client::new(DB_HOST).unwrap();
 
     // This command gets a reference to an existing database, or it creates a new one when it does
     // not yet exist.
@@ -81,7 +79,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let find_all = FindQuery::find_all();
     let docs = db.find(&find_all).await?;
-    if let Some(row) = docs.rows.iter().next() {
+    if let Some(row) = docs.rows.get(0) {
         println!("First document: {}", row.doc.get_data().to_string())
     }
 

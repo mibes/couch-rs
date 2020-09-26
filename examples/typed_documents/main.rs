@@ -1,8 +1,6 @@
-extern crate sofa;
-
+use couch_rs::types::document::DocumentId;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
-use sofa::types::document::DocumentId;
 
 /// Update DB_HOST to point to your running Couch instance
 const DB_HOST: &str = "http://admin:password@localhost:5984";
@@ -30,7 +28,7 @@ async fn main() {
     println!("Connecting...");
 
     // Prepare the Sofa client
-    let client = sofa::Client::new(DB_HOST).unwrap();
+    let client = couch_rs::Client::new(DB_HOST).unwrap();
 
     // This command gets a reference to an existing database, or it creates a new one when it does
     // not yet exist.

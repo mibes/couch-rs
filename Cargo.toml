@@ -1,13 +1,12 @@
 [package]
-name = "sofa"
+name = "couch_rs"
 version = "0.8.0"
 authors = ["Mathieu Amiot <mathieu.amiot@yellowinnovation.fr>", "mibes <mibes@mibesco.com>"]
 license = "MIT/Apache-2.0"
-description = "Sofa - CouchDB for Rust"
+description = "CouchDB library for Rust"
 readme = "README.md"
-documentation = "https://docs.rs/sofa"
-homepage = "https://github.com/YellowInnovation/sofa"
-repository = "https://github.com/YellowInnovation/sofa"
+documentation = "https://docs.rs/couch-rs"
+repository = "https://github.com/mibes/couch-rs"
 keywords = ["couchdb", "orm", "database", "nosql"]
 categories = ["database"]
 edition = "2018"
