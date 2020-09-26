@@ -1,18 +1,18 @@
 # CouchDB library for Rust
 
-[![Crates.io](https://img.shields.io/crates/v/couch-rs.svg)](https://crates.io/crates/couch-rs)
-[![docs.rs](https://docs.rs/couch-rs/badge.svg)](https://docs.rs/couch-rs)
+[![Crates.io](https://img.shields.io/crates/v/couch_rs.svg)](https://crates.io/crates/couch_rs)
+[![docs.rs](https://docs.rs/couch_rs/badge.svg)](https://docs.rs/couch_rs)
 
 ## Documentation
 
-Here: [http://docs.rs/couch-rs](http://docs.rs/couch-rs)
+Here: [http://docs.rs/couch_rs](http://docs.rs/couch_rs)
 
 ## Installation
 
 Include this dependency in the Cargo.toml file:
 ```toml
 [dependencies]
-couch-rs = "0.8.0"
+couch_rs = "0.8.0"
 ```
 
 ## Description
