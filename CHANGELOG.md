@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.8.4] - 2020-09-26
+
+- Updated the documentation and examples
+
+## [0.8.3] - 2020-09-26
+
+- Automated GitHub build action
+
 ## [0.8.0] - 2020-09-26
 
 - the `find()` operations takes a FindQuery

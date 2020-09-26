@@ -149,7 +149,7 @@ impl Database {
     /// Bulk insertion provides efficiency gains in both storage space, and time,
     /// by consolidating many of the updates to intermediate B-tree nodes.
     ///
-    /// See the documentation on how to use bulk_docs here: https://docs.couchdb.org/en/stable/api/database/bulk-api.html#db-bulk-docs
+    /// See the documentation on how to use bulk_docs here: [db-bulk-docs](https://docs.couchdb.org/en/stable/api/database/bulk-api.html#db-bulk-docs)
     ///
     /// raw_docs is a vector of documents with or without an ID
     ///
@@ -170,7 +170,8 @@ impl Database {
         Ok(data)
     }
 
-    /// Gets documents in bulk with provided IDs list, with added params. Params description can be found here: Parameters description can be found here: http://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view
+    /// Gets documents in bulk with provided IDs list, with added params. Params description can be found here:
+    /// [api-ddoc-view](http://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view)
     pub async fn get_bulk_params(
         &self,
         ids: Vec<DocumentId>,
@@ -313,10 +314,10 @@ impl Database {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn Error>> {
-    ///     let client = couch_rs::Client::new(DB_HOST).unwrap();
-    ///     let db = client.db(TEST_DB).await.unwrap();
+    ///     let client = couch_rs::Client::new(DB_HOST)?;
+    ///     let db = client.db(TEST_DB).await?;
     ///     let find_all = FindQuery::find_all();
-    ///     let docs = db.find(&find_all).await.unwrap();
+    ///     let docs = db.find(&find_all).await?;
     ///     Ok(())
     /// }
     /// ```
@@ -353,8 +354,54 @@ impl Database {
         }
     }
 
-    /// Updates a document. Save will create the document when it does not yet exists, otherwise
-    /// it will attempt to update it.
+    /// Updates a document.
+    /// Usage:
+    /// ```
+    /// use couch_rs::types::find::FindQuery;
+    /// use std::error::Error;
+    /// use serde_json::{from_value, to_value};
+    /// use couch_rs::types::document::DocumentId;
+    ///
+    /// const DB_HOST: &str = "http://admin:password@localhost:5984";
+    /// const TEST_DB: &str = "test_db";
+    ///
+    /// #[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+    /// pub struct UserDetails {
+    ///     pub _id: DocumentId,
+    ///     #[serde(skip_serializing)]
+    ///     pub _rev: String,
+    ///     #[serde(rename = "firstName")]
+    ///     pub first_name: Option<String>,
+    ///     #[serde(rename = "lastName")]
+    ///     pub last_name: String,
+    /// }
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn Error>> {
+    ///     let client = couch_rs::Client::new(DB_HOST)?;
+    ///     let db = client.db(TEST_DB).await?;
+    ///
+    ///     // before we can get the document, we need to create it first...
+    ///     let mut seed_doc = UserDetails {
+    ///         _id: "123".to_string(),
+    ///         _rev: "".to_string(),
+    ///         first_name: None,
+    ///         last_name: "Doe".to_string(),
+    ///     };
+    ///     let value = to_value(seed_doc)?;
+    ///     db.create(value).await?;
+    ///
+    ///     // now that the document is created, we can get it, update it, and save it...
+    ///     let mut doc = db.get("123".to_string()).await?;
+    ///     let mut user_details: UserDetails = from_value(doc.get_data())?;
+    ///     user_details.first_name = Some("John".to_string());
+    ///     let value = to_value(user_details)?;
+    ///     doc.merge(value);
+    ///
+    ///     db.save(doc).await?;
+    ///     Ok(())
+    /// }
+    ///```
     pub async fn save(&self, doc: Document) -> Result<Document, CouchError> {
         let id = doc._id.to_owned();
         let raw = doc.get_data();
@@ -486,6 +533,31 @@ impl Database {
     }
 
     /// Removes a document from the database. Returns success in a `bool`
+    /// Usage:
+    /// ```
+    /// use couch_rs::types::find::FindQuery;
+    /// use std::error::Error;
+    /// use serde_json::{from_value, to_value};
+    /// use couch_rs::types::document::DocumentId;
+    /// use couch_rs::document::Document;
+    ///
+    /// const DB_HOST: &str = "http://admin:password@localhost:5984";
+    /// const TEST_DB: &str = "test_db";
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn Error>> {
+    ///     
+    /// let client = couch_rs::Client::new(DB_HOST)?;
+    ///     let db = client.db(TEST_DB).await?;
+    ///
+    ///     // first we need to get the document, because we need both the _id and _rev in order
+    ///     // to delete
+    ///     if let Some(doc) = db.get("123".to_string()).await.ok() {
+    ///         db.remove(doc).await;
+    ///     }
+    ///     Ok(())
+    /// }
+    ///```     
     pub async fn remove(&self, doc: Document) -> bool {
         let request = self._client.delete(
             self.create_document_path(doc._id.clone()),
