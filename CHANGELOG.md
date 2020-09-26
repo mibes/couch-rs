@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.8.0] - 2020-09-26
+
+- the `find()` operations takes a FindQuery
+
 ## [0.7.18] - 2020-09-25
 
 - Views now use QueryParams instead of an untyped map.

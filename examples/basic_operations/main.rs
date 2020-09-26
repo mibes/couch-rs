@@ -14,6 +14,8 @@
 extern crate sofa;
 
 use serde_json::{json, Value};
+use sofa::types::find::FindQuery;
+use std::error::Error;
 
 /// Update DB_HOST to point to your running Couch instance
 const DB_HOST: &str = "http://admin:password@localhost:5984";
@@ -31,64 +33,58 @@ fn test_docs(amount: i32) -> Vec<Value> {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn Error>> {
     println!("Connecting...");
 
     // Prepare the Sofa client
     let client = sofa::Client::new(DB_HOST).unwrap();
-    let mut db_initialized = false;
 
     // This command gets a reference to an existing database, or it creates a new one when it does
     // not yet exist.
     let db = client.db(TEST_DB).await.unwrap();
-
     // List the existing databases. The db_initialized is superfluous, since we just created it in
     // the previous step. It is for educational purposes only.
-    match client.list_dbs().await {
-        Ok(dbs) => {
-            println!("Existing databases:");
-            for db in dbs {
-                println!("Couch DB {}", db);
+    let dbs = client.list_dbs().await?;
+    let mut db_initialized: bool = false;
+    println!("Existing databases:");
+    for db in dbs {
+        println!("Couch DB {}", db);
+        if db == TEST_DB {
+            db_initialized = true;
+        }
+    }
 
-                if db == TEST_DB {
-                    db_initialized = true;
-                }
+    if !db_initialized {
+        println!("{} not found", TEST_DB);
+        return Ok(());
+    }
+
+    println!("--- Creating ---");
+
+    // let's add some docs
+    match db.bulk_docs(test_docs(100)).await {
+        Ok(resp) => {
+            println!("Bulk docs completed");
+
+            for r in resp {
+                println!(
+                    "Id: {}, OK?: {}",
+                    r.id.unwrap_or_else(|| "--".to_string()),
+                    r.ok.unwrap_or(false)
+                )
             }
         }
-        Err(err) => panic!("Oops: {:?}", err),
+        Err(err) => println!("Oops: {:?}", err),
     }
 
-    let mut first_doc_id: Option<String> = None;
+    println!("--- Finding ---");
 
-    if db_initialized {
-        // let's add some docs
-        match db.bulk_docs(test_docs(100)).await {
-            Ok(resp) => {
-                println!("Bulk docs completed");
-
-                first_doc_id = resp.first().unwrap().clone().id;
-
-                for r in resp {
-                    println!(
-                        "Id: {}, OK?: {}",
-                        r.id.unwrap_or_else(|| "--".to_string()),
-                        r.ok.unwrap_or(false)
-                    )
-                }
-            }
-            Err(err) => println!("Oops: {:?}", err),
-        }
+    let find_all = FindQuery::find_all();
+    let docs = db.find(&find_all).await?;
+    if let Some(row) = docs.rows.iter().next() {
+        println!("First document: {}", row.doc.get_data().to_string())
     }
 
-    println!("---");
-
-    if first_doc_id.is_some() {
-        // we have an id of the first document we've just inserted
-        match db.get(first_doc_id.unwrap()).await {
-            Ok(doc) => println!("First document: {}", doc.get_data().to_string()),
-            Err(err) => println!("Oops: {:?}", err),
-        }
-    }
-
-    println!("All operations are done")
+    println!("All operations are done");
+    Ok(())
 }

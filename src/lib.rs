@@ -211,8 +211,9 @@ mod sofa_tests {
         use crate::database::Database;
         use crate::document::Document;
         use crate::types;
-        use serde_json::{json};
+        use crate::types::find::FindQuery;
         use crate::types::query::QueryParams;
+        use serde_json::json;
 
         const DB_HOST: &str = "http://admin:password@localhost:5984";
 
@@ -313,18 +314,17 @@ mod sofa_tests {
         #[tokio::test]
         async fn g_should_find_documents_in_db() {
             let (client, db, doc) = setup_create_indexes("g_should_find_documents_in_db").await;
+            let query = FindQuery::new_from_value(json!({
+                "selector": {
+                    "thing": true
+                },
+                "limit": 1,
+                "sort": [{
+                    "thing": "desc"
+                }]
+            }));
 
-            let documents_res = db
-                .find(json!({
-                    "selector": {
-                        "thing": true
-                    },
-                    "limit": 1,
-                    "sort": [{
-                        "thing": "desc"
-                    }]
-                }))
-                .await;
+            let documents_res = db.find(&query).await;
 
             assert!(documents_res.is_ok());
             let documents = documents_res.unwrap();
@@ -332,7 +332,6 @@ mod sofa_tests {
 
             teardown(client, "g_should_find_documents_in_db").await;
         }
-
 
         #[tokio::test]
         async fn h_should_bulk_get_a_document() {
@@ -346,7 +345,6 @@ mod sofa_tests {
             teardown(client, "h_should_bulk_get_a_document").await;
         }
 
-
         #[tokio::test]
         async fn i_should_bulk_get_invalid_documents() {
             let (client, db, doc) = setup("i_should_bulk_get_invalid_documents").await;
@@ -359,7 +357,6 @@ mod sofa_tests {
 
             teardown(client, "i_should_bulk_get_invalid_documents").await;
         }
-
 
         #[tokio::test]
         async fn j_should_get_all_documents_with_keys() {

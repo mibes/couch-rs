@@ -241,7 +241,7 @@ impl Database {
         let maybe_err = loop {
             let mut segment_query = query.clone();
             segment_query.bookmark = bookmark.clone();
-            let all_docs = match self.find(serde_json::to_value(segment_query).unwrap()).await {
+            let all_docs = match self.find(&query).await {
                 Ok(docs) => docs,
                 Err(err) => break Some(err),
             };
@@ -297,10 +297,10 @@ impl Database {
         Ok(DocumentCollection::new(response.json().await?))
     }
 
-    /// Finds a document in the database through a Mango query. Parameters here http://docs.couchdb.org/en/latest/api/database/find.html
-    pub async fn find(&self, params: Value) -> Result<DocumentCollection, CouchError> {
+    /// Finds a document in the database through a Mango query.
+    pub async fn find(&self, query: &FindQuery) -> Result<DocumentCollection, CouchError> {
         let path = self.create_document_path("_find".into());
-        let response = self._client.post(path, js!(&params))?.send().await?;
+        let response = self._client.post(path, js!(query))?.send().await?;
         let status = response.status();
         let data: FindResult = response.json().await.unwrap();
 
