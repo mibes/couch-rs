@@ -2,6 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/couch_rs.svg)](https://crates.io/crates/couch_rs)
 [![docs.rs](https://docs.rs/couch_rs/badge.svg)](https://docs.rs/couch_rs)
+![Build](https://img.shields.io/github/workflow/status/mibes/couch-rs/Rust)
 
 ## Documentation
 
