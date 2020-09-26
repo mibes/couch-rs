@@ -12,7 +12,7 @@ use serde_json::{json, to_string, Value};
 use std::collections::HashMap;
 use tokio::sync::mpsc::Sender;
 
-/// Database holds the logic of making operations on a CouchDB Database
+/// Database operations on a CouchDB Database
 /// (sometimes called Collection in other NoSQL flavors such as MongoDB).
 #[derive(Debug, Clone)]
 pub struct Database {

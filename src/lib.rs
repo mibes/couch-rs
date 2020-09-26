@@ -7,7 +7,7 @@
 //! This library is a spin-off based on the excellent work done by Mathieu Amiot and others at Yellow Innovation on the
 //! Sofa library. The original project can be found at https://github.com/YellowInnovation/sofa
 //!
-//! The Sofa library lacked support for async I/O, and missed a few essential operations we needed on our projects. That's
+//! The Sofa library lacked support for async I/O, and missed a few essential operations we needed in our projects. That's
 //! why I've decided to create a new project based on the original Sofa code.
 //!
 //! The rust-rs library has been updated to the Rust 2018 edition standards, uses async I/O, and compiles against the latest serde and
@@ -102,10 +102,16 @@ mod macros {
 }
 
 mod client;
+/// Database operations on a CouchDB Database.
 pub mod database;
+/// Document model to support CouchDB document operations.
 pub mod document;
+/// Error wrappers for the HTTP status codes returned by CouchDB.
 pub mod error;
+/// Trait that provides methods that can be used to switch between abstract Document and
+/// concrete Model implementors (such as your custom data models)
 pub mod model;
+/// Data types to support CouchDB operations.
 pub mod types;
 
 pub use client::Client;
@@ -194,6 +200,30 @@ mod rust_rs_tests {
             assert_eq!(doc["thing"], json!(true));
 
             (client, db, doc)
+        }
+
+        async fn setup_multiple(dbname: &str, nr_of_docs: usize) -> (Client, Database, Vec<Document>) {
+            let client = Client::new(DB_HOST).unwrap();
+            let dbw = client.db(dbname).await;
+            assert!(dbw.is_ok());
+            let db = dbw.unwrap();
+            let mut docs = vec![];
+
+            for _ in 0..nr_of_docs {
+                let ndoc_result = db
+                    .create(json!({
+                        "thing": true
+                    }))
+                    .await;
+
+                assert!(ndoc_result.is_ok());
+
+                let mut doc = ndoc_result.unwrap();
+                assert_eq!(doc["thing"], json!(true));
+                docs.push(doc)
+            }
+
+            (client, db, docs)
         }
 
         async fn teardown(client: Client, dbname: &str) {
@@ -334,7 +364,9 @@ mod rust_rs_tests {
         #[tokio::test]
         async fn j_should_get_many_all_documents_with_keys() {
             let dbname = "j_should_get_many_all_documents_with_keys";
-            let (client, db, doc) = setup(dbname).await;
+            let (client, db, docs) = setup_multiple(dbname, 4).await;
+            let doc = docs.get(0).unwrap();
+
             let mut params1 = QueryParams::default();
             params1.key = Some(doc._id.clone());
             let mut params2 = QueryParams::default();
@@ -355,7 +387,9 @@ mod rust_rs_tests {
             assert_eq!(collections.get(2).unwrap().rows.len(), 4);
             assert!(collections.get(2).unwrap().rows.get(0).unwrap().doc.is_none());
 
-            assert!(db.remove(doc).await);
+            for doc in docs.into_iter() {
+                assert!(db.remove(doc).await);
+            }
 
             teardown(client, dbname).await;
         }

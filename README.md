@@ -23,7 +23,7 @@ This crate is an interface to CouchDB HTTP REST API. Works with stable Rust.
 This library is a spin-off based on the excellent work done by Mathieu Amiot and others at Yellow Innovation on the Sofa
 library. The original project can be found at https://github.com/YellowInnovation/sofa
 
-The Sofa library lacked support for async I/O, and missed a few essential operations we needed on our projects. That's
+The Sofa library lacked support for async I/O, and missed a few essential operations we needed in our projects. That's
 why I've decided to create a new project based on the original Sofa code.
 
 The rust-rs library has been updated to the Rust 2018 edition standards, uses async I/O, and compiles against the latest
