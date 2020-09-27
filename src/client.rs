@@ -1,11 +1,11 @@
-use std::collections::HashMap;
-use std::time::Duration;
-use reqwest::RequestBuilder;
-use reqwest::{self, Url, Method, StatusCode};
-use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT, CONTENT_TYPE, REFERER};
 use crate::database::Database;
 use crate::error::CouchError;
 use crate::types::system::{CouchResponse, CouchStatus};
+use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, REFERER, USER_AGENT};
+use reqwest::RequestBuilder;
+use reqwest::{self, Method, StatusCode, Url};
+use std::collections::HashMap;
+use std::time::Duration;
 
 fn construct_json_headers(uri: Option<&str>) -> HeaderMap {
     let mut headers = HeaderMap::new();
@@ -111,9 +111,12 @@ impl Client {
 
         let path = self.create_path(name, None)?;
 
-        let head_response = self._client.head(&path)
+        let head_response = self
+            ._client
+            .head(&path)
             .headers(construct_json_headers(None))
-            .send().await?;
+            .send()
+            .await?;
 
         match head_response.status() {
             StatusCode::OK => Ok(db),
@@ -128,9 +131,12 @@ impl Client {
 
         let path = self.create_path(name, None)?;
 
-        let put_response = self._client.put(&path)
+        let put_response = self
+            ._client
+            .put(&path)
             .headers(construct_json_headers(None))
-            .send().await?;
+            .send()
+            .await?;
 
         let status = put_response.status();
         let s: CouchResponse = put_response.json().await?;
@@ -140,15 +146,18 @@ impl Client {
             _ => {
                 let err = s.error.unwrap_or_else(|| s!("unspecified error"));
                 Err(CouchError::new(err, status))
-            },
+            }
         }
     }
 
     pub async fn destroy_db(&self, dbname: &str) -> Result<bool, CouchError> {
         let path = self.create_path(self.build_dbname(dbname), None)?;
-        let response = self._client.delete(&path)
+        let response = self
+            ._client
+            .delete(&path)
             .headers(construct_json_headers(None))
-            .send().await?;
+            .send()
+            .await?;
 
         let s: CouchResponse = response.json().await?;
 
@@ -156,19 +165,19 @@ impl Client {
     }
 
     pub async fn check_status(&self) -> Result<CouchStatus, CouchError> {
-        let response = self._client.get(&self.uri)
+        let response = self
+            ._client
+            .get(&self.uri)
             .headers(construct_json_headers(None))
-            .send().await?;
+            .send()
+            .await?;
 
         let status = response.json().await?;
 
         Ok(status)
     }
 
-    fn create_path(&self,
-        path: String,
-        args: Option<HashMap<String, String>>
-    ) -> Result<String, CouchError> {
+    fn create_path(&self, path: String, args: Option<HashMap<String, String>>) -> Result<String, CouchError> {
         let mut uri = Url::parse(&self.uri)?.join(&path)?;
 
         if let Some(ref map) = args {
@@ -181,14 +190,17 @@ impl Client {
         Ok(uri.into_string())
     }
 
-    pub fn req(&self,
+    pub fn req(
+        &self,
         method: Method,
         path: String,
-        opts: Option<HashMap<String, String>>
+        opts: Option<HashMap<String, String>>,
     ) -> Result<RequestBuilder, CouchError> {
         let uri = self.create_path(path, opts)?;
-        let req = self._client.request(method, &uri).
-            headers(construct_json_headers(Some(&uri)));
+        let req = self
+            ._client
+            .request(method, &uri)
+            .headers(construct_json_headers(Some(&uri)));
 
         // req.header(reqwest::header::Referer::new(uri.clone()));
 
