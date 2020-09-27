@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.8.8] - 2020-09-27
+
+- Use `Into<serde_json::Value>` trait for `create_view` to not break compatibility with `CouchUpdate`
+
 ## [0.8.7] - 2020-09-27
 
 - Use the typed `CouchViews` structure to create views

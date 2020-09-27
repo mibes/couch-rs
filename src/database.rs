@@ -6,7 +6,7 @@ use crate::types::document::{DocumentCreatedResult, DocumentId};
 use crate::types::find::{FindQuery, FindResult};
 use crate::types::index::{DatabaseIndexList, IndexFields};
 use crate::types::query::{QueriesCollection, QueriesParams, QueryParams};
-use crate::types::view::{CouchViews, ViewCollection};
+use crate::types::view::ViewCollection;
 use reqwest::{RequestBuilder, StatusCode};
 use serde_json::{json, to_string, Value};
 use std::collections::HashMap;
@@ -611,7 +611,11 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn create_view(&self, design_name: String, views: CouchViews) -> Result<DesignCreated, CouchError> {
+    pub async fn create_view<T: Into<serde_json::Value>>(
+        &self,
+        design_name: String,
+        views: T,
+    ) -> Result<DesignCreated, CouchError> {
         let doc: Value = views.into();
         let response = self
             ._client
