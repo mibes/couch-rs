@@ -1,8 +1,9 @@
-use serde_json::Value;
-use std::ops::{Index, IndexMut};
-use serde::{Serialize, Deserialize};
-use crate::types::document::{DocumentId};
 use crate::database::Database;
+use crate::types::document::DocumentId;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::borrow::Cow;
+use std::ops::{Index, IndexMut};
 
 /// Document abstracts the handling of JSON values and provides direct access
 /// and casting to the fields of your documents You can get access to the
@@ -43,8 +44,8 @@ impl Document {
     }
 
     /// Returns raw JSON data from document
-    pub fn get_data(&self) -> Value {
-        self.doc.clone()
+    pub fn get_data(&self) -> Cow<Value> {
+        Cow::Borrowed(&self.doc)
     }
 
     /// Merges this document with a raw JSON value, useful to update data with
@@ -74,7 +75,8 @@ impl Document {
             return self;
         }
 
-        let ids = val.as_array()
+        let ids = val
+            .as_array()
             .unwrap_or(&Vec::new())
             .iter()
             .map(|v| s!(v.as_str().unwrap_or("")))
@@ -84,7 +86,8 @@ impl Document {
 
         match data {
             Ok(data) => {
-                self[field] = data.into_iter()
+                self[field] = data
+                    .into_iter()
                     .filter_map(|d: Value| {
                         let did = match d["_id"].as_str() {
                             Some(did) => did,
@@ -157,7 +160,8 @@ pub struct DocumentCollection {
 impl DocumentCollection {
     pub fn new(doc: Value) -> DocumentCollection {
         let rows: Vec<Value> = json_extr!(doc["rows"]);
-        let items: Vec<DocumentCollectionItem> = rows.into_iter()
+        let items: Vec<DocumentCollectionItem> = rows
+            .into_iter()
             .filter(|d| {
                 let maybe_err: Option<String> = json_extr!(d["error"]);
                 if maybe_err.is_some() {
@@ -196,7 +200,10 @@ impl DocumentCollection {
 
     /// Returns raw JSON data from documents
     pub fn get_data(&self) -> Vec<Value> {
-        self.rows.iter().map(|doc_item| doc_item.doc.get_data()).collect()
+        self.rows
+            .iter()
+            .map(|doc_item| doc_item.doc.get_data().into_owned())
+            .collect()
     }
 }
 
