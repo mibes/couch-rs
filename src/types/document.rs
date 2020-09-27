@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// String that represents a Document ID in CouchDB
 pub type DocumentId = String;
@@ -8,7 +8,7 @@ pub type DocumentId = String;
 #[serde(untagged)]
 pub enum DocumentRef<T> {
     Ref(DocumentId),
-    Populated(T)
+    Populated(T),
 }
 
 /// Abstracted document creation result
@@ -18,5 +18,5 @@ pub struct DocumentCreatedResult {
     pub ok: Option<bool>,
     pub rev: Option<String>,
     pub error: Option<String>,
-    pub reason: Option<String>
+    pub reason: Option<String>,
 }
