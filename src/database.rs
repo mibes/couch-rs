@@ -344,7 +344,7 @@ impl Database {
     /// This enables you to request multiple queries in a single request, in place of multiple POST /{db}/_all_docs requests.
     /// [More information](https://docs.couchdb.org/en/stable/api/database/bulk-api.html#sending-multiple-queries-to-a-database)
     /// Parameters description can be found [here](https://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view)
-    pub async fn get_all_many(&self, queries: QueriesParams) -> Result<Vec<ViewCollection>, CouchError> {
+    pub async fn query_many_all_docs(&self, queries: QueriesParams) -> Result<Vec<ViewCollection>, CouchError> {
         self.query_view_many(self.create_document_path("_all_docs/queries".into()), queries)
             .await
     }
