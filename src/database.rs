@@ -192,20 +192,60 @@ impl Database {
     }
 
     /// Gets documents in bulk with provided IDs list, with added params. Params description can be found here:
-    /// [api-ddoc-view](https://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view)
+    /// [_all_docs](https://docs.couchdb.org/en/latest/api/database/bulk-api.html?highlight=_all_docs)
+    ///
+    /// Usage:
+    ///
+    /// ```
+    /// use couch_rs::types::find::FindQuery;
+    /// use couch_rs::document::Document;
+    /// use std::error::Error;
+    /// use serde_json::json;
+    ///
+    /// const DB_HOST: &str = "http://admin:password@localhost:5984";
+    /// const TEST_DB: &str = "test_db";
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn Error>> {
+    ///     let client = couch_rs::Client::new(DB_HOST)?;
+    ///     let db = client.db(TEST_DB).await?;
+    ///     let doc_1 = Document::new(json!({
+    ///                     "_id": "john",
+    ///                     "first_name": "John",
+    ///                     "last_name": "Doe"
+    ///                 }));
+    ///
+    ///     let doc_2 = Document::new(json!({
+    ///                     "_id": "jane",
+    ///                     "first_name": "Jane",
+    ///                     "last_name": "Doe"
+    ///                 }));
+    ///
+    ///     // Save these documents
+    ///     db.save(doc_1).await?;
+    ///     db.save(doc_2).await?;
+    ///
+    ///     // subsequent call updates the existing document
+    ///     let docs = db.get_bulk_params(vec!["john".to_string(), "jane".to_string()], None).await?;
+    ///
+    ///     // verify that we received the 2 documents
+    ///     assert_eq!(docs.rows.len(), 2);
+    ///     Ok(())
+    /// }
+    /// ```   
     pub async fn get_bulk_params(
         &self,
         ids: Vec<DocumentId>,
-        params: Option<HashMap<String, String>>,
+        params: Option<QueryParams>,
     ) -> Result<DocumentCollection, CouchError> {
         let mut options;
         if let Some(opts) = params {
             options = opts;
         } else {
-            options = HashMap::new();
+            options = QueryParams::default();
         }
 
-        options.insert(s!("include_docs"), s!("true"));
+        options.include_docs = Some(true);
 
         let mut body = HashMap::new();
         body.insert(s!("keys"), ids);

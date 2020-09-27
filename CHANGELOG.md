@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.8.9] - 2020-09-27
+
+- Let `get_bulk_params` take `Option<QueryParams>`
+
 ## [0.8.8] - 2020-09-27
 
 - Use `Into<serde_json::Value>` trait for `create_view` to not break compatibility with `CouchUpdate`
@@ -20,15 +24,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Included the `upsert` operation
 
 ## [0.8.5] - 2020-09-26
-
 - Implement multiple queries in a single request
 
 ## [0.8.4] - 2020-09-26
-
 - Updated the documentation and examples
 
 ## [0.8.3] - 2020-09-26
-
 - Automated GitHub build action
 
 ## [0.8.0] - 2020-09-26
