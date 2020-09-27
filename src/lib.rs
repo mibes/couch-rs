@@ -201,6 +201,7 @@ mod couch_rs_tests {
         use crate::types;
         use crate::types::find::FindQuery;
         use crate::types::query::{QueriesParams, QueryParams};
+        use crate::types::view::{CouchFunc, CouchViews};
         use serde_json::json;
 
         const DB_HOST: &str = "http://admin:password@localhost:5984";
@@ -382,6 +383,263 @@ mod couch_rs_tests {
             assert!(db.remove(doc).await);
 
             teardown(client, "j_should_get_all_documents_with_keys").await;
+        }
+
+        #[tokio::test]
+        async fn j_should_query_documents_with_keys() {
+            let db_name = "j_should_query_documents_with_keys";
+            let (client, db, doc) = setup(db_name).await;
+            let id = doc._id.clone();
+            let view_name = "testViewAll";
+            db.create_view(
+                view_name.to_string(),
+                CouchViews::new(
+                    view_name,
+                    CouchFunc {
+                        map: r#"function(doc) {{
+                                    emit(doc._id, null);
+                            }}"#
+                        .to_string(),
+                        reduce: None,
+                    },
+                ),
+            )
+            .await
+            .unwrap();
+            let ndoc = db
+                .create(json!({
+                    "thing": true
+                }))
+                .await
+                .unwrap();
+            let ndoc_id = ndoc._id.clone();
+            let single_view_name = "testViewSingle";
+            db.create_view(
+                single_view_name.to_string(),
+                CouchViews::new(
+                    single_view_name,
+                    CouchFunc {
+                        map: format!(
+                            r#"function(doc) {{
+                                    if(doc._id === "{}") {{
+                                        emit(doc._id, null);
+                                    }}
+                            }}"#,
+                            ndoc_id
+                        )
+                        .to_string(),
+                        reduce: None,
+                    },
+                ),
+            )
+            .await
+            .unwrap();
+
+            // executing 'all' view querying with keys containing 1 key should result in 1 and 0 entries, respectively
+            assert_eq!(
+                db.query(
+                    view_name.to_string(),
+                    view_name.to_string(),
+                    Some(QueryParams::from_keys(vec![id.clone()]))
+                )
+                .await
+                .unwrap()
+                .rows
+                .len(),
+                1
+            );
+            assert_eq!(
+                db.query(
+                    single_view_name.to_string(),
+                    single_view_name.to_string(),
+                    Some(QueryParams::from_keys(vec![id]))
+                )
+                .await
+                .unwrap()
+                .rows
+                .len(),
+                0
+            );
+
+            assert!(db.remove(ndoc).await);
+            assert!(db.remove(doc).await);
+
+            teardown(client, db_name).await;
+        }
+
+        #[tokio::test]
+        async fn j_should_query_documents_with_key() {
+            let db_name = "j_should_query_documents_with_key";
+            let (client, db, doc) = setup(db_name).await;
+            let id = doc._id.clone();
+            let view_name = "testViewAll";
+            db.create_view(
+                view_name.to_string(),
+                CouchViews::new(
+                    view_name,
+                    CouchFunc {
+                        map: r#"function(doc) {{
+                                    emit(doc._id, null);
+                            }}"#
+                        .to_string(),
+                        reduce: None,
+                    },
+                ),
+            )
+            .await
+            .unwrap();
+            let ndoc = db
+                .create(json!({
+                    "thing": true
+                }))
+                .await
+                .unwrap();
+            let ndoc_id = ndoc._id.clone();
+            let single_view_name = "testViewSingle";
+            db.create_view(
+                single_view_name.to_string(),
+                CouchViews::new(
+                    single_view_name,
+                    CouchFunc {
+                        map: format!(
+                            r#"function(doc) {{
+                                    if(doc._id === "{}") {{
+                                        emit(doc._id, null);
+                                    }}
+                            }}"#,
+                            ndoc_id
+                        )
+                        .to_string(),
+                        reduce: None,
+                    },
+                ),
+            )
+            .await
+            .unwrap();
+
+            // executing 'all' view querying with a specific key should result in 1 and 0 entries, respectively
+            let mut one_key = QueryParams::default();
+            one_key.key = Some(doc._id.clone());
+
+            assert_eq!(
+                db.query(view_name.to_string(), view_name.to_string(), Some(one_key.clone()))
+                    .await
+                    .unwrap()
+                    .rows
+                    .len(),
+                1
+            );
+            assert_eq!(
+                db.query(
+                    single_view_name.to_string(),
+                    single_view_name.to_string(),
+                    Some(one_key)
+                )
+                .await
+                .unwrap()
+                .rows
+                .len(),
+                0
+            );
+
+            assert!(db.remove(ndoc).await);
+            assert!(db.remove(doc).await);
+
+            teardown(client, db_name).await;
+        }
+
+        #[tokio::test]
+        async fn j_should_query_documents_with_defaultparams() {
+            let dbname = "j_should_query_documents_with_defaultparams";
+            let (client, db, doc) = setup(dbname).await;
+            let id = doc._id.clone();
+            let view_name = "testViewAll";
+            db.create_view(
+                view_name.to_string(),
+                CouchViews::new(
+                    view_name,
+                    CouchFunc {
+                        map: r#"function(doc) {{
+                                    emit(doc._id, null);
+                            }}"#
+                        .to_string(),
+                        reduce: None,
+                    },
+                ),
+            )
+            .await
+            .unwrap();
+            let ndoc = db
+                .create(json!({
+                    "thing": true
+                }))
+                .await
+                .unwrap();
+            let ndoc_id = ndoc._id.clone();
+            let single_view_name = "testViewSingle";
+            db.create_view(
+                single_view_name.to_string(),
+                CouchViews::new(
+                    single_view_name,
+                    CouchFunc {
+                        map: format!(
+                            r#"function(doc) {{
+                                    if(doc._id === "{}") {{
+                                        emit(doc._id, null);
+                                    }}
+                            }}"#,
+                            ndoc_id
+                        )
+                        .to_string(),
+                        reduce: None,
+                    },
+                ),
+            )
+            .await
+            .unwrap();
+
+            let query_result = db.query(view_name.to_string(), view_name.to_string(), None).await;
+
+            // executing 'all' view without any params should result in 2 and 1 entries, respectively
+            assert_eq!(query_result.unwrap().rows.len(), 2);
+            assert_eq!(
+                db.query(single_view_name.to_string(), single_view_name.to_string(), None)
+                    .await
+                    .unwrap()
+                    .rows
+                    .len(),
+                1
+            );
+            // executing 'all' view with default params should result in 2 and 1 entries, respectively
+            assert_eq!(
+                db.query(
+                    view_name.to_string(),
+                    view_name.to_string(),
+                    Some(QueryParams::default())
+                )
+                .await
+                .unwrap()
+                .rows
+                .len(),
+                2
+            );
+            assert_eq!(
+                db.query(
+                    single_view_name.to_string(),
+                    single_view_name.to_string(),
+                    Some(QueryParams::default())
+                )
+                .await
+                .unwrap()
+                .rows
+                .len(),
+                1
+            );
+
+            assert!(db.remove(ndoc).await);
+            assert!(db.remove(doc).await);
+
+            teardown(client, dbname).await;
         }
 
         #[tokio::test]

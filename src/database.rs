@@ -687,8 +687,12 @@ impl Database {
         &self,
         design_name: String,
         view_name: String,
-        options: Option<QueryParams>,
+        mut options: Option<QueryParams>,
     ) -> Result<ViewCollection, CouchError> {
+        if options.is_none() {
+            options = Some(QueryParams::default());
+        }
+
         let response = self
             ._client
             .post(self.create_query_view_path(design_name, view_name), js!(&options))?
