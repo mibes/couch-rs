@@ -656,7 +656,7 @@ mod couch_rs_tests {
 
             let params = vec![params1, params2, params3];
 
-            let collections = db.get_all_many(QueriesParams::new(params)).await.unwrap();
+            let collections = db.query_many_all_docs(QueriesParams::new(params)).await.unwrap();
             assert_eq!(collections.len(), 3);
             assert_eq!(collections.get(0).unwrap().rows.len(), 1);
             // first result has no docs and only 1 row

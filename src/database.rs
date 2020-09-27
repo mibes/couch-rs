@@ -740,8 +740,7 @@ impl Database {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn Error>> {
-    ///     
-    /// let client = couch_rs::Client::new(DB_HOST)?;
+    ///     let client = couch_rs::Client::new(DB_HOST)?;
     ///     let db = client.db(TEST_DB).await?;
     ///
     ///     // first we need to get the document, because we need both the _id and _rev in order
@@ -749,6 +748,7 @@ impl Database {
     ///     if let Some(doc) = db.get("123".to_string()).await.ok() {
     ///         db.remove(doc).await;
     ///     }
+    ///
     ///     Ok(())
     /// }
     ///```     

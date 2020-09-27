@@ -93,6 +93,24 @@ impl Client {
         Ok(self)
     }
 
+    /// List the databases in CouchDB
+    ///
+    /// Usage:
+    /// ```
+    /// use std::error::Error;
+    ///
+    /// const DB_HOST: &str = "http://admin:password@localhost:5984";
+    /// const TEST_DB: &str = "test_db";
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn Error>> {
+    ///     let client = couch_rs::Client::new(DB_HOST)?;
+    ///     let db = client.db(TEST_DB).await?;
+    ///     let dbs = client.list_dbs().await?;
+    ///     dbs.iter().for_each(|db| println!("Database: {}", db));
+    ///     Ok(())
+    /// }
+    ///```     
     pub async fn list_dbs(&self) -> Result<Vec<String>, CouchError> {
         let response = self.get(String::from("/_all_dbs"), None)?.send().await?;
         let data = response.json().await?;
@@ -104,6 +122,7 @@ impl Client {
         self.db_prefix.clone() + dbname
     }
 
+    /// Connect to an existing database, or create a new one, when this one does not exist.
     pub async fn db(&self, dbname: &str) -> Result<Database, CouchError> {
         let name = self.build_dbname(dbname);
 
