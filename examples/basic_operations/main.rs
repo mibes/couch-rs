@@ -12,6 +12,7 @@
 /// automatically assigned IP address. Minikube for example generates a unique IP on start-up. You
 /// can obtain it with: `minikube ip`
 use couch_rs::types::find::FindQuery;
+use couch_rs::types::query::{QueriesParams, QueryParams};
 use serde_json::{json, Value};
 use std::error::Error;
 
@@ -81,6 +82,26 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let docs = db.find(&find_all).await?;
     if let Some(row) = docs.rows.get(0) {
         println!("First document: {}", row.doc.get_data().to_string())
+    }
+
+    // imagine we have a database (e.g. vehicles) with multiple documents of different types; e.g. cars, planes and boats
+    // document IDs have been generated taking this into account, so cars have IDs starting with "car:",
+    // planes have IDs starting with "plane:", and boats have IDs starting with "boat:"
+    //
+    // let's query for all cars and all boats, sending just 1 request
+    let mut cars = QueryParams::default();
+    cars.start_key = Some("car".to_string());
+    cars.end_key = Some("car:\u{fff0}".to_string());
+    match db.query_many_all_docs(QueriesParams::new(vec![cars])).await {
+        Ok(mut collections) => {
+            println!("Succeeded querying for cars and boats");
+            let mut collections = collections.iter_mut();
+            let car_collection = collections.next().unwrap();
+            println!("Retrieved cars {:?}", car_collection);
+            let boat_collection = collections.next().unwrap();
+            println!("Retrieved boats {:?}", boat_collection);
+        }
+        Err(err) => println!("Oops: {:?}", err),
     }
 
     println!("All operations are done");
