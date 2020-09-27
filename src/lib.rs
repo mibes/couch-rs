@@ -41,6 +41,29 @@
 //!
 //! Single-threading the tests is very important because we need to make sure that the basic features are working before actually testing features on dbs/documents.
 //!
+//! ## Usage
+//!
+//! A typical find operation looks like this.
+//!
+//! ```
+//! use couch_rs::types::find::FindQuery;
+//! use std::error::Error;
+//!
+//! const DB_HOST: &str = "http://admin:password@localhost:5984";
+//! const TEST_DB: &str = "test_db";
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn Error>> {
+//!     let client = couch_rs::Client::new(DB_HOST)?;
+//!     let db = client.db(TEST_DB).await?;
+//!     let find_all = FindQuery::find_all();
+//!     let docs = db.find(&find_all).await?;
+//!     Ok(())
+//! }
+//!```
+//! See the `database` module for additional usage examples. Or have a look at the `examples` in the
+//! GitHub repositiory.
+//!
 
 /// Macros that the crate exports to facilitate most of the
 /// doc-to-json-to-string-related tasks
@@ -118,7 +141,7 @@ pub use client::Client;
 
 #[allow(unused_mut, unused_variables)]
 #[cfg(test)]
-mod rust_rs_tests {
+mod couch_rs_tests {
     mod a_sys {
         const DB_HOST: &str = "http://admin:password@localhost:5984";
 

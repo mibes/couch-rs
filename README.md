@@ -36,18 +36,40 @@ serde and reqwest libraries.
 Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/index.html) in detail to see what's
 possible.
 
-## Example code
+## Usage
+
+A typical find operation looks like this:
+
+```rust
+    use couch_rs::types::find::FindQuery;
+use std::error::Error;
+
+const DB_HOST: &str = "http://admin:password@localhost:5984";
+const TEST_DB: &str = "test_db";
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+   let client = couch_rs::Client::new(DB_HOST)?;
+   let db = client.db(TEST_DB).await?;
+   let find_all = FindQuery::find_all();
+   let docs = db.find(&find_all).await?;
+   Ok(())
+}
+```
+
+## Examples
 
 You can launch the included example with:
+
 ```shell script
 cargo run --example basic_operations
 ```
 
 ## Running tests
 
-Make sure that you have an instance of CouchDB 2.0+ running, either via the supplied `docker-compose.yml` file or by yourself. It must be listening on the default port.
-Since Couch 3.0 the "Admin Party" mode is no longer supported. This means you need to provide a username and password during launch. 
-The tests and examples assume an "admin" CouchDB user with a "password" CouchDB password. Docker run command:
+Make sure that you have an instance of CouchDB 2.0+ running, either via the supplied `docker-compose.yml` file or by
+yourself. It must be listening on the default port. Since Couch 3.0 the "Admin Party" mode is no longer supported. This
+means you need to provide a username and password during launch. The tests and examples assume an "admin" CouchDB user with a "password" CouchDB password. Docker run command:
 
 ```shell script
 docker run --rm -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password couchdb:3

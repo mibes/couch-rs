@@ -392,7 +392,10 @@ impl Database {
         }
     }
 
-    /// Updates a document.
+    /// Saves a document to CouchDB. When the provided document includes both an `_id` and a `_rev`
+    /// CouchDB will attempt to update the document. When only an `_id` is provided, the `save`
+    /// method behaves like `create` and will attempt to create the document.
+    ///
     /// Usage:
     /// ```
     /// use couch_rs::types::find::FindQuery;
@@ -403,7 +406,7 @@ impl Database {
     /// const DB_HOST: &str = "http://admin:password@localhost:5984";
     /// const TEST_DB: &str = "test_db";
     ///
-    /// #[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+    /// #[derive(serde::Serialize, serde::Deserialize)]
     /// pub struct UserDetails {
     ///     pub _id: DocumentId,
     ///     #[serde(skip_serializing)]
@@ -420,7 +423,7 @@ impl Database {
     ///     let db = client.db(TEST_DB).await?;
     ///
     ///     // before we can get the document, we need to create it first...
-    ///     let mut seed_doc = UserDetails {
+    ///     let seed_doc = UserDetails {
     ///         _id: "123".to_string(),
     ///         _rev: "".to_string(),
     ///         first_name: None,
@@ -499,6 +502,65 @@ impl Database {
             _ => {
                 let err = data.error.unwrap_or_else(|| s!("unspecified error"));
                 Err(CouchError::new(err, status))
+            }
+        }
+    }
+
+    /// The upsert function combines a `get` with a `save` function. If the document with the
+    /// provided `_id` can be found it will be merged with the provided Document's value, otherwise
+    /// the document will be created.
+    /// This operation always performs a `get`, so if you have a documents `_rev` using a `save` is
+    /// quicker. Same is true when you know a document does *not* exist.
+    ///
+    /// Usage:
+    ///
+    /// ```
+    /// use couch_rs::types::find::FindQuery;
+    /// use couch_rs::document::Document;
+    /// use std::error::Error;
+    /// use serde_json::json;
+    ///
+    /// const DB_HOST: &str = "http://admin:password@localhost:5984";
+    /// const TEST_DB: &str = "test_db";
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn Error>> {
+    ///     let client = couch_rs::Client::new(DB_HOST)?;
+    ///     let db = client.db(TEST_DB).await?;
+    ///     let doc = Document::new(json!({
+    ///                     "_id": "doe",
+    ///                     "first_name": "John",
+    ///                     "last_name": "Doe"
+    ///                 }));
+    ///
+    ///     // initial call creates the document
+    ///     db.upsert(doc.clone()).await?;
+    ///
+    ///     // subsequent call updates the existing document
+    ///     let updated_doc = db.upsert(doc).await?;
+    ///
+    ///     // verify that this is the 2nd revision of the document
+    ///     assert!(updated_doc._rev.starts_with('2'));
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn upsert(&self, doc: Document) -> Result<Document, CouchError> {
+        let id = doc._id.clone();
+
+        match self.get(id).await {
+            Ok(mut current_doc) => {
+                current_doc.merge(doc.get_data());
+                let doc = self.save(current_doc).await?;
+                Ok(doc)
+            }
+            Err(err) => {
+                if err.is_not_found() {
+                    // document does not yet exist
+                    let doc = self.save(doc).await?;
+                    Ok(doc)
+                } else {
+                    Err(err)
+                }
             }
         }
     }

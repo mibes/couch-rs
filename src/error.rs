@@ -12,10 +12,11 @@ pub struct CouchError {
 
 impl CouchError {
     pub fn new(message: String, status: reqwest::StatusCode) -> CouchError {
-        CouchError {
-            message,
-            status,
-        }
+        CouchError { message, status }
+    }
+
+    pub fn is_not_found(&self) -> bool {
+        self.status == reqwest::StatusCode::NOT_FOUND
     }
 }
 
@@ -59,4 +60,3 @@ impl std::convert::From<url::ParseError> for CouchError {
         }
     }
 }
-
