@@ -364,17 +364,18 @@ impl Database {
     ///     let mut cars = QueryParams::default();
     ///     cars.start_key = Some("car".to_string());
     ///     cars.end_key = Some("car:\u{fff0}".to_string());
-    ///     match db.query_many_all_docs(QueriesParams::new(vec![cars])).await {
-    ///         Ok(mut collections) => {
-    ///             println!("Succeeded querying for cars and boats");
-    ///             let mut collections = collections.iter_mut();
-    ///             let car_collection = collections.next().unwrap();
-    ///             println!("Retrieved cars {:?}", car_collection);
-    ///             let boat_collection = collections.next().unwrap();
-    ///             println!("Retrieved boats {:?}", boat_collection);
-    ///         }
-    ///         Err(err) => println!("Oops: {:?}", err),
-    ///     }
+    ///
+    ///     let mut boats = QueryParams::default();
+    ///     boats.start_key = Some("boat".to_string());
+    ///     boats.end_key = Some("boat:\u{fff0}".to_string());
+    ///
+    ///     let mut collections = db.query_many_all_docs(QueriesParams::new(vec![cars, boats])).await?;
+    ///     println!("Succeeded querying for cars and boats");
+    ///     let mut collections = collections.iter_mut();
+    ///     let car_collection = collections.next().unwrap();
+    ///     println!("Retrieved cars {:?}", car_collection);
+    ///     let boat_collection = collections.next().unwrap();
+    ///     println!("Retrieved boats {:?}", boat_collection);
     ///
     ///     Ok(())
     /// }
