@@ -531,7 +531,7 @@ impl Database {
     ///
     ///     // now that the document is created, we can get it, update it, and save it...
     ///     let mut doc = db.get("123").await?;
-    ///     let mut user_details: UserDetails = from_value(doc.get_data().into_owned())?;
+    ///     let mut user_details: UserDetails = from_value(doc.get_data())?;
     ///     user_details.first_name = Some("John".to_string());
     ///     let value = to_value(user_details)?;
     ///     doc.merge(value);
@@ -555,7 +555,7 @@ impl Database {
 
         match data.ok {
             Some(true) => {
-                let mut val = doc.get_data().into_owned();
+                let mut val = doc.get_data();
                 val["_rev"] = json!(data.rev);
 
                 Ok(Document::new(val))
@@ -646,7 +646,7 @@ impl Database {
 
         match self.get(&id).await {
             Ok(mut current_doc) => {
-                current_doc.merge(doc.get_data().into_owned());
+                current_doc.merge(doc.get_data());
                 let doc = self.save(current_doc).await?;
                 Ok(doc)
             }

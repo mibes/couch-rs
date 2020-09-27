@@ -45,7 +45,7 @@ async fn main() {
     match db.get(&td._id).await {
         Ok(existing) => {
             println!("Document has been previously created with Rev: {}", existing._rev);
-            let e: TestDoc = serde_json::from_value(existing.get_data().into_owned()).unwrap();
+            let e: TestDoc = serde_json::from_value(existing.get_data()).unwrap();
             println!("Name: {} {}", e.first_name, e.last_name);
         }
         Err(e) => {

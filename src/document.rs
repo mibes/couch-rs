@@ -2,7 +2,6 @@ use crate::database::Database;
 use crate::types::document::DocumentId;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::borrow::Cow;
 use std::ops::{Index, IndexMut};
 
 /// Document abstracts the handling of JSON values and provides direct access
@@ -44,8 +43,8 @@ impl Document {
     }
 
     /// Returns raw JSON data from document
-    pub fn get_data(&self) -> Cow<Value> {
-        Cow::Borrowed(&self.doc)
+    pub fn get_data(&self) -> Value {
+        self.doc.clone()
     }
 
     /// Merges this document with a raw JSON value, useful to update data with
@@ -200,10 +199,7 @@ impl DocumentCollection {
 
     /// Returns raw JSON data from documents
     pub fn get_data(&self) -> Vec<Value> {
-        self.rows
-            .iter()
-            .map(|doc_item| doc_item.doc.get_data().into_owned())
-            .collect()
+        self.rows.iter().map(|doc_item| doc_item.doc.get_data()).collect()
     }
 }
 
