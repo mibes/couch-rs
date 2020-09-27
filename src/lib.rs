@@ -186,6 +186,41 @@ mod couch_rs_tests {
         }
 
         #[tokio::test]
+        async fn c_should_create_bulk_documents() {
+            let client = Client::new(DB_HOST).unwrap();
+            let dbname = "c_should_create_bulk_documents";
+            let dbw = client.db(dbname).await;
+            assert!(dbw.is_ok());
+            let db = dbw.unwrap();
+
+            let ndoc_result = db
+                .bulk_docs(vec![
+                    json!({
+                        "_id":"first",
+                        "thing": true
+                    }),
+                    json!({
+                        "_id":"first",
+                        "thing": false
+                    }),
+                ])
+                .await;
+
+            assert!(ndoc_result.is_ok());
+
+            let mut docs = ndoc_result.unwrap();
+            let mut docs = docs.iter_mut();
+            let first_result = docs.next().unwrap();
+            assert_eq!(first_result.ok.unwrap(), true);
+            assert!(first_result.rev.is_some());
+            let second_result = docs.next().unwrap();
+            assert!(second_result.error.is_some());
+            assert!(second_result.reason.is_some());
+
+            let _ = client.destroy_db(dbname);
+        }
+
+        #[tokio::test]
         async fn d_should_destroy_the_db() {
             let client = Client::new(DB_HOST).unwrap();
             let _ = client.db("d_should_destroy_the_db").await;
@@ -287,7 +322,7 @@ mod couch_rs_tests {
 
             let spec = types::index::IndexFields::new(vec![types::find::SortSpec::Simple(s!("thing"))]);
 
-            let res = db.insert_index("thing-index".into(), spec).await;
+            let res = db.insert_index("thing-index", spec).await;
 
             assert!(res.is_ok());
 
@@ -318,7 +353,7 @@ mod couch_rs_tests {
 
             let spec = types::index::IndexFields::new(vec![types::find::SortSpec::Simple(s!("thing"))]);
 
-            let res = db.ensure_index("thing-index".into(), spec).await;
+            let res = db.ensure_index("thing-index", spec).await;
             assert!(res.is_ok());
 
             teardown(client, "f_should_ensure_index_in_db").await;
@@ -392,7 +427,7 @@ mod couch_rs_tests {
             let id = doc._id.clone();
             let view_name = "testViewAll";
             db.create_view(
-                view_name.to_string(),
+                view_name,
                 CouchViews::new(
                     view_name,
                     CouchFunc {
@@ -415,7 +450,7 @@ mod couch_rs_tests {
             let ndoc_id = ndoc._id.clone();
             let single_view_name = "testViewSingle";
             db.create_view(
-                single_view_name.to_string(),
+                single_view_name,
                 CouchViews::new(
                     single_view_name,
                     CouchFunc {
@@ -470,7 +505,7 @@ mod couch_rs_tests {
             let id = doc._id.clone();
             let view_name = "testViewAll";
             db.create_view(
-                view_name.to_string(),
+                view_name,
                 CouchViews::new(
                     view_name,
                     CouchFunc {
@@ -493,7 +528,7 @@ mod couch_rs_tests {
             let ndoc_id = ndoc._id.clone();
             let single_view_name = "testViewSingle";
             db.create_view(
-                single_view_name.to_string(),
+                single_view_name,
                 CouchViews::new(
                     single_view_name,
                     CouchFunc {
@@ -547,7 +582,7 @@ mod couch_rs_tests {
             let id = doc._id.clone();
             let view_name = "testViewAll";
             db.create_view(
-                view_name.to_string(),
+                view_name,
                 CouchViews::new(
                     view_name,
                     CouchFunc {
@@ -570,7 +605,7 @@ mod couch_rs_tests {
             let ndoc_id = ndoc._id.clone();
             let single_view_name = "testViewSingle";
             db.create_view(
-                single_view_name.to_string(),
+                single_view_name,
                 CouchViews::new(
                     single_view_name,
                     CouchFunc {

@@ -1,8 +1,8 @@
+use crate::database::Database;
+use crate::types::document::DocumentId;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::ops::{Index, IndexMut};
-use serde::{Serialize, Deserialize};
-use crate::types::document::{DocumentId};
-use crate::database::Database;
 
 /// Document abstracts the handling of JSON values and provides direct access
 /// and casting to the fields of your documents You can get access to the
@@ -74,7 +74,8 @@ impl Document {
             return self;
         }
 
-        let ids = val.as_array()
+        let ids = val
+            .as_array()
             .unwrap_or(&Vec::new())
             .iter()
             .map(|v| s!(v.as_str().unwrap_or("")))
@@ -84,7 +85,8 @@ impl Document {
 
         match data {
             Ok(data) => {
-                self[field] = data.into_iter()
+                self[field] = data
+                    .into_iter()
                     .filter_map(|d: Value| {
                         let did = match d["_id"].as_str() {
                             Some(did) => did,
@@ -157,7 +159,8 @@ pub struct DocumentCollection {
 impl DocumentCollection {
     pub fn new(doc: Value) -> DocumentCollection {
         let rows: Vec<Value> = json_extr!(doc["rows"]);
-        let items: Vec<DocumentCollectionItem> = rows.into_iter()
+        let items: Vec<DocumentCollectionItem> = rows
+            .into_iter()
             .filter(|d| {
                 let maybe_err: Option<String> = json_extr!(d["error"]);
                 if maybe_err.is_some() {

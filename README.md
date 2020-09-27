@@ -81,6 +81,8 @@ And then
 Single-threading the tests is very important because we need to make sure that the basic features are working before
 actually testing features on dbs/documents.
 
+If bash is available on your environment, you can also use the `test.sh` script which basically does the same thing described above.
+
 ## Contributing
 
 Feel free to contribute bug-fixes and new features. If you do so, please apply the
