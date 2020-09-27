@@ -322,7 +322,7 @@ mod couch_rs_tests {
 
             let spec = types::index::IndexFields::new(vec![types::find::SortSpec::Simple(s!("thing"))]);
 
-            let res = db.insert_index("thing-index".into(), spec).await;
+            let res = db.insert_index("thing-index", spec).await;
 
             assert!(res.is_ok());
 
@@ -353,7 +353,7 @@ mod couch_rs_tests {
 
             let spec = types::index::IndexFields::new(vec![types::find::SortSpec::Simple(s!("thing"))]);
 
-            let res = db.ensure_index("thing-index".into(), spec).await;
+            let res = db.ensure_index("thing-index", spec).await;
             assert!(res.is_ok());
 
             teardown(client, "f_should_ensure_index_in_db").await;
@@ -427,7 +427,7 @@ mod couch_rs_tests {
             let id = doc._id.clone();
             let view_name = "testViewAll";
             db.create_view(
-                view_name.to_string(),
+                view_name,
                 CouchViews::new(
                     view_name,
                     CouchFunc {
@@ -450,7 +450,7 @@ mod couch_rs_tests {
             let ndoc_id = ndoc._id.clone();
             let single_view_name = "testViewSingle";
             db.create_view(
-                single_view_name.to_string(),
+                single_view_name,
                 CouchViews::new(
                     single_view_name,
                     CouchFunc {
@@ -505,7 +505,7 @@ mod couch_rs_tests {
             let id = doc._id.clone();
             let view_name = "testViewAll";
             db.create_view(
-                view_name.to_string(),
+                view_name,
                 CouchViews::new(
                     view_name,
                     CouchFunc {
@@ -528,7 +528,7 @@ mod couch_rs_tests {
             let ndoc_id = ndoc._id.clone();
             let single_view_name = "testViewSingle";
             db.create_view(
-                single_view_name.to_string(),
+                single_view_name,
                 CouchViews::new(
                     single_view_name,
                     CouchFunc {
@@ -582,7 +582,7 @@ mod couch_rs_tests {
             let id = doc._id.clone();
             let view_name = "testViewAll";
             db.create_view(
-                view_name.to_string(),
+                view_name,
                 CouchViews::new(
                     view_name,
                     CouchFunc {
@@ -605,7 +605,7 @@ mod couch_rs_tests {
             let ndoc_id = ndoc._id.clone();
             let single_view_name = "testViewSingle";
             db.create_view(
-                single_view_name.to_string(),
+                single_view_name,
                 CouchViews::new(
                     single_view_name,
                     CouchFunc {

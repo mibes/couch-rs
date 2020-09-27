@@ -683,19 +683,19 @@ impl Database {
     ///         };
     ///
     ///     let couch_views = CouchViews::new("clip_view", couch_func);
-    ///     db.create_view("clip_design".to_string(), couch_views).await?;
+    ///     db.create_view("clip_design", couch_views).await?;
     ///     Ok(())
     /// }
     /// ```
     pub async fn create_view<T: Into<serde_json::Value>>(
         &self,
-        design_name: String,
+        design_name: &str,
         views: T,
     ) -> Result<DesignCreated, CouchError> {
         let doc: Value = views.into();
         let response = self
             ._client
-            .put(self.create_design_path(&design_name), to_string(&doc)?)?
+            .put(self.create_design_path(design_name), to_string(&doc)?)?
             .send()
             .await?;
 
@@ -803,7 +803,7 @@ impl Database {
 
     /// Inserts an index in a naive way, if it already exists, will throw an
     /// `Err`
-    pub async fn insert_index(&self, name: String, spec: IndexFields) -> Result<DesignCreated, CouchError> {
+    pub async fn insert_index(&self, name: &str, spec: IndexFields) -> Result<DesignCreated, CouchError> {
         let response = self
             ._client
             .post(
@@ -841,7 +841,7 @@ impl Database {
     /// Method to ensure an index is created on the database with the following
     /// spec. Returns `true` when we created a new one, or `false` when the
     /// index was already existing.
-    pub async fn ensure_index(&self, name: String, spec: IndexFields) -> Result<bool, CouchError> {
+    pub async fn ensure_index(&self, name: &str, spec: IndexFields) -> Result<bool, CouchError> {
         let db_indexes = self.read_indexes().await?;
 
         // We look for our index
