@@ -30,42 +30,37 @@ impl Database {
         &self.name
     }
 
-    fn create_document_path(&self, id: DocumentId) -> String {
+    fn create_document_path(&self, id: &str) -> String {
         let mut result: String = self.name.clone();
         result.push_str("/");
-        result.push_str(&id);
+        result.push_str(id);
         result
     }
 
-    fn create_design_path(&self, id: DocumentId) -> String {
+    fn create_design_path(&self, id: &str) -> String {
         let mut result: String = self.name.clone();
         result.push_str("/_design/");
-        result.push_str(&id);
+        result.push_str(id);
         result
     }
 
-    fn create_query_view_path(&self, design_id: DocumentId, view_id: DocumentId) -> String {
+    fn create_query_view_path(&self, design_id: &str, view_id: &str) -> String {
         let mut result: String = self.name.clone();
         result.push_str("/_design/");
-        result.push_str(&design_id);
+        result.push_str(design_id);
         result.push_str("/_view/");
-        result.push_str(&view_id);
+        result.push_str(view_id);
         result
     }
 
-    fn create_execute_update_path(
-        &self,
-        design_id: DocumentId,
-        update_id: DocumentId,
-        document_id: DocumentId,
-    ) -> String {
+    fn create_execute_update_path(&self, design_id: &str, update_id: &str, document_id: &str) -> String {
         let mut result: String = self.name.clone();
         result.push_str("/_design/");
-        result.push_str(&design_id);
+        result.push_str(design_id);
         result.push_str("/_update/");
-        result.push_str(&update_id);
+        result.push_str(update_id);
         result.push_str("/");
-        result.push_str(&document_id);
+        result.push_str(document_id);
         result
     }
 
@@ -138,20 +133,20 @@ impl Database {
     ///     let db = client.db(TEST_DB).await?;
     ///
     ///     // check if the design document "_design/clip_view" exists
-    ///     if db.exists("_design/clip_view".to_string()).await {
+    ///     if db.exists("_design/clip_view").await {
     ///         println!("The design document exists");
     ///     }   
     ///
     ///     return Ok(());
     /// }
     /// ```
-    pub async fn exists(&self, id: DocumentId) -> bool {
+    pub async fn exists(&self, id: &str) -> bool {
         let request = self._client.head(self.create_document_path(id), None);
         self.is_ok(request).await
     }
 
     /// Gets one document
-    pub async fn get(&self, id: DocumentId) -> Result<Document, CouchError> {
+    pub async fn get(&self, id: &str) -> Result<Document, CouchError> {
         let response = self
             ._client
             .get(self.create_document_path(id), None)?
@@ -182,7 +177,7 @@ impl Database {
 
         let response = self
             ._client
-            .post(self.create_document_path("_bulk_docs".into()), to_string(&body)?)?
+            .post(self.create_document_path("_bulk_docs"), to_string(&body)?)?
             .send()
             .await?;
 
@@ -252,7 +247,7 @@ impl Database {
 
         let response = self
             ._client
-            .post(self.create_document_path("_all_docs".into()), to_string(&body)?)?
+            .post(self.create_document_path("_all_docs"), to_string(&body)?)?
             .query(&options)
             .send()
             .await?
@@ -345,15 +340,15 @@ impl Database {
     /// [More information](https://docs.couchdb.org/en/stable/api/database/bulk-api.html#sending-multiple-queries-to-a-database)
     /// Parameters description can be found [here](https://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view)
     pub async fn query_many_all_docs(&self, queries: QueriesParams) -> Result<Vec<ViewCollection>, CouchError> {
-        self.query_view_many(self.create_document_path("_all_docs/queries".into()), queries)
+        self.query_view_many(self.create_document_path("_all_docs/queries"), queries)
             .await
     }
 
     /// Executes multiple queries against a view.
     pub async fn query_many(
         &self,
-        design_name: String,
-        view_name: String,
+        design_name: &str,
+        view_name: &str,
         queries: QueriesParams,
     ) -> Result<Vec<ViewCollection>, CouchError> {
         self.query_view_many(self.create_query_view_path(design_name, view_name), queries)
@@ -394,7 +389,7 @@ impl Database {
         // to a GET call. It provides the same functionality
         let response = self
             ._client
-            .post(self.create_document_path("_all_docs".into()), js!(&options))?
+            .post(self.create_document_path("_all_docs"), js!(&options))?
             .send()
             .await?
             .error_for_status()?;
@@ -421,7 +416,7 @@ impl Database {
     /// }
     /// ```
     pub async fn find(&self, query: &FindQuery) -> Result<DocumentCollection, CouchError> {
-        let path = self.create_document_path("_find".into());
+        let path = self.create_document_path("_find");
         let response = self._client.post(path, js!(query))?.send().await?;
         let status = response.status();
         let data: FindResult = response.json().await.unwrap();
@@ -494,7 +489,7 @@ impl Database {
     ///     db.create(value).await?;
     ///
     ///     // now that the document is created, we can get it, update it, and save it...
-    ///     let mut doc = db.get("123".to_string()).await?;
+    ///     let mut doc = db.get("123").await?;
     ///     let mut user_details: UserDetails = from_value(doc.get_data())?;
     ///     user_details.first_name = Some("John".to_string());
     ///     let value = to_value(user_details)?;
@@ -510,7 +505,7 @@ impl Database {
 
         let response = self
             ._client
-            .put(self.create_document_path(id), to_string(&raw)?)?
+            .put(self.create_document_path(&id), to_string(&raw)?)?
             .send()
             .await?;
 
@@ -608,7 +603,7 @@ impl Database {
     pub async fn upsert(&self, doc: Document) -> Result<Document, CouchError> {
         let id = doc._id.clone();
 
-        match self.get(id).await {
+        match self.get(&id).await {
             Ok(mut current_doc) => {
                 current_doc.merge(doc.get_data());
                 let doc = self.save(current_doc).await?;
@@ -659,7 +654,7 @@ impl Database {
         let doc: Value = views.into();
         let response = self
             ._client
-            .put(self.create_design_path(design_name), to_string(&doc)?)?
+            .put(self.create_design_path(&design_name), to_string(&doc)?)?
             .send()
             .await?;
 
@@ -685,8 +680,8 @@ impl Database {
     /// Executes a query against a view.
     pub async fn query(
         &self,
-        design_name: String,
-        view_name: String,
+        design_name: &str,
+        view_name: &str,
         mut options: Option<QueryParams>,
     ) -> Result<ViewCollection, CouchError> {
         if options.is_none() {
@@ -706,9 +701,9 @@ impl Database {
     /// Executes an update function.
     pub async fn execute_update(
         &self,
-        design_id: String,
-        name: String,
-        document_id: String,
+        design_id: &str,
+        name: &str,
+        document_id: &str,
         body: Option<Value>,
     ) -> Result<String, CouchError> {
         let body = match body {
@@ -745,7 +740,7 @@ impl Database {
     ///
     ///     // first we need to get the document, because we need both the _id and _rev in order
     ///     // to delete
-    ///     if let Some(doc) = db.get("123".to_string()).await.ok() {
+    ///     if let Some(doc) = db.get("123").await.ok() {
     ///         db.remove(doc).await;
     ///     }
     ///
@@ -754,7 +749,7 @@ impl Database {
     ///```     
     pub async fn remove(&self, doc: Document) -> bool {
         let request = self._client.delete(
-            self.create_document_path(doc._id.clone()),
+            self.create_document_path(&doc._id),
             Some({
                 let mut h = HashMap::new();
                 h.insert(s!("rev"), doc._rev.clone());
@@ -771,7 +766,7 @@ impl Database {
         let response = self
             ._client
             .post(
-                self.create_document_path("_index".into()),
+                self.create_document_path("_index"),
                 js!(json!({
                     "name": name,
                     "index": spec
@@ -795,7 +790,7 @@ impl Database {
     pub async fn read_indexes(&self) -> Result<DatabaseIndexList, CouchError> {
         let response = self
             ._client
-            .get(self.create_document_path("_index".into()), None)?
+            .get(self.create_document_path("_index"), None)?
             .send()
             .await?;
 

@@ -437,22 +437,18 @@ mod couch_rs_tests {
 
             // executing 'all' view querying with keys containing 1 key should result in 1 and 0 entries, respectively
             assert_eq!(
-                db.query(
-                    view_name.to_string(),
-                    view_name.to_string(),
-                    Some(QueryParams::from_keys(vec![id.clone()]))
-                )
-                .await
-                .unwrap()
-                .rows
-                .len(),
+                db.query(view_name, view_name, Some(QueryParams::from_keys(vec![id.clone()])))
+                    .await
+                    .unwrap()
+                    .rows
+                    .len(),
                 1
             );
             assert_eq!(
                 db.query(
-                    single_view_name.to_string(),
-                    single_view_name.to_string(),
-                    Some(QueryParams::from_keys(vec![id]))
+                    single_view_name,
+                    single_view_name,
+                    Some(QueryParams::from_keys(vec![id])),
                 )
                 .await
                 .unwrap()
@@ -522,7 +518,7 @@ mod couch_rs_tests {
             one_key.key = Some(doc._id.clone());
 
             assert_eq!(
-                db.query(view_name.to_string(), view_name.to_string(), Some(one_key.clone()))
+                db.query(view_name, view_name, Some(one_key.clone()))
                     .await
                     .unwrap()
                     .rows
@@ -530,15 +526,11 @@ mod couch_rs_tests {
                 1
             );
             assert_eq!(
-                db.query(
-                    single_view_name.to_string(),
-                    single_view_name.to_string(),
-                    Some(one_key)
-                )
-                .await
-                .unwrap()
-                .rows
-                .len(),
+                db.query(single_view_name, single_view_name, Some(one_key))
+                    .await
+                    .unwrap()
+                    .rows
+                    .len(),
                 0
             );
 
@@ -598,12 +590,12 @@ mod couch_rs_tests {
             .await
             .unwrap();
 
-            let query_result = db.query(view_name.to_string(), view_name.to_string(), None).await;
+            let query_result = db.query(view_name, view_name, None).await;
 
             // executing 'all' view without any params should result in 2 and 1 entries, respectively
             assert_eq!(query_result.unwrap().rows.len(), 2);
             assert_eq!(
-                db.query(single_view_name.to_string(), single_view_name.to_string(), None)
+                db.query(single_view_name, single_view_name, None)
                     .await
                     .unwrap()
                     .rows
@@ -612,27 +604,19 @@ mod couch_rs_tests {
             );
             // executing 'all' view with default params should result in 2 and 1 entries, respectively
             assert_eq!(
-                db.query(
-                    view_name.to_string(),
-                    view_name.to_string(),
-                    Some(QueryParams::default())
-                )
-                .await
-                .unwrap()
-                .rows
-                .len(),
+                db.query(view_name, view_name, Some(QueryParams::default()))
+                    .await
+                    .unwrap()
+                    .rows
+                    .len(),
                 2
             );
             assert_eq!(
-                db.query(
-                    single_view_name.to_string(),
-                    single_view_name.to_string(),
-                    Some(QueryParams::default())
-                )
-                .await
-                .unwrap()
-                .rows
-                .len(),
+                db.query(single_view_name, single_view_name, Some(QueryParams::default()))
+                    .await
+                    .unwrap()
+                    .rows
+                    .len(),
                 1
             );
 
