@@ -41,7 +41,7 @@ possible.
 A typical find operation looks like this:
 
 ```rust
-    use couch_rs::types::find::FindQuery;
+use couch_rs::types::find::FindQuery;
 use std::error::Error;
 
 const DB_HOST: &str = "http://admin:password@localhost:5984";
