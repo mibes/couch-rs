@@ -78,16 +78,31 @@ docker run --rm -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password 
 And then
 `cargo test -- --test-threads=1`
 
-Single-threading the tests is very important because we need to make sure that the basic features are working before actually testing features on dbs/documents.
+Single-threading the tests is very important because we need to make sure that the basic features are working before
+actually testing features on dbs/documents.
+
+## Contributing
+
+Feel free to contribute bug-fixes and new features. If you do so, please apply the
+[Gitflow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) workflow. This sounds more
+complicated than it is. Check out
+the [Getting Started](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow)
+to initialize your forked project for Gitflow usage. Then use:
+
+* `git flow feature start feature_branch` when contributing a new feature, this is always based on the `develop` branch
+* `git flow hotfix start hotfix_branch` when contributing a patch, this is always based on the `master` branch.
+
+Replace `feature_branch` or `hotfix_branch` in the above example with a descriptive name. Do not finish the feature or
+hotfix, but do a pull request on the new branch.
 
 ## License
 
 Licensed under either of these:
 
 * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or
-   [https://www.apache.org/licenses/LICENSE-2.0](https://www.apache.org/licenses/LICENSE-2.0)
+  [https://www.apache.org/licenses/LICENSE-2.0](https://www.apache.org/licenses/LICENSE-2.0)
 * MIT license ([LICENSE-MIT](LICENSE-MIT) or
-   [https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT))
+  [https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT))
 
 ## DISCLAIMER
 
