@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.8.11] - 2020-09-27
+
+- Use `&str` instead of DocumentId in a few places to make the API easier to use
+- Include an example for `query_many_all_docs`
+
 ## [0.8.10] - 2020-09-27
 
 - Introduce gitflow
