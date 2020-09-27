@@ -1,13 +1,1 @@
-unstable_features = true
-use_field_init_shorthand = true
-indent_style = "Block"
-match_block_trailing_comma = true
-reorder_impl_items = true
-combine_control_expr = true
-comment_width = 120
-wrap_comments = true
-condense_wildcard_suffixes = true
-imports_layout = "HorizontalVertical"
-merge_imports = true
 max_width = 120
-newline_style = "Unix"

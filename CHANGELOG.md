@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.8.10] - 2020-09-27
+
+- Introduce gitflow
+- Updated rustfmt configuration
+- Test for query params
+
 ## [0.8.9] - 2020-09-27
 
 - Let `get_bulk_params` take `Option<QueryParams>`
