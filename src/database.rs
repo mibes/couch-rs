@@ -6,7 +6,7 @@ use crate::types::document::{DocumentCreatedResult, DocumentId};
 use crate::types::find::{FindQuery, FindResult};
 use crate::types::index::{DatabaseIndexList, IndexFields};
 use crate::types::query::{QueriesCollection, QueriesParams, QueryParams};
-use crate::types::view::ViewCollection;
+use crate::types::view::{CouchViews, ViewCollection};
 use reqwest::{RequestBuilder, StatusCode};
 use serde_json::{json, to_string, Value};
 use std::collections::HashMap;
@@ -124,6 +124,27 @@ impl Database {
     }
 
     /// Checks if a document ID exists
+    ///
+    /// Usage:
+    /// ```
+    /// use std::error::Error;
+    ///
+    /// const DB_HOST: &str = "http://admin:password@localhost:5984";
+    /// const TEST_DB: &str = "test_db";
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn Error>> {
+    ///     let client = couch_rs::Client::new(DB_HOST)?;
+    ///     let db = client.db(TEST_DB).await?;
+    ///
+    ///     // check if the design document "_design/clip_view" exists
+    ///     if db.exists("_design/clip_view".to_string()).await {
+    ///         println!("The design document exists");
+    ///     }   
+    ///
+    ///     return Ok(());
+    /// }
+    /// ```
     pub async fn exists(&self, id: DocumentId) -> bool {
         let request = self._client.head(self.create_document_path(id), None);
         self.is_ok(request).await
@@ -565,8 +586,33 @@ impl Database {
         }
     }
 
-    /// Creates a view document.
-    pub async fn create_view(&self, design_name: String, doc: Value) -> Result<DesignCreated, CouchError> {
+    /// Creates a design with one of more view documents.
+    ///
+    /// Usage:
+    /// ```
+    /// use couch_rs::types::view::{CouchFunc, CouchViews};
+    /// use std::error::Error;
+    ///
+    /// const DB_HOST: &str = "http://admin:password@localhost:5984";
+    /// const TEST_DB: &str = "test_db";
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn Error>> {
+    ///     let client = couch_rs::Client::new(DB_HOST)?;
+    ///     let db = client.db(TEST_DB).await?;
+    ///
+    ///     let couch_func = CouchFunc {
+    ///             map: "function (doc) { if (doc.CLIP == true) { emit(doc.CLIP); } }".to_string(),
+    ///             reduce: None,
+    ///         };
+    ///
+    ///     let couch_views = CouchViews::new("clip_view", couch_func);
+    ///     db.create_view("clip_design".to_string(), couch_views).await?;
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn create_view(&self, design_name: String, views: CouchViews) -> Result<DesignCreated, CouchError> {
+        let doc: Value = views.into();
         let response = self
             ._client
             .put(self.create_design_path(design_name), to_string(&doc)?)?

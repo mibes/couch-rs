@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.8.7] - 2020-09-27
+
+- Use the typed `CouchViews` structure to create views
+
 ## [0.8.6] - 2020-09-27
 
 - Included the `upsert` operation
