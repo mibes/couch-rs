@@ -339,6 +339,46 @@ impl Database {
     /// This enables you to request multiple queries in a single request, in place of multiple POST /{db}/_all_docs requests.
     /// [More information](https://docs.couchdb.org/en/stable/api/database/bulk-api.html#sending-multiple-queries-to-a-database)
     /// Parameters description can be found [here](https://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view)
+    ///
+    /// Usage:
+    /// ```
+    /// use couch_rs::types::find::FindQuery;
+    /// use couch_rs::types::query::{QueryParams, QueriesParams};
+    /// use couch_rs::document::Document;
+    /// use std::error::Error;
+    /// use serde_json::json;
+    ///
+    /// const DB_HOST: &str = "http://admin:password@localhost:5984";
+    /// const TEST_DB: &str = "test_db";
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn Error>> {
+    ///     let client = couch_rs::Client::new(DB_HOST)?;
+    ///     let db = client.db(TEST_DB).await?;
+    ///
+    ///     // imagine we have a database (e.g. vehicles) with multiple documents of different types; e.g. cars, planes and boats
+    ///     // document IDs have been generated taking this into account, so cars have IDs starting with "car:",
+    ///     // planes have IDs starting with "plane:", and boats have IDs starting with "boat:"
+    ///     //
+    ///     // let's query for all cars and all boats, sending just 1 request
+    ///     let mut cars = QueryParams::default();
+    ///     cars.start_key = Some("car".to_string());
+    ///     cars.end_key = Some("car:\u{fff0}".to_string());
+    ///     match db.query_many_all_docs(QueriesParams::new(vec![cars])).await {
+    ///         Ok(mut collections) => {
+    ///             println!("Succeeded querying for cars and boats");
+    ///             let mut collections = collections.iter_mut();
+    ///             let car_collection = collections.next().unwrap();
+    ///             println!("Retrieved cars {:?}", car_collection);
+    ///             let boat_collection = collections.next().unwrap();
+    ///             println!("Retrieved boats {:?}", boat_collection);
+    ///         }
+    ///         Err(err) => println!("Oops: {:?}", err),
+    ///     }
+    ///
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn query_many_all_docs(&self, queries: QueriesParams) -> Result<Vec<ViewCollection>, CouchError> {
         self.query_view_many(self.create_document_path("_all_docs/queries"), queries)
             .await
