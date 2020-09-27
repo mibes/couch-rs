@@ -17,6 +17,11 @@ pub struct QueriesCollection {
     pub results: Vec<ViewCollection>,
 }
 
+/// Query parameters. You can use the builder paradigm to construct these parameters easily:
+/// ```
+/// use couch_rs::types::query::QueryParams;
+/// let _qp = QueryParams::default().group(true).conflicts(false).start_key("1");
+/// ```
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct QueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
