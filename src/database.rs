@@ -349,7 +349,7 @@ impl Database {
     /// use serde_json::json;
     ///
     /// const DB_HOST: &str = "http://admin:password@localhost:5984";
-    /// const TEST_DB: &str = "test_db";
+    /// const TEST_DB: &str = "vehicles";
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn Error>> {
