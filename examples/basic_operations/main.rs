@@ -15,8 +15,6 @@ use couch_rs::types::find::FindQuery;
 use serde_json::{json, Value};
 use std::error::Error;
 
-/// Update DB_HOST to point to your running Couch instance
-const DB_HOST: &str = "http://admin:password@localhost:5984";
 const TEST_DB: &str = "test_db";
 
 /// test_docs generates a bunch of documents that can be used in the _bulk_docs operation.
@@ -35,7 +33,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("Connecting...");
 
     // Prepare the Sofa client
-    let client = couch_rs::Client::new(DB_HOST).unwrap();
+    let client = couch_rs::Client::new_local_test().unwrap();
 
     // This command gets a reference to an existing database, or it creates a new one when it does
     // not yet exist.

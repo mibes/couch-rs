@@ -5,7 +5,6 @@ use std::time::SystemTime;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::{Receiver, Sender};
 
-const DB_HOST: &str = "http://admin:password@localhost:5984";
 const TEST_DB: &str = "test_db";
 
 #[tokio::main]
@@ -18,7 +17,7 @@ async fn main() {
 
     // Spawn a separate thread to retrieve the batches from Couch
     let t = tokio::spawn(async move {
-        let client = couch_rs::Client::new_with_timeout(DB_HOST, 120).unwrap();
+        let client = couch_rs::Client::new_local_test().unwrap();
         let db = client.db(TEST_DB).await.unwrap();
 
         if let Err(err) = db.get_all_batched(tx, 0, 0).await {
