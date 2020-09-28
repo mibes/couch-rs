@@ -47,13 +47,13 @@ impl Client {
         Client::new_with_timeout(uri, Some(username), Some(password), DEFAULT_TIME_OUT)
     }
 
-    /// new creates a new Couch client with a default timeout of 10 seconds. Without authentication.
+    /// new_no_auth creates a new Couch client with a default timeout of 10 seconds. *Without authentication*.
     /// The URI has to be in this format: http://hostname:5984, for example: http://192.168.64.5:5984
     pub fn new_no_auth(uri: &str) -> CouchResult<Client> {
         Client::new_with_timeout(uri, None, None, DEFAULT_TIME_OUT)
     }
 
-    /// new creates a new Couch client *for testing purposes* with a default timeout of 10 seconds.
+    /// new_local_test creates a new Couch client *for testing purposes* with a default timeout of 10 seconds.
     /// The URI that will be used is: http://hostname:5984, with a username of "admin" and a password
     /// of "password". Use this only for testing!!!
     pub fn new_local_test() -> CouchResult<Client> {
