@@ -1,5 +1,5 @@
 use crate::database::Database;
-use crate::error::CouchError;
+use crate::error::{CouchError, CouchResult};
 use crate::types::system::{CouchResponse, CouchStatus};
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, REFERER, USER_AGENT};
 use reqwest::RequestBuilder;
@@ -34,13 +34,13 @@ pub struct Client {
 impl Client {
     /// new creates a new Couch client with a default timeout of 5 seconds.
     /// The URI has to be in this format: http://hostname:5984, for example: http://192.168.64.5:5984
-    pub fn new(uri: &str) -> Result<Client, CouchError> {
+    pub fn new(uri: &str) -> CouchResult<Client> {
         Client::new_with_timeout(uri, 10)
     }
 
     /// new_with_timeout creates a new Couch client. The URI has to be in this format: http://hostname:5984,
     /// timeout is in seconds.
-    pub fn new_with_timeout(uri: &str, timeout: u64) -> Result<Client, CouchError> {
+    pub fn new_with_timeout(uri: &str, timeout: u64) -> CouchResult<Client> {
         let client = reqwest::Client::builder()
             .gzip(true)
             .timeout(Duration::new(timeout, 0))
@@ -56,7 +56,7 @@ impl Client {
         })
     }
 
-    fn create_client(&self) -> Result<reqwest::Client, CouchError> {
+    fn create_client(&self) -> CouchResult<reqwest::Client> {
         let client = reqwest::Client::builder()
             .gzip(self._gzip)
             .timeout(Duration::new(self._timeout, 0))
@@ -79,14 +79,14 @@ impl Client {
         self
     }
 
-    pub fn gzip(&mut self, enabled: bool) -> Result<&Self, CouchError> {
+    pub fn gzip(&mut self, enabled: bool) -> CouchResult<&Self> {
         self._gzip = enabled;
         self._client = self.create_client()?;
 
         Ok(self)
     }
 
-    pub fn timeout(&mut self, to: u64) -> Result<&Self, CouchError> {
+    pub fn timeout(&mut self, to: u64) -> CouchResult<&Self> {
         self._timeout = to;
         self._client = self.create_client()?;
 
@@ -111,7 +111,7 @@ impl Client {
     ///     Ok(())
     /// }
     ///```     
-    pub async fn list_dbs(&self) -> Result<Vec<String>, CouchError> {
+    pub async fn list_dbs(&self) -> CouchResult<Vec<String>> {
         let response = self.get(String::from("/_all_dbs"), None)?.send().await?;
         let data = response.json().await?;
 
@@ -123,7 +123,7 @@ impl Client {
     }
 
     /// Connect to an existing database, or create a new one, when this one does not exist.
-    pub async fn db(&self, dbname: &str) -> Result<Database, CouchError> {
+    pub async fn db(&self, dbname: &str) -> CouchResult<Database> {
         let name = self.build_dbname(dbname);
 
         let db = Database::new(name.clone(), self.clone());
@@ -143,7 +143,7 @@ impl Client {
         }
     }
 
-    pub async fn make_db(&self, dbname: &str) -> Result<Database, CouchError> {
+    pub async fn make_db(&self, dbname: &str) -> CouchResult<Database> {
         let name = self.build_dbname(dbname);
 
         let db = Database::new(name.clone(), self.clone());
@@ -169,7 +169,7 @@ impl Client {
         }
     }
 
-    pub async fn destroy_db(&self, dbname: &str) -> Result<bool, CouchError> {
+    pub async fn destroy_db(&self, dbname: &str) -> CouchResult<bool> {
         let path = self.create_path(self.build_dbname(dbname), None)?;
         let response = self
             ._client
@@ -183,7 +183,7 @@ impl Client {
         Ok(s.ok.unwrap_or(false))
     }
 
-    pub async fn check_status(&self) -> Result<CouchStatus, CouchError> {
+    pub async fn check_status(&self) -> CouchResult<CouchStatus> {
         let response = self
             ._client
             .get(&self.uri)
@@ -196,7 +196,7 @@ impl Client {
         Ok(status)
     }
 
-    fn create_path(&self, path: String, args: Option<HashMap<String, String>>) -> Result<String, CouchError> {
+    fn create_path(&self, path: String, args: Option<HashMap<String, String>>) -> CouchResult<String> {
         let mut uri = Url::parse(&self.uri)?.join(&path)?;
 
         if let Some(ref map) = args {
@@ -214,7 +214,7 @@ impl Client {
         method: Method,
         path: String,
         opts: Option<HashMap<String, String>>,
-    ) -> Result<RequestBuilder, CouchError> {
+    ) -> CouchResult<RequestBuilder> {
         let uri = self.create_path(path, opts)?;
         let req = self
             ._client
@@ -226,25 +226,25 @@ impl Client {
         Ok(req)
     }
 
-    pub fn get(&self, path: String, args: Option<HashMap<String, String>>) -> Result<RequestBuilder, CouchError> {
+    pub fn get(&self, path: String, args: Option<HashMap<String, String>>) -> CouchResult<RequestBuilder> {
         Ok(self.req(Method::GET, path, args)?)
     }
 
-    pub fn post(&self, path: String, body: String) -> Result<RequestBuilder, CouchError> {
+    pub fn post(&self, path: String, body: String) -> CouchResult<RequestBuilder> {
         let req = self.req(Method::POST, path, None)?.body(body);
         Ok(req)
     }
 
-    pub fn put(&self, path: String, body: String) -> Result<RequestBuilder, CouchError> {
+    pub fn put(&self, path: String, body: String) -> CouchResult<RequestBuilder> {
         let req = self.req(Method::PUT, path, None)?.body(body);
         Ok(req)
     }
 
-    pub fn head(&self, path: String, args: Option<HashMap<String, String>>) -> Result<RequestBuilder, CouchError> {
+    pub fn head(&self, path: String, args: Option<HashMap<String, String>>) -> CouchResult<RequestBuilder> {
         Ok(self.req(Method::HEAD, path, args)?)
     }
 
-    pub fn delete(&self, path: String, args: Option<HashMap<String, String>>) -> Result<RequestBuilder, CouchError> {
+    pub fn delete(&self, path: String, args: Option<HashMap<String, String>>) -> CouchResult<RequestBuilder> {
         Ok(self.req(Method::DELETE, path, args)?)
     }
 }

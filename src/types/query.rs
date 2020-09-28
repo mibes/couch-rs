@@ -17,7 +17,19 @@ pub struct QueriesCollection {
     pub results: Vec<ViewCollection>,
 }
 
+/// Whether or not the view in question should be updated prior to responding to the user
+#[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
+pub enum UpdateView {
+    #[serde(rename = "true")]
+    True,
+    #[serde(rename = "false")]
+    False,
+    #[serde(rename = "lazy")]
+    Lazy,
+}
+
 /// Query parameters. You can use the builder paradigm to construct these parameters easily:
+/// [views.html](https://docs.couchdb.org/en/stable/api/ddoc/views.html)
 /// ```
 /// use couch_rs::types::query::QueryParams;
 /// let _qp = QueryParams::default().group(true).conflicts(false).start_key("1");
@@ -85,7 +97,7 @@ pub struct QueryParams {
     pub start_key_doc_id: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub update: Option<String>,
+    pub update: Option<UpdateView>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub update_seq: Option<bool>,
@@ -238,8 +250,8 @@ impl QueryParams {
         self
     }
 
-    pub fn update(mut self, update: &str) -> Self {
-        self.update = Some(update.to_string());
+    pub fn update(mut self, update: UpdateView) -> Self {
+        self.update = Some(update);
         self
     }
 
@@ -255,8 +267,14 @@ mod tests {
 
     #[test]
     fn test_query_params_builder_paradigm() {
-        let qp = QueryParams::default().group(true).conflicts(false).start_key("1");
+        let qp = QueryParams::default()
+            .group(true)
+            .conflicts(false)
+            .start_key("1")
+            .update(UpdateView::Lazy);
         assert_eq!(qp.group, Some(true));
         assert_eq!(qp.start_key, Some("1".to_string()));
+        let str_val = serde_json::to_string(&qp).expect("can not convert to string");
+        assert!(str_val.contains(r#""update":"lazy""#))
     }
 }

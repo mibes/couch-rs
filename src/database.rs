@@ -1,8 +1,8 @@
 use crate::client::Client;
 use crate::document::{Document, DocumentCollection};
-use crate::error::CouchError;
+use crate::error::{CouchError, CouchResult};
 use crate::types::design::DesignCreated;
-use crate::types::document::{DocumentCreatedResult, DocumentId};
+use crate::types::document::{DocumentCreatedResponse, DocumentCreatedResult, DocumentId};
 use crate::types::find::{FindQuery, FindResult};
 use crate::types::index::{DatabaseIndexList, IndexFields};
 use crate::types::query::{QueriesCollection, QueriesParams, QueryParams};
@@ -71,7 +71,7 @@ impl Database {
         result
     }
 
-    async fn is_accepted(&self, request: Result<RequestBuilder, CouchError>) -> bool {
+    async fn is_accepted(&self, request: CouchResult<RequestBuilder>) -> bool {
         if let Ok(req) = request {
             if let Ok(res) = req.send().await {
                 return res.status() == StatusCode::ACCEPTED;
@@ -81,7 +81,7 @@ impl Database {
         false
     }
 
-    async fn is_ok(&self, request: Result<RequestBuilder, CouchError>) -> bool {
+    async fn is_ok(&self, request: CouchResult<RequestBuilder>) -> bool {
         if let Ok(req) = request {
             if let Ok(res) = req.send().await {
                 return match res.status() {
@@ -122,13 +122,13 @@ impl Database {
     ///
     /// Usage:
     /// ```
-    /// use std::error::Error;
+    /// use couch_rs::error::CouchResult;
     ///
     /// const DB_HOST: &str = "http://admin:password@localhost:5984";
     /// const TEST_DB: &str = "test_db";
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn Error>> {
+    /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new(DB_HOST)?;
     ///     let db = client.db(TEST_DB).await?;
     ///
@@ -146,7 +146,7 @@ impl Database {
     }
 
     /// Gets one document
-    pub async fn get(&self, id: &str) -> Result<Document, CouchError> {
+    pub async fn get(&self, id: &str) -> CouchResult<Document> {
         let response = self
             ._client
             .get(self.create_document_path(id), None)?
@@ -157,7 +157,7 @@ impl Database {
     }
 
     /// Gets documents in bulk with provided IDs list
-    pub async fn get_bulk(&self, ids: Vec<DocumentId>) -> Result<DocumentCollection, CouchError> {
+    pub async fn get_bulk(&self, ids: Vec<DocumentId>) -> CouchResult<DocumentCollection> {
         self.get_bulk_params(ids, None).await
     }
 
@@ -171,7 +171,30 @@ impl Database {
     ///
     /// This endpoint can also be used to delete a set of documents by including "_deleted": true, in the document to be deleted.
     /// When deleting or updating, both _id and _rev are mandatory.
-    pub async fn bulk_docs(&self, raw_docs: Vec<Value>) -> Result<Vec<DocumentCreatedResult>, CouchError> {
+    ///
+    /// Usage:
+    /// ```
+    /// use couch_rs::error::CouchResult;
+    /// use serde_json::json;
+    ///
+    /// const DB_HOST: &str = "http://admin:password@localhost:5984";
+    /// const TEST_DB: &str = "test_db";
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> CouchResult<()> {
+    ///    let client = couch_rs::Client::new(DB_HOST)?;
+    ///    let db = client.db(TEST_DB).await?;
+    ///
+    ///    let _ndoc_result = db
+    ///         .bulk_docs(vec![
+    ///             json!({"_id": "first", "thing": true}),
+    ///             json!({"_id": "second", "thing": false}),
+    ///         ]).await?;
+    ///
+    ///    return Ok(());
+    /// }
+    /// ```
+    pub async fn bulk_docs(&self, raw_docs: Vec<Value>) -> CouchResult<Vec<DocumentCreatedResult>> {
         let mut body = HashMap::new();
         body.insert(s!("docs"), raw_docs);
 
@@ -181,9 +204,10 @@ impl Database {
             .send()
             .await?;
 
-        let data: Vec<DocumentCreatedResult> = response.json().await?;
+        let data: Vec<DocumentCreatedResponse> = response.json().await?;
+        let result = data.into_iter().map(|r| r.into()).collect();
 
-        Ok(data)
+        Ok(result)
     }
 
     /// Gets documents in bulk with provided IDs list, with added params. Params description can be found here:
@@ -194,14 +218,14 @@ impl Database {
     /// ```
     /// use couch_rs::types::find::FindQuery;
     /// use couch_rs::document::Document;
-    /// use std::error::Error;
+    /// use couch_rs::error::CouchResult;
     /// use serde_json::json;
     ///
     /// const DB_HOST: &str = "http://admin:password@localhost:5984";
     /// const TEST_DB: &str = "test_db";
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn Error>> {
+    /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new(DB_HOST)?;
     ///     let db = client.db(TEST_DB).await?;
     ///     let doc_1 = Document::new(json!({
@@ -232,7 +256,7 @@ impl Database {
         &self,
         ids: Vec<DocumentId>,
         params: Option<QueryParams>,
-    ) -> Result<DocumentCollection, CouchError> {
+    ) -> CouchResult<DocumentCollection> {
         let mut options;
         if let Some(opts) = params {
             options = opts;
@@ -257,7 +281,7 @@ impl Database {
     }
 
     /// Gets all the documents in database
-    pub async fn get_all(&self) -> Result<DocumentCollection, CouchError> {
+    pub async fn get_all(&self) -> CouchResult<DocumentCollection> {
         self.get_all_params(None).await
     }
 
@@ -274,7 +298,7 @@ impl Database {
         tx: Sender<DocumentCollection>,
         batch_size: u64,
         max_results: u64,
-    ) -> Result<u64, CouchError> {
+    ) -> CouchResult<u64> {
         let query = FindQuery::find_all();
         self.find_batched(query, tx, batch_size, max_results).await
     }
@@ -292,7 +316,7 @@ impl Database {
         mut tx: Sender<DocumentCollection>,
         batch_size: u64,
         max_results: u64,
-    ) -> Result<u64, CouchError> {
+    ) -> CouchResult<u64> {
         let mut bookmark = Option::None;
         let limit = if batch_size > 0 { batch_size } else { 1000 };
 
@@ -345,14 +369,14 @@ impl Database {
     /// use couch_rs::types::find::FindQuery;
     /// use couch_rs::types::query::{QueryParams, QueriesParams};
     /// use couch_rs::document::Document;
-    /// use std::error::Error;
+    /// use couch_rs::error::CouchResult;
     /// use serde_json::json;
     ///
     /// const DB_HOST: &str = "http://admin:password@localhost:5984";
     /// const TEST_DB: &str = "vehicles";
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn Error>> {
+    /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new(DB_HOST)?;
     ///     let db = client.db(TEST_DB).await?;
     ///
@@ -380,7 +404,7 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn query_many_all_docs(&self, queries: QueriesParams) -> Result<Vec<ViewCollection>, CouchError> {
+    pub async fn query_many_all_docs(&self, queries: QueriesParams) -> CouchResult<Vec<ViewCollection>> {
         self.query_view_many(self.create_document_path("_all_docs/queries"), queries)
             .await
     }
@@ -391,16 +415,12 @@ impl Database {
         design_name: &str,
         view_name: &str,
         queries: QueriesParams,
-    ) -> Result<Vec<ViewCollection>, CouchError> {
+    ) -> CouchResult<Vec<ViewCollection>> {
         self.query_view_many(self.create_query_view_path(design_name, view_name), queries)
             .await
     }
 
-    async fn query_view_many(
-        &self,
-        view_path: String,
-        queries: QueriesParams,
-    ) -> Result<Vec<ViewCollection>, CouchError> {
+    async fn query_view_many(&self, view_path: String, queries: QueriesParams) -> CouchResult<Vec<ViewCollection>> {
         // we use POST here, because this allows for a larger set of keys to be provided, compared
         // to a GET call. It provides the same functionality
 
@@ -416,7 +436,7 @@ impl Database {
 
     /// Gets all the documents in database, with applied parameters.
     /// Parameters description can be found here: [api-ddoc-view](https://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view)
-    pub async fn get_all_params(&self, params: Option<QueryParams>) -> Result<DocumentCollection, CouchError> {
+    pub async fn get_all_params(&self, params: Option<QueryParams>) -> CouchResult<DocumentCollection> {
         let mut options;
         if let Some(opts) = params {
             options = opts;
@@ -442,13 +462,13 @@ impl Database {
     /// Usage:
     /// ```
     /// use couch_rs::types::find::FindQuery;
-    /// use std::error::Error;
+    /// use couch_rs::error::CouchResult;
     ///
     /// const DB_HOST: &str = "http://admin:password@localhost:5984";
     /// const TEST_DB: &str = "test_db";
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn Error>> {
+    /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new(DB_HOST)?;
     ///     let db = client.db(TEST_DB).await?;
     ///     let find_all = FindQuery::find_all();
@@ -456,7 +476,7 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn find(&self, query: &FindQuery) -> Result<DocumentCollection, CouchError> {
+    pub async fn find(&self, query: &FindQuery) -> CouchResult<DocumentCollection> {
         let path = self.create_document_path("_find");
         let response = self._client.post(path, js!(query))?.send().await?;
         let status = response.status();
@@ -496,7 +516,7 @@ impl Database {
     /// Usage:
     /// ```
     /// use couch_rs::types::find::FindQuery;
-    /// use std::error::Error;
+    /// use couch_rs::error::CouchResult;
     /// use serde_json::{from_value, to_value};
     /// use couch_rs::types::document::DocumentId;
     ///
@@ -515,7 +535,7 @@ impl Database {
     /// }
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn Error>> {
+    /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new(DB_HOST)?;
     ///     let db = client.db(TEST_DB).await?;
     ///
@@ -540,7 +560,7 @@ impl Database {
     ///     Ok(())
     /// }
     ///```
-    pub async fn save(&self, doc: Document) -> Result<Document, CouchError> {
+    pub async fn save(&self, doc: Document) -> CouchResult<Document> {
         let id = doc._id.to_owned();
         let raw = doc.get_data();
 
@@ -551,7 +571,7 @@ impl Database {
             .await?;
 
         let status = response.status();
-        let data: DocumentCreatedResult = response.json().await?;
+        let data: DocumentCreatedResponse = response.json().await?;
 
         match data.ok {
             Some(true) => {
@@ -568,7 +588,7 @@ impl Database {
     }
 
     /// Creates a document from a raw JSON document Value.
-    pub async fn create(&self, raw_doc: Value) -> Result<Document, CouchError> {
+    pub async fn create(&self, raw_doc: Value) -> CouchResult<Document> {
         let response = self
             ._client
             .post(self.name.clone(), to_string(&raw_doc)?)?
@@ -576,7 +596,7 @@ impl Database {
             .await?;
 
         let status = response.status();
-        let data: DocumentCreatedResult = response.json().await?;
+        let data: DocumentCreatedResponse = response.json().await?;
 
         match data.ok {
             Some(true) => {
@@ -614,14 +634,14 @@ impl Database {
     /// ```
     /// use couch_rs::types::find::FindQuery;
     /// use couch_rs::document::Document;
-    /// use std::error::Error;
+    /// use couch_rs::error::CouchResult;
     /// use serde_json::json;
     ///
     /// const DB_HOST: &str = "http://admin:password@localhost:5984";
     /// const TEST_DB: &str = "test_db";
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn Error>> {
+    /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new(DB_HOST)?;
     ///     let db = client.db(TEST_DB).await?;
     ///     let doc = Document::new(json!({
@@ -641,7 +661,7 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn upsert(&self, doc: Document) -> Result<Document, CouchError> {
+    pub async fn upsert(&self, doc: Document) -> CouchResult<Document> {
         let id = doc._id.clone();
 
         match self.get(&id).await {
@@ -667,13 +687,13 @@ impl Database {
     /// Usage:
     /// ```
     /// use couch_rs::types::view::{CouchFunc, CouchViews};
-    /// use std::error::Error;
+    /// use couch_rs::error::CouchResult;
     ///
     /// const DB_HOST: &str = "http://admin:password@localhost:5984";
     /// const TEST_DB: &str = "test_db";
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn Error>> {
+    /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new(DB_HOST)?;
     ///     let db = client.db(TEST_DB).await?;
     ///
@@ -691,7 +711,7 @@ impl Database {
         &self,
         design_name: &str,
         views: T,
-    ) -> Result<DesignCreated, CouchError> {
+    ) -> CouchResult<DesignCreated> {
         let doc: Value = views.into();
         let response = self
             ._client
@@ -724,7 +744,7 @@ impl Database {
         design_name: &str,
         view_name: &str,
         mut options: Option<QueryParams>,
-    ) -> Result<ViewCollection, CouchError> {
+    ) -> CouchResult<ViewCollection> {
         if options.is_none() {
             options = Some(QueryParams::default());
         }
@@ -746,7 +766,7 @@ impl Database {
         name: &str,
         document_id: &str,
         body: Option<Value>,
-    ) -> Result<String, CouchError> {
+    ) -> CouchResult<String> {
         let body = match body {
             Some(v) => to_string(&v)?,
             None => "".to_string(),
@@ -766,17 +786,17 @@ impl Database {
     /// Usage:
     /// ```
     /// use couch_rs::types::find::FindQuery;
-    /// use std::error::Error;
     /// use serde_json::{from_value, to_value};
     /// use couch_rs::types::document::DocumentId;
     /// use couch_rs::document::Document;
+    /// use couch_rs::error::CouchResult;
     ///
     /// const DB_HOST: &str = "http://admin:password@localhost:5984";
     /// const TEST_DB: &str = "test_db";
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn Error>> {
-    ///     let client = couch_rs::Client::new(DB_HOST)?;
+    /// async fn main() -> CouchResult<()> {
+    /// let client = couch_rs::Client::new(DB_HOST)?;
     ///     let db = client.db(TEST_DB).await?;
     ///
     ///     // first we need to get the document, because we need both the _id and _rev in order
@@ -803,7 +823,7 @@ impl Database {
 
     /// Inserts an index in a naive way, if it already exists, will throw an
     /// `Err`
-    pub async fn insert_index(&self, name: &str, spec: IndexFields) -> Result<DesignCreated, CouchError> {
+    pub async fn insert_index(&self, name: &str, spec: IndexFields) -> CouchResult<DesignCreated> {
         let response = self
             ._client
             .post(
@@ -828,7 +848,7 @@ impl Database {
     }
 
     /// Reads the database's indexes and returns them
-    pub async fn read_indexes(&self) -> Result<DatabaseIndexList, CouchError> {
+    pub async fn read_indexes(&self) -> CouchResult<DatabaseIndexList> {
         let response = self
             ._client
             .get(self.create_document_path("_index"), None)?
@@ -841,7 +861,7 @@ impl Database {
     /// Method to ensure an index is created on the database with the following
     /// spec. Returns `true` when we created a new one, or `false` when the
     /// index was already existing.
-    pub async fn ensure_index(&self, name: &str, spec: IndexFields) -> Result<bool, CouchError> {
+    pub async fn ensure_index(&self, name: &str, spec: IndexFields) -> CouchResult<bool> {
         let db_indexes = self.read_indexes().await?;
 
         // We look for our index
