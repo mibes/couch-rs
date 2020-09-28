@@ -5,16 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/mibes/couch-rs/compare/0.8.13...develop) - ReleaseDate
+## [Unreleased](https://github.com/mibes/couch-rs/compare/0.8.14...develop) - ReleaseDate
+
+## [0.8.14] - 2020-09-28
+
+### Changed
+
+- bulk_docs returns a Vec of CouchResults
+- Updated examples
 
 ## [0.8.13] - 2020-09-28
 
 ### Added
+
 - Included builder paradigm for FindQuery and QueryParams
 
 ## [0.8.12] - 2020-09-27
 
 ### Changed
+
 - Use `&str` instead of `String` in a few places to make the API easier to use
 - Included test for `bulk_docs`
 
