@@ -123,7 +123,7 @@ impl Client {
     /// ```
     /// use std::error::Error;
     ///
-    /// const DB_HOST: &str = "http://@localhost:5984";
+    /// const DB_HOST: &str = "http://localhost:5984";
     /// const DB_USER: &str = "admin";
     /// const DB_PW: &str = "password";
     /// const TEST_DB: &str = "test_db";
