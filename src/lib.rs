@@ -233,12 +233,14 @@ mod couch_rs_tests {
     mod b_db {
         use crate::client::Client;
         use crate::database::Database;
-        use crate::document::Document;
+        use crate::document::{Document, DocumentCollection};
         use crate::types;
         use crate::types::find::FindQuery;
         use crate::types::query::{QueriesParams, QueryParams};
         use crate::types::view::{CouchFunc, CouchViews};
-        use serde_json::json;
+        use serde_json::{json, Value};
+        use tokio::sync::mpsc;
+        use tokio::sync::mpsc::{Receiver, Sender};
 
         async fn setup(dbname: &str) -> (Client, Database, Document) {
             let client = Client::new_local_test().unwrap();
@@ -691,6 +693,41 @@ mod couch_rs_tests {
             }
 
             teardown(client, dbname).await;
+        }
+
+        #[tokio::test]
+        async fn h_should_bulk_insert_and_get_many_docs() {
+            let (client, db, _doc) = setup("h_should_bulk_insert_and_get_many_docs").await;
+            let docs: Vec<Value> = (0..2000)
+                .map(|idx| {
+                    json!({
+                        "_id": format!("bd_{}", idx),
+                        "count": idx,
+                    })
+                })
+                .collect();
+
+            db.bulk_docs(docs).await.expect("should insert 2000 documents");
+
+            // Create a sender and receiver channel pair
+            let (tx, mut rx): (Sender<DocumentCollection>, Receiver<DocumentCollection>) = mpsc::channel(1000);
+
+            // Spawn a separate thread to retrieve the batches from Couch
+            let t = tokio::spawn(async move {
+                db.get_all_batched(tx, 0, 0).await.expect("can not launch batch fetch");
+            });
+
+            let mut retrieved = 0;
+            while let Some(all_docs) = rx.recv().await {
+                retrieved += all_docs.total_rows;
+            }
+
+            // 2001 == 2000 we created with bulk_docs + 1 that is created by setup()
+            assert_eq!(retrieved, 2001);
+
+            // Wait for the spawned task to finish (should be done by now).
+            t.await.unwrap();
+            teardown(client, "h_should_bulk_insert_and_get_many_docs").await;
         }
     }
 }
