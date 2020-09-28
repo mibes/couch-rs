@@ -146,6 +146,7 @@ mod couch_rs_tests {
         const DB_HOST: &str = "http://admin:password@localhost:5984";
 
         use crate::client::Client;
+        use reqwest::StatusCode;
         use serde_json::json;
 
         #[tokio::test]
@@ -209,13 +210,14 @@ mod couch_rs_tests {
             assert!(ndoc_result.is_ok());
 
             let mut docs = ndoc_result.unwrap();
-            let mut docs = docs.iter_mut();
+            let mut docs = docs.into_iter();
             let first_result = docs.next().unwrap();
-            assert_eq!(first_result.ok.unwrap(), true);
-            assert!(first_result.rev.is_some());
+            assert!(first_result.is_ok());
+            assert!(first_result.unwrap().rev.is_some());
+
             let second_result = docs.next().unwrap();
-            assert!(second_result.error.is_some());
-            assert!(second_result.reason.is_some());
+            assert!(second_result.is_err());
+            assert_eq!(second_result.err().unwrap().status, StatusCode::CONFLICT);
 
             let _ = client.destroy_db(dbname);
         }

@@ -10,6 +10,8 @@ pub struct CouchError {
     pub message: String,
 }
 
+pub type CouchResult<T> = Result<T, CouchError>;
+
 impl CouchError {
     pub fn new(message: String, status: reqwest::StatusCode) -> CouchError {
         CouchError { message, status }

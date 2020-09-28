@@ -65,11 +65,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             println!("Bulk docs completed");
 
             for r in resp {
-                println!(
-                    "Id: {}, OK?: {}",
-                    r.id.unwrap_or_else(|| "--".to_string()),
-                    r.ok.unwrap_or(false)
-                )
+                match r {
+                    Ok(details) => println!("Id: {}", details.id.unwrap_or_else(|| "--".to_string())),
+                    Err(err) => println!("Error: {:?}", err),
+                }
             }
         }
         Err(err) => println!("Oops: {:?}", err),
