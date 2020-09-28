@@ -323,7 +323,7 @@ impl Database {
         let maybe_err = loop {
             let mut segment_query = query.clone();
             segment_query.bookmark = bookmark.clone();
-            let all_docs = match self.find(&query).await {
+            let all_docs = match self.find(&segment_query).await {
                 Ok(docs) => docs,
                 Err(err) => break Some(err),
             };
