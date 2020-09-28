@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.8.13] - 2020-09-28
+
+- Included builder paradigm for FindQuery and QueryParams
+
 ## [0.8.12] - 2020-09-27
 
 - Use `&str` instead of `String` in a few places to make the API easier to use
