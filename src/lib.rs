@@ -305,6 +305,34 @@ mod couch_rs_tests {
         }
 
         #[tokio::test]
+        async fn a_should_handle_a_document_plus() {
+            let dbname = "a_should_handle_a_document_plus";
+            let (client, db, mut doc) = setup(dbname).await;
+
+            assert!(db.remove(doc).await);
+            // make sure db is empty
+            assert_eq!(db.get_all().await.unwrap().rows.len(), 0);
+
+            // create 1 doc with plus sign in the _id
+            let id = "1+2";
+            let created = db.create(json!({ "_id": id })).await.unwrap();
+            assert_eq!(created._id, id);
+
+            // update it
+            let save_result = db.save(created.clone()).await;
+            assert!(save_result.is_ok());
+            // make sure db has only 1 doc
+            assert_eq!(db.get_all().await.unwrap().rows.len(), 1);
+
+            // delete it
+            assert!(db.remove(save_result.unwrap()).await);
+            // make sure db has no docs
+            assert_eq!(db.get_all().await.unwrap().rows.len(), 0);
+
+            teardown(client, dbname).await;
+        }
+
+        #[tokio::test]
         async fn b_should_remove_a_document() {
             let (client, db, doc) = setup("b_should_remove_a_document").await;
             assert!(db.remove(doc).await);

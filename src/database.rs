@@ -11,6 +11,7 @@ use reqwest::{RequestBuilder, StatusCode};
 use serde_json::{json, to_string, Value};
 use std::collections::HashMap;
 use tokio::sync::mpsc::Sender;
+use url::form_urlencoded::byte_serialize;
 
 /// Database operations on a CouchDB Database
 /// (sometimes called Collection in other NoSQL flavors such as MongoDB).
@@ -34,6 +35,14 @@ impl Database {
         let mut result: String = self.name.clone();
         result.push_str("/");
         result.push_str(id);
+        result
+    }
+
+    fn create_encoded_document_path(&self, id: &str) -> String {
+        let mut result: String = self.name.clone();
+        result.push_str("/");
+        let encoded: String = byte_serialize(id.as_bytes()).collect();
+        result.push_str(encoded.as_str());
         result
     }
 
@@ -262,14 +271,11 @@ impl Database {
         }
 
         options.include_docs = Some(true);
-
-        let mut body = HashMap::new();
-        body.insert(s!("keys"), ids);
+        options.keys = ids;
 
         let response = self
             ._client
-            .post(self.create_document_path("_all_docs"), to_string(&body)?)?
-            .query(&options)
+            .post(self.create_document_path("_all_docs"), to_string(&options)?)?
             .send()
             .await?
             .error_for_status()?;
@@ -558,9 +564,11 @@ impl Database {
         let id = doc._id.to_owned();
         let raw = doc.get_data();
 
+        let body = to_string(&raw)?;
+
         let response = self
             ._client
-            .put(self.create_document_path(&id), to_string(&raw)?)?
+            .put(self.create_encoded_document_path(&id), body)?
             .send()
             .await?;
 
@@ -801,7 +809,7 @@ impl Database {
     ///```     
     pub async fn remove(&self, doc: Document) -> bool {
         let request = self._client.delete(
-            self.create_document_path(&doc._id),
+            self.create_encoded_document_path(&doc._id),
             Some({
                 let mut h = HashMap::new();
                 h.insert(s!("rev"), doc._rev.clone());
