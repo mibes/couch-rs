@@ -122,13 +122,13 @@ impl Database {
     ///
     /// Usage:
     /// ```
-    /// use std::error::Error;
+    /// use couch_rs::error::CouchResult;
     ///
     /// const DB_HOST: &str = "http://admin:password@localhost:5984";
     /// const TEST_DB: &str = "test_db";
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn Error>> {
+    /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new(DB_HOST)?;
     ///     let db = client.db(TEST_DB).await?;
     ///
@@ -171,6 +171,29 @@ impl Database {
     ///
     /// This endpoint can also be used to delete a set of documents by including "_deleted": true, in the document to be deleted.
     /// When deleting or updating, both _id and _rev are mandatory.
+    ///
+    /// Usage:
+    /// ```
+    /// use couch_rs::error::CouchResult;
+    /// use serde_json::json;
+    ///
+    /// const DB_HOST: &str = "http://admin:password@localhost:5984";
+    /// const TEST_DB: &str = "test_db";
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> CouchResult<()> {
+    ///    let client = couch_rs::Client::new(DB_HOST)?;
+    ///    let db = client.db(TEST_DB).await?;
+    ///
+    ///    let _ndoc_result = db
+    ///         .bulk_docs(vec![
+    ///             json!({"_id": "first", "thing": true}),
+    ///             json!({"_id": "second", "thing": false}),
+    ///         ]).await?;
+    ///
+    ///    return Ok(());
+    /// }
+    /// ```
     pub async fn bulk_docs(&self, raw_docs: Vec<Value>) -> CouchResult<Vec<DocumentCreatedResult>> {
         let mut body = HashMap::new();
         body.insert(s!("docs"), raw_docs);
@@ -195,14 +218,14 @@ impl Database {
     /// ```
     /// use couch_rs::types::find::FindQuery;
     /// use couch_rs::document::Document;
-    /// use std::error::Error;
+    /// use couch_rs::error::CouchResult;
     /// use serde_json::json;
     ///
     /// const DB_HOST: &str = "http://admin:password@localhost:5984";
     /// const TEST_DB: &str = "test_db";
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn Error>> {
+    /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new(DB_HOST)?;
     ///     let db = client.db(TEST_DB).await?;
     ///     let doc_1 = Document::new(json!({
@@ -346,14 +369,14 @@ impl Database {
     /// use couch_rs::types::find::FindQuery;
     /// use couch_rs::types::query::{QueryParams, QueriesParams};
     /// use couch_rs::document::Document;
-    /// use std::error::Error;
+    /// use couch_rs::error::CouchResult;
     /// use serde_json::json;
     ///
     /// const DB_HOST: &str = "http://admin:password@localhost:5984";
     /// const TEST_DB: &str = "vehicles";
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn Error>> {
+    /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new(DB_HOST)?;
     ///     let db = client.db(TEST_DB).await?;
     ///
@@ -439,13 +462,13 @@ impl Database {
     /// Usage:
     /// ```
     /// use couch_rs::types::find::FindQuery;
-    /// use std::error::Error;
+    /// use couch_rs::error::CouchResult;
     ///
     /// const DB_HOST: &str = "http://admin:password@localhost:5984";
     /// const TEST_DB: &str = "test_db";
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn Error>> {
+    /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new(DB_HOST)?;
     ///     let db = client.db(TEST_DB).await?;
     ///     let find_all = FindQuery::find_all();
@@ -493,7 +516,7 @@ impl Database {
     /// Usage:
     /// ```
     /// use couch_rs::types::find::FindQuery;
-    /// use std::error::Error;
+    /// use couch_rs::error::CouchResult;
     /// use serde_json::{from_value, to_value};
     /// use couch_rs::types::document::DocumentId;
     ///
@@ -512,7 +535,7 @@ impl Database {
     /// }
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn Error>> {
+    /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new(DB_HOST)?;
     ///     let db = client.db(TEST_DB).await?;
     ///
@@ -611,14 +634,14 @@ impl Database {
     /// ```
     /// use couch_rs::types::find::FindQuery;
     /// use couch_rs::document::Document;
-    /// use std::error::Error;
+    /// use couch_rs::error::CouchResult;
     /// use serde_json::json;
     ///
     /// const DB_HOST: &str = "http://admin:password@localhost:5984";
     /// const TEST_DB: &str = "test_db";
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn Error>> {
+    /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new(DB_HOST)?;
     ///     let db = client.db(TEST_DB).await?;
     ///     let doc = Document::new(json!({
@@ -664,13 +687,13 @@ impl Database {
     /// Usage:
     /// ```
     /// use couch_rs::types::view::{CouchFunc, CouchViews};
-    /// use std::error::Error;
+    /// use couch_rs::error::CouchResult;
     ///
     /// const DB_HOST: &str = "http://admin:password@localhost:5984";
     /// const TEST_DB: &str = "test_db";
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn Error>> {
+    /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new(DB_HOST)?;
     ///     let db = client.db(TEST_DB).await?;
     ///
@@ -763,17 +786,17 @@ impl Database {
     /// Usage:
     /// ```
     /// use couch_rs::types::find::FindQuery;
-    /// use std::error::Error;
     /// use serde_json::{from_value, to_value};
     /// use couch_rs::types::document::DocumentId;
     /// use couch_rs::document::Document;
+    /// use couch_rs::error::CouchResult;
     ///
     /// const DB_HOST: &str = "http://admin:password@localhost:5984";
     /// const TEST_DB: &str = "test_db";
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn Error>> {
-    ///     let client = couch_rs::Client::new(DB_HOST)?;
+    /// async fn main() -> CouchResult<()> {
+    /// let client = couch_rs::Client::new(DB_HOST)?;
     ///     let db = client.db(TEST_DB).await?;
     ///
     ///     // first we need to get the document, because we need both the _id and _rev in order
