@@ -1,10 +1,12 @@
 use crate::database::Database;
 use crate::error::{CouchError, CouchResult};
 use crate::types::system::{CouchResponse, CouchStatus};
+use base64::write::EncoderWriter as Base64Encoder;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, REFERER, USER_AGENT};
-use reqwest::RequestBuilder;
 use reqwest::{self, Method, StatusCode, Url};
+use reqwest::{header, RequestBuilder};
 use std::collections::HashMap;
+use std::io::Write;
 use std::time::Duration;
 
 fn construct_json_headers(uri: Option<&str>) -> HeaderMap {
@@ -28,20 +30,63 @@ pub struct Client {
     _gzip: bool,
     _timeout: u64,
     pub uri: String,
+    username: Option<String>,
+    password: Option<String>,
     pub db_prefix: String,
 }
 
+const TEST_DB_HOST: &str = "http://localhost:5984";
+const TEST_DB_USER: &str = "admin";
+const TEST_DB_PW: &str = "password";
+const DEFAULT_TIME_OUT: u64 = 10;
+
 impl Client {
-    /// new creates a new Couch client with a default timeout of 5 seconds.
+    /// new creates a new Couch client with a default timeout of 10 seconds.
     /// The URI has to be in this format: http://hostname:5984, for example: http://192.168.64.5:5984
-    pub fn new(uri: &str) -> CouchResult<Client> {
-        Client::new_with_timeout(uri, 10)
+    pub fn new(uri: &str, username: &str, password: &str) -> CouchResult<Client> {
+        Client::new_with_timeout(uri, Some(username), Some(password), DEFAULT_TIME_OUT)
+    }
+
+    /// new creates a new Couch client with a default timeout of 10 seconds. Without authentication.
+    /// The URI has to be in this format: http://hostname:5984, for example: http://192.168.64.5:5984
+    pub fn new_no_auth(uri: &str) -> CouchResult<Client> {
+        Client::new_with_timeout(uri, None, None, DEFAULT_TIME_OUT)
+    }
+
+    /// new creates a new Couch client *for testing purposes* with a default timeout of 10 seconds.
+    /// The URI that will be used is: http://hostname:5984, with a username of "admin" and a password
+    /// of "password". Use this only for testing!!!
+    pub fn new_local_test() -> CouchResult<Client> {
+        Client::new_with_timeout(TEST_DB_HOST, Some(TEST_DB_USER), Some(TEST_DB_PW), DEFAULT_TIME_OUT)
     }
 
     /// new_with_timeout creates a new Couch client. The URI has to be in this format: http://hostname:5984,
     /// timeout is in seconds.
-    pub fn new_with_timeout(uri: &str, timeout: u64) -> CouchResult<Client> {
+    pub fn new_with_timeout(
+        uri: &str,
+        username: Option<&str>,
+        password: Option<&str>,
+        timeout: u64,
+    ) -> CouchResult<Client> {
+        let mut headers = header::HeaderMap::new();
+
+        if let Some(username) = username {
+            let mut header_value = b"Basic ".to_vec();
+            {
+                let mut encoder = Base64Encoder::new(&mut header_value, base64::STANDARD);
+                // The unwraps here are fine because Vec::write* is infallible.
+                write!(encoder, "{}:", username).unwrap();
+                if let Some(password) = password {
+                    write!(encoder, "{}", password).unwrap();
+                }
+            }
+
+            let auth_header = header::HeaderValue::from_bytes(&header_value).expect("can not set AUTHORIZATION header");
+            headers.insert(header::AUTHORIZATION, auth_header);
+        }
+
         let client = reqwest::Client::builder()
+            .default_headers(headers)
             .gzip(true)
             .timeout(Duration::new(timeout, 0))
             .build()?;
@@ -53,16 +98,9 @@ impl Client {
             _timeout: timeout,
             dbs: Vec::new(),
             db_prefix: String::new(),
+            username: username.map(|u| u.to_string()),
+            password: password.map(|p| p.to_string()),
         })
-    }
-
-    fn create_client(&self) -> CouchResult<reqwest::Client> {
-        let client = reqwest::Client::builder()
-            .gzip(self._gzip)
-            .timeout(Duration::new(self._timeout, 0))
-            .build()?;
-
-        Ok(client)
     }
 
     pub fn get_self(&mut self) -> &mut Self {
@@ -79,32 +117,20 @@ impl Client {
         self
     }
 
-    pub fn gzip(&mut self, enabled: bool) -> CouchResult<&Self> {
-        self._gzip = enabled;
-        self._client = self.create_client()?;
-
-        Ok(self)
-    }
-
-    pub fn timeout(&mut self, to: u64) -> CouchResult<&Self> {
-        self._timeout = to;
-        self._client = self.create_client()?;
-
-        Ok(self)
-    }
-
     /// List the databases in CouchDB
     ///
     /// Usage:
     /// ```
     /// use std::error::Error;
     ///
-    /// const DB_HOST: &str = "http://admin:password@localhost:5984";
+    /// const DB_HOST: &str = "http://@localhost:5984";
+    /// const DB_USER: &str = "admin";
+    /// const DB_PW: &str = "password";
     /// const TEST_DB: &str = "test_db";
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn Error>> {
-    ///     let client = couch_rs::Client::new(DB_HOST)?;
+    ///     let client = couch_rs::Client::new(DB_HOST, DB_USER, DB_PW)?;
     ///     let db = client.db(TEST_DB).await?;
     ///     let dbs = client.list_dbs().await?;
     ///     dbs.iter().for_each(|db| println!("Database: {}", db));

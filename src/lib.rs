@@ -33,7 +33,7 @@
 //! The tests and examples assume an "admin" CouchDB user with a "password" CouchDB password. Docker run command:
 //!
 //! ```shell script
-//! docker run --rm -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password couchdb:3
+//! docker run --rm -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PW=password couchdb:3
 //! ```
 //!
 //! And then
@@ -54,7 +54,7 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn Error>> {
-//!     let client = couch_rs::Client::new(DB_HOST)?;
+//!     let client = couch_rs::Client::new_local_test()?;
 //!     let db = client.db(TEST_DB).await?;
 //!     let find_all = FindQuery::find_all();
 //!     let docs = db.find(&find_all).await?;
@@ -142,23 +142,22 @@ pub use client::Client;
 #[allow(unused_mut, unused_variables)]
 #[cfg(test)]
 mod couch_rs_tests {
-    mod a_sys {
-        const DB_HOST: &str = "http://admin:password@localhost:5984";
 
+    mod a_sys {
         use crate::client::Client;
         use reqwest::StatusCode;
         use serde_json::json;
 
         #[tokio::test]
         async fn a_should_check_couchdbs_status() {
-            let client = Client::new(DB_HOST).unwrap();
+            let client = Client::new_local_test().unwrap();
             let status = client.check_status().await;
             assert!(status.is_ok());
         }
 
         #[tokio::test]
         async fn b_should_create_test_db() {
-            let client = Client::new(DB_HOST).unwrap();
+            let client = Client::new_local_test().unwrap();
             let dbw = client.db("b_should_create_test_db").await;
             assert!(dbw.is_ok());
 
@@ -167,7 +166,7 @@ mod couch_rs_tests {
 
         #[tokio::test]
         async fn c_should_create_a_document() {
-            let client = Client::new(DB_HOST).unwrap();
+            let client = Client::new_local_test().unwrap();
             let dbw = client.db("c_should_create_a_document").await;
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
@@ -188,7 +187,7 @@ mod couch_rs_tests {
 
         #[tokio::test]
         async fn c_should_create_bulk_documents() {
-            let client = Client::new(DB_HOST).unwrap();
+            let client = Client::new_local_test().unwrap();
             let dbname = "c_should_create_bulk_documents";
             let dbw = client.db(dbname).await;
             assert!(dbw.is_ok());
@@ -224,7 +223,7 @@ mod couch_rs_tests {
 
         #[tokio::test]
         async fn d_should_destroy_the_db() {
-            let client = Client::new(DB_HOST).unwrap();
+            let client = Client::new_local_test().unwrap();
             let _ = client.db("d_should_destroy_the_db").await;
 
             assert!(client.destroy_db("d_should_destroy_the_db").await.unwrap());
@@ -241,10 +240,8 @@ mod couch_rs_tests {
         use crate::types::view::{CouchFunc, CouchViews};
         use serde_json::json;
 
-        const DB_HOST: &str = "http://admin:password@localhost:5984";
-
         async fn setup(dbname: &str) -> (Client, Database, Document) {
-            let client = Client::new(DB_HOST).unwrap();
+            let client = Client::new_local_test().unwrap();
             let dbw = client.db(dbname).await;
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
@@ -264,7 +261,7 @@ mod couch_rs_tests {
         }
 
         async fn setup_multiple(dbname: &str, nr_of_docs: usize) -> (Client, Database, Vec<Document>) {
-            let client = Client::new(DB_HOST).unwrap();
+            let client = Client::new_local_test().unwrap();
             let dbw = client.db(dbname).await;
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
