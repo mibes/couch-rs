@@ -157,6 +157,11 @@ macro_rules! find_all_selector {
     };
 }
 
+/// Find query. You can use the builder paradigm to construct these parameters easily:
+/// ```
+/// use couch_rs::types::find::FindQuery;
+/// let _query = FindQuery::find_all().skip(10).limit(10);
+/// ```
 impl FindQuery {
     pub fn new_from_value(query: Value) -> Self {
         query.into()
@@ -187,6 +192,61 @@ impl FindQuery {
 
     pub fn as_value(&self) -> Value {
         self.into()
+    }
+
+    pub fn limit(mut self, limit: u64) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    pub fn skip(mut self, skip: u64) -> Self {
+        self.skip = Some(skip);
+        self
+    }
+
+    pub fn sort(mut self, sort: Vec<SortSpec>) -> Self {
+        self.sort = sort;
+        self
+    }
+
+    pub fn fields(mut self, fields: Vec<String>) -> Self {
+        self.fields = Some(fields);
+        self
+    }
+
+    pub fn use_index(mut self, use_index: IndexSpec) -> Self {
+        self.use_index = Some(use_index);
+        self
+    }
+
+    pub fn r(mut self, r: i32) -> Self {
+        self.r = Some(r);
+        self
+    }
+
+    pub fn bookmark(mut self, bookmark: &str) -> Self {
+        self.bookmark = Some(bookmark.to_string());
+        self
+    }
+
+    pub fn update(mut self, update: bool) -> Self {
+        self.update = Some(update);
+        self
+    }
+
+    pub fn stable(mut self, stable: bool) -> Self {
+        self.stable = Some(stable);
+        self
+    }
+
+    pub fn stale(mut self, stale: &str) -> Self {
+        self.stale = Some(stale.to_string());
+        self
+    }
+
+    pub fn execution_stats(mut self, execution_stats: bool) -> Self {
+        self.execution_stats = Some(execution_stats);
+        self
     }
 }
 
