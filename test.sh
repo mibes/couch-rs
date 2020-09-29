@@ -17,6 +17,6 @@ done
 echo "CouchDB is up. Starting tests in 1s"
 sleep 1
 
-cargo test -- --test-threads=1
+cargo test -- --test-threads=1 --nocapture
 
 docker kill "$docker_id"

@@ -143,31 +143,44 @@ pub use client::Client;
 #[cfg(test)]
 mod couch_rs_tests {
 
-    mod a_sys {
+    mod client_tests {
         use crate::client::Client;
         use reqwest::StatusCode;
         use serde_json::json;
 
         #[tokio::test]
-        async fn a_should_check_couchdbs_status() {
+        async fn should_check_couchdbs_status() {
             let client = Client::new_local_test().unwrap();
             let status = client.check_status().await;
             assert!(status.is_ok());
+            assert_eq!("The Apache Software Foundation", status.unwrap().vendor.name);
         }
 
         #[tokio::test]
-        async fn b_should_create_test_db() {
+        async fn should_create_test_db() {
             let client = Client::new_local_test().unwrap();
-            let dbw = client.db("b_should_create_test_db").await;
+            let dbw = client.db("should_create_test_db").await;
             assert!(dbw.is_ok());
 
-            let _ = client.destroy_db("b_should_create_test_db");
+            let _ = client.destroy_db("should_create_test_db");
         }
 
         #[tokio::test]
-        async fn c_should_create_a_document() {
+        async fn should_get_information_on_test_db() {
             let client = Client::new_local_test().unwrap();
-            let dbw = client.db("c_should_create_a_document").await;
+            let dbname = "should_get_information_on_test_db";
+            let dbw = client.db(dbname).await;
+            assert!(dbw.is_ok());
+            assert!(client.exists(dbname).await.is_ok());
+            let info = client.get_info(dbname).await.expect("can not get db info");
+            assert_eq!(info.db_name, dbname);
+            let _ = client.destroy_db(dbname);
+        }
+
+        #[tokio::test]
+        async fn should_create_a_document() {
+            let client = Client::new_local_test().unwrap();
+            let dbw = client.db("should_create_a_document").await;
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
 
@@ -182,13 +195,13 @@ mod couch_rs_tests {
             let mut doc = ndoc_result.unwrap();
             assert_eq!(doc["thing"], json!(true));
 
-            let _ = client.destroy_db("c_should_create_a_document");
+            let _ = client.destroy_db("should_create_a_document");
         }
 
         #[tokio::test]
-        async fn c_should_create_bulk_documents() {
+        async fn should_create_bulk_documents() {
             let client = Client::new_local_test().unwrap();
-            let dbname = "c_should_create_bulk_documents";
+            let dbname = "should_create_bulk_documents";
             let dbw = client.db(dbname).await;
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
@@ -222,15 +235,15 @@ mod couch_rs_tests {
         }
 
         #[tokio::test]
-        async fn d_should_destroy_the_db() {
+        async fn should_destroy_the_db() {
             let client = Client::new_local_test().unwrap();
-            let _ = client.db("d_should_destroy_the_db").await;
+            let _ = client.db("should_destroy_the_db").await;
 
-            assert!(client.destroy_db("d_should_destroy_the_db").await.unwrap());
+            assert!(client.destroy_db("should_destroy_the_db").await.unwrap());
         }
     }
 
-    mod b_db {
+    mod database_tests {
         use crate::client::Client;
         use crate::database::Database;
         use crate::document::{Document, DocumentCollection};
@@ -291,8 +304,8 @@ mod couch_rs_tests {
         }
 
         #[tokio::test]
-        async fn a_should_update_a_document() {
-            let (client, db, mut doc) = setup("a_should_update_a_document").await;
+        async fn should_update_a_document() {
+            let (client, db, mut doc) = setup("should_update_a_document").await;
 
             doc["thing"] = json!(false);
 
@@ -301,21 +314,49 @@ mod couch_rs_tests {
             let new_doc = save_result.unwrap();
             assert_eq!(new_doc["thing"], json!(false));
 
-            teardown(client, "a_should_update_a_document").await;
+            teardown(client, "should_update_a_document").await;
         }
 
         #[tokio::test]
-        async fn b_should_remove_a_document() {
-            let (client, db, doc) = setup("b_should_remove_a_document").await;
+        async fn should_handle_a_document_plus() {
+            let dbname = "should_handle_a_document_plus";
+            let (client, db, mut doc) = setup(dbname).await;
+
+            assert!(db.remove(doc).await);
+            // make sure db is empty
+            assert_eq!(db.get_all().await.unwrap().rows.len(), 0);
+
+            // create 1 doc with plus sign in the _id
+            let id = "1+2";
+            let created = db.create(json!({ "_id": id })).await.unwrap();
+            assert_eq!(created._id, id);
+
+            // update it
+            let save_result = db.save(created.clone()).await;
+            assert!(save_result.is_ok());
+            // make sure db has only 1 doc
+            assert_eq!(db.get_all().await.unwrap().rows.len(), 1);
+
+            // delete it
+            assert!(db.remove(save_result.unwrap()).await);
+            // make sure db has no docs
+            assert_eq!(db.get_all().await.unwrap().rows.len(), 0);
+
+            teardown(client, dbname).await;
+        }
+
+        #[tokio::test]
+        async fn should_remove_a_document() {
+            let (client, db, doc) = setup("should_remove_a_document").await;
             assert!(db.remove(doc).await);
 
-            teardown(client, "b_should_remove_a_document").await;
+            teardown(client, "should_remove_a_document").await;
         }
 
         #[tokio::test]
-        async fn c_should_get_a_single_document() {
-            let (client, ..) = setup("c_should_get_a_single_document").await;
-            teardown(client, "c_should_get_a_single_document").await;
+        async fn should_get_a_single_document() {
+            let (client, ..) = setup("should_get_a_single_document").await;
+            teardown(client, "should_get_a_single_document").await;
         }
 
         async fn setup_create_indexes(dbname: &str) -> (Client, Database, Document) {
@@ -331,38 +372,38 @@ mod couch_rs_tests {
         }
 
         #[tokio::test]
-        async fn d_should_create_index_in_db() {
-            let (client, db, _) = setup_create_indexes("d_should_create_index_in_db").await;
-            teardown(client, "d_should_create_index_in_db").await;
+        async fn should_create_index_in_db() {
+            let (client, db, _) = setup_create_indexes("should_create_index_in_db").await;
+            teardown(client, "should_create_index_in_db").await;
         }
 
         #[tokio::test]
-        async fn e_should_list_indexes_in_db() {
-            let (client, db, _) = setup_create_indexes("e_should_list_indexes_in_db").await;
+        async fn should_list_indexes_in_db() {
+            let (client, db, _) = setup_create_indexes("should_list_indexes_in_db").await;
 
             let index_list = db.read_indexes().await.unwrap();
             assert!(index_list.indexes.len() > 1);
             let findex = &index_list.indexes[1];
 
             assert_eq!(findex.name.as_str(), "thing-index");
-            teardown(client, "e_should_list_indexes_in_db").await;
+            teardown(client, "should_list_indexes_in_db").await;
         }
 
         #[tokio::test]
-        async fn f_should_ensure_index_in_db() {
-            let (client, db, _) = setup("f_should_ensure_index_in_db").await;
+        async fn should_ensure_index_in_db() {
+            let (client, db, _) = setup("should_ensure_index_in_db").await;
 
             let spec = types::index::IndexFields::new(vec![types::find::SortSpec::Simple(s!("thing"))]);
 
             let res = db.ensure_index("thing-index", spec).await;
             assert!(res.is_ok());
 
-            teardown(client, "f_should_ensure_index_in_db").await;
+            teardown(client, "should_ensure_index_in_db").await;
         }
 
         #[tokio::test]
-        async fn g_should_find_documents_in_db() {
-            let (client, db, doc) = setup_create_indexes("g_should_find_documents_in_db").await;
+        async fn should_find_documents_in_db() {
+            let (client, db, doc) = setup_create_indexes("should_find_documents_in_db").await;
             let query = FindQuery::new_from_value(json!({
                 "selector": {
                     "thing": true
@@ -379,24 +420,24 @@ mod couch_rs_tests {
             let documents = documents_res.unwrap();
             assert_eq!(documents.rows.len(), 1);
 
-            teardown(client, "g_should_find_documents_in_db").await;
+            teardown(client, "should_find_documents_in_db").await;
         }
 
         #[tokio::test]
-        async fn h_should_bulk_get_a_document() {
-            let (client, db, doc) = setup("h_should_bulk_get_a_document").await;
+        async fn should_bulk_get_a_document() {
+            let (client, db, doc) = setup("should_bulk_get_a_document").await;
             let id = doc._id.clone();
 
             let collection = db.get_bulk(vec![id]).await.unwrap();
             assert_eq!(collection.rows.len(), 1);
             assert!(db.remove(doc).await);
 
-            teardown(client, "h_should_bulk_get_a_document").await;
+            teardown(client, "should_bulk_get_a_document").await;
         }
 
         #[tokio::test]
-        async fn i_should_bulk_get_invalid_documents() {
-            let (client, db, doc) = setup("i_should_bulk_get_invalid_documents").await;
+        async fn should_bulk_get_invalid_documents() {
+            let (client, db, doc) = setup("should_bulk_get_invalid_documents").await;
             let id = doc._id.clone();
             let invalid_id = "does_not_exist".to_string();
 
@@ -404,12 +445,12 @@ mod couch_rs_tests {
             assert_eq!(collection.rows.len(), 1);
             assert!(db.remove(doc).await);
 
-            teardown(client, "i_should_bulk_get_invalid_documents").await;
+            teardown(client, "should_bulk_get_invalid_documents").await;
         }
 
         #[tokio::test]
-        async fn j_should_get_all_documents_with_keys() {
-            let (client, db, doc) = setup("j_should_get_all_documents_with_keys").await;
+        async fn should_get_all_documents_with_keys() {
+            let (client, db, doc) = setup("should_get_all_documents_with_keys").await;
             let id = doc._id.clone();
 
             let params = QueryParams::from_keys(vec![id]);
@@ -418,12 +459,12 @@ mod couch_rs_tests {
             assert_eq!(collection.rows.len(), 1);
             assert!(db.remove(doc).await);
 
-            teardown(client, "j_should_get_all_documents_with_keys").await;
+            teardown(client, "should_get_all_documents_with_keys").await;
         }
 
         #[tokio::test]
-        async fn j_should_query_documents_with_keys() {
-            let db_name = "j_should_query_documents_with_keys";
+        async fn should_query_documents_with_keys() {
+            let db_name = "should_query_documents_with_keys";
             let (client, db, doc) = setup(db_name).await;
             let id = doc._id.clone();
             let view_name = "testViewAll";
@@ -500,8 +541,8 @@ mod couch_rs_tests {
         }
 
         #[tokio::test]
-        async fn j_should_query_documents_with_key() {
-            let db_name = "j_should_query_documents_with_key";
+        async fn should_query_documents_with_key() {
+            let db_name = "should_query_documents_with_key";
             let (client, db, doc) = setup(db_name).await;
             let id = doc._id.clone();
             let view_name = "testViewAll";
@@ -577,8 +618,8 @@ mod couch_rs_tests {
         }
 
         #[tokio::test]
-        async fn j_should_query_documents_with_defaultparams() {
-            let dbname = "j_should_query_documents_with_defaultparams";
+        async fn should_query_documents_with_defaultparams() {
+            let dbname = "should_query_documents_with_defaultparams";
             let (client, db, doc) = setup(dbname).await;
             let id = doc._id.clone();
             let view_name = "testViewAll";
@@ -663,8 +704,8 @@ mod couch_rs_tests {
         }
 
         #[tokio::test]
-        async fn j_should_get_many_all_documents_with_keys() {
-            let dbname = "j_should_get_many_all_documents_with_keys";
+        async fn should_get_many_all_documents_with_keys() {
+            let dbname = "should_get_many_all_documents_with_keys";
             let (client, db, docs) = setup_multiple(dbname, 4).await;
             let doc = docs.get(0).unwrap();
 
@@ -696,8 +737,8 @@ mod couch_rs_tests {
         }
 
         #[tokio::test]
-        async fn h_should_bulk_insert_and_get_many_docs() {
-            let (client, db, _doc) = setup("h_should_bulk_insert_and_get_many_docs").await;
+        async fn should_bulk_insert_and_get_many_docs() {
+            let (client, db, _doc) = setup("should_bulk_insert_and_get_many_docs").await;
             let docs: Vec<Value> = (0..2000)
                 .map(|idx| {
                     json!({
@@ -727,7 +768,7 @@ mod couch_rs_tests {
 
             // Wait for the spawned task to finish (should be done by now).
             t.await.unwrap();
-            teardown(client, "h_should_bulk_insert_and_get_many_docs").await;
+            teardown(client, "should_bulk_insert_and_get_many_docs").await;
         }
     }
 }
