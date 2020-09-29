@@ -760,14 +760,14 @@ mod couch_rs_tests {
                                         emit(doc._id, null);
                                     }"#;
             let view_name = "should_handle_null_view_keys";
-            /*
-            a view/reduce like this will return something like the following:
-                {"rows":[
-                    {"key":null,"value":14}
-                ]}
+            /* a view/reduce like this will return something like the following:
 
-                this will fail to deserialize if ViewItem.key is a String. It needs to be a Value to cover for all json scenarios
-             */
+               {"rows":[
+                   {"key":null,"value":14}
+               ]}
+
+               this will fail to deserialize if ViewItem.key is a String. It needs to be a Value to cover for all json scenarios
+            */
             assert!(db
                 .create_view(
                     view_name,
