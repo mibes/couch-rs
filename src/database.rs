@@ -23,7 +23,11 @@ pub struct Database {
 
 impl Database {
     pub fn new(name: String, client: Client) -> Database {
-        Database { _client: client, name }
+        let encoded_name: String = byte_serialize(name.as_bytes()).collect();
+        Database {
+            _client: client,
+            name: encoded_name,
+        }
     }
 
     // convenience function to retrieve the name of the database
