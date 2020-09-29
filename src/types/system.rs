@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
 
 /// Couch vendor abstraction
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CouchVendor {
     pub name: String,
     pub version: Option<String>,
 }
 
 /// Couch status abstraction
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CouchStatus {
     pub couchdb: String,
     pub git_sha: Option<String>,
@@ -18,7 +18,7 @@ pub struct CouchStatus {
 }
 
 /// Couch response abstraction
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CouchResponse {
     pub ok: Option<bool>,
     pub error: Option<String>,
@@ -26,7 +26,7 @@ pub struct CouchResponse {
 }
 
 /// Cluster information
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ClusterInfo {
     pub n: u32,
     pub q: u32,
@@ -35,7 +35,7 @@ pub struct ClusterInfo {
 }
 
 /// Size information
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SizeInfo {
     pub active: u64,
     pub external: u64,
@@ -43,13 +43,13 @@ pub struct SizeInfo {
 }
 
 /// Database information
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DbProperties {
     partitioned: Option<bool>,
 }
 
 /// Database information
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DbInfo {
     pub cluster: ClusterInfo,
     pub compact_running: bool,
