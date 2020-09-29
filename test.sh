@@ -7,7 +7,7 @@ COUCHDB_PASSWORD=password
 docker_id=$(docker run -d --rm -p 5984:5984 -e COUCHDB_USER=$COUCHDB_USER -e COUCHDB_PASSWORD=$COUCHDB_PASSWORD couchdb:3)
 
 # docker kill if test is interrupted
-trap 'docker kill $docker_id' SIGINT err exit
+trap 'docker kill $docker_id &> /dev/null || true' SIGINT err exit
 
 echo "Waiting for docker couchdb to be up..."
 while ! curl -s -u $COUCHDB_USER:$COUCHDB_PASSWORD http://localhost:5984/; do
@@ -19,4 +19,4 @@ sleep 1
 
 cargo test -- --test-threads=1 --nocapture
 
-docker kill "$docker_id"
+docker kill "$docker_id" &> /dev/null || true
