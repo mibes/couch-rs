@@ -11,7 +11,7 @@ pub struct ViewCollection {
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct ViewItem {
-    pub key: String,
+    pub key: Value,
     pub value: Value,
     pub id: Option<String>,
     // docs field, populated if query was ran with 'include_docs'

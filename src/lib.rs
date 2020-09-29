@@ -752,6 +752,35 @@ mod couch_rs_tests {
         }
 
         #[tokio::test]
+        async fn should_handle_null_view_keys() {
+            let dbname = "should_handle_null_view_keys";
+            let (client, db, docs) = setup_multiple(dbname, 4).await;
+            let doc = docs.get(0).unwrap();
+            let count_by_id = r#"function (doc) {
+                                        emit(doc._id, null);
+                                    }"#;
+            let view_name = "should_handle_null_view_keys";
+            /*
+            a view/reduce like this will return something like the following:
+                {"rows":[
+                    {"key":null,"value":14}
+                ]}
+
+                this will fail to deserialize if ViewItem.key is a String. It needs to be a Value to cover for all json scenarios
+             */
+            assert!(db
+                .create_view(
+                    view_name,
+                    CouchViews::new(view_name, CouchFunc::new(count_by_id, Some("_count"))),
+                )
+                .await
+                .is_ok());
+            assert!(db.query(view_name, view_name, None,).await.is_ok());
+
+            teardown(client, dbname).await;
+        }
+
+        #[tokio::test]
         async fn should_bulk_insert_and_get_many_docs() {
             let (client, db, _doc) = setup("should_bulk_insert_and_get_many_docs").await;
             let docs: Vec<Value> = (0..2000)
