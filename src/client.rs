@@ -242,7 +242,7 @@ impl Client {
     }
 
     /// Gets information about the specified database.
-    /// See [common](https://docs.couchdb.org/en/stable/api/server/common.html) for more details.
+    /// See [common](https://docs.couchdb.org/en/stable/api/database/common.html) for more details.
     pub async fn get_info(&self, dbname: &str) -> CouchResult<DbInfo> {
         let path = self.create_path(self.build_dbname(dbname), None)?;
         let response = self.get(path, None)?.send().await?.error_for_status()?;
