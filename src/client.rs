@@ -295,25 +295,25 @@ impl Client {
         Ok(req)
     }
 
-    pub fn get(&self, path: String, args: Option<HashMap<String, String>>) -> CouchResult<RequestBuilder> {
+    pub(crate) fn get(&self, path: String, args: Option<HashMap<String, String>>) -> CouchResult<RequestBuilder> {
         Ok(self.req(Method::GET, path, args)?)
     }
 
-    pub fn post(&self, path: String, body: String) -> CouchResult<RequestBuilder> {
+    pub(crate) fn post(&self, path: String, body: String) -> CouchResult<RequestBuilder> {
         let req = self.req(Method::POST, path, None)?.body(body);
         Ok(req)
     }
 
-    pub fn put(&self, path: String, body: String) -> CouchResult<RequestBuilder> {
+    pub(crate) fn put(&self, path: String, body: String) -> CouchResult<RequestBuilder> {
         let req = self.req(Method::PUT, path, None)?.body(body);
         Ok(req)
     }
 
-    pub fn head(&self, path: String, args: Option<HashMap<String, String>>) -> CouchResult<RequestBuilder> {
+    pub(crate) fn head(&self, path: String, args: Option<HashMap<String, String>>) -> CouchResult<RequestBuilder> {
         Ok(self.req(Method::HEAD, path, args)?)
     }
 
-    pub fn delete(&self, path: String, args: Option<HashMap<String, String>>) -> CouchResult<RequestBuilder> {
+    pub(crate) fn delete(&self, path: String, args: Option<HashMap<String, String>>) -> CouchResult<RequestBuilder> {
         Ok(self.req(Method::DELETE, path, args)?)
     }
 }
