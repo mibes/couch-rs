@@ -135,7 +135,7 @@ impl Database {
     /// }
     /// ```
     pub async fn exists(&self, id: &str) -> bool {
-        let request = self._client.head(self.create_raw_path(id), None);
+        let request = self._client.head(self.create_document_path(id), None);
         self.is_ok(request).await
     }
 
@@ -143,7 +143,7 @@ impl Database {
     pub async fn get(&self, id: &str) -> CouchResult<Document> {
         let response = self
             ._client
-            .get(self.create_raw_path(id), None)?
+            .get(self.create_document_path(id), None)?
             .send()
             .await?
             .error_for_status()?;
@@ -831,7 +831,6 @@ impl Database {
     /// Reads the database's indexes and returns them
     pub async fn read_indexes(&self) -> CouchResult<DatabaseIndexList> {
         let response = self._client.get(self.create_raw_path("_index"), None)?.send().await?;
-
         Ok(response.json().await?)
     }
 
