@@ -166,6 +166,14 @@ mod couch_rs_tests {
         }
 
         #[tokio::test]
+        async fn should_create_test_db_with_a_complex_name() {
+            let client = Client::new_local_test().unwrap();
+            let dbname = "some+database";
+            let dbw = client.db(dbname).await;
+            assert!(dbw.is_err())
+        }
+
+        #[tokio::test]
         async fn should_get_information_on_test_db() {
             let client = Client::new_local_test().unwrap();
             let dbname = "should_get_information_on_test_db";
