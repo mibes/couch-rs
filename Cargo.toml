@@ -1,6 +1,6 @@
 [package]
 name = "couch_rs"
-version = "0.8.16"
+version = "0.8.17"
 authors = ["Mathieu Amiot <mathieu.amiot@yellowinnovation.fr>", "mibes <mibes@mibesco.com>"]
 license = "MIT/Apache-2.0"
 description = "CouchDB library for Rust"
