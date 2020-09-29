@@ -153,6 +153,7 @@ mod couch_rs_tests {
             let client = Client::new_local_test().unwrap();
             let status = client.check_status().await;
             assert!(status.is_ok());
+            assert_eq!("The Apache Software Foundation", status.unwrap().vendor.name);
         }
 
         #[tokio::test]
@@ -162,6 +163,18 @@ mod couch_rs_tests {
             assert!(dbw.is_ok());
 
             let _ = client.destroy_db("should_create_test_db");
+        }
+
+        #[tokio::test]
+        async fn should_get_information_on_test_db() {
+            let client = Client::new_local_test().unwrap();
+            let dbname = "should_get_information_on_test_db";
+            let dbw = client.db(dbname).await;
+            assert!(dbw.is_ok());
+            assert!(client.exists(dbname).await.is_ok());
+            let info = client.get_info(dbname).await.expect("can not get db info");
+            assert_eq!(info.db_name, dbname);
+            let _ = client.destroy_db(dbname);
         }
 
         #[tokio::test]

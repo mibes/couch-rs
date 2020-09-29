@@ -106,15 +106,14 @@ pub struct ExplainResult {
     pub range: Value,
 }
 
-pub type RegEx = HashMap<String, Value>;
-pub type FieldFilter = HashMap<String, RegEx>;
-
+/// $ne operation
 #[derive(Serialize, Deserialize)]
 pub struct NotEqual {
     #[serde(rename = "$ne")]
     pub ne: Option<String>,
 }
 
+/// Select all Selector
 #[derive(Serialize, Deserialize)]
 pub struct SelectAll {
     #[serde(rename = "_id")]
@@ -122,7 +121,7 @@ pub struct SelectAll {
     pub id: Option<NotEqual>,
 }
 
-// Little helper to create a select all query.
+/// Little helper to create a select all query.
 impl Default for SelectAll {
     fn default() -> Self {
         SelectAll {

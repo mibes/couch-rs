@@ -1,6 +1,6 @@
 use crate::database::Database;
 use crate::error::{CouchError, CouchResult};
-use crate::types::system::{CouchResponse, CouchStatus};
+use crate::types::system::{CouchResponse, CouchStatus, DbInfo};
 use base64::write::EncoderWriter as Base64Encoder;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, REFERER, USER_AGENT};
 use reqwest::{self, Method, StatusCode, Url};
@@ -173,6 +173,7 @@ impl Client {
         }
     }
 
+    /// Create a new database with the given name
     pub async fn make_db(&self, dbname: &str) -> CouchResult<Database> {
         let name = self.build_dbname(dbname);
 
@@ -199,6 +200,7 @@ impl Client {
         }
     }
 
+    /// Destroy the database with the given name
     pub async fn destroy_db(&self, dbname: &str) -> CouchResult<bool> {
         let path = self.create_path(self.build_dbname(dbname), None)?;
         let response = self
@@ -213,6 +215,44 @@ impl Client {
         Ok(s.ok.unwrap_or(false))
     }
 
+    /// Checks if a database exists
+    ///
+    /// Usage:
+    /// ```
+    /// use couch_rs::error::CouchResult;
+    ///
+    /// const TEST_DB: &str = "test_db";
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> CouchResult<()> {
+    ///     let client = couch_rs::Client::new_local_test()?;
+    ///     let db = client.db(TEST_DB).await?;
+    ///
+    ///     if db.exists(TEST_DB).await {
+    ///         println!("The database exists");
+    ///     }
+    ///
+    ///     return Ok(());
+    /// }
+    /// ```
+    pub async fn exists(&self, dbname: &str) -> CouchResult<bool> {
+        let path = self.create_path(self.build_dbname(dbname), None)?;
+        let result = self.head(path, None)?.send().await;
+        Ok(result.is_ok())
+    }
+
+    /// Gets information about the specified database.
+    /// See [common](https://docs.couchdb.org/en/stable/api/server/common.html) for more details.
+    pub async fn get_info(&self, dbname: &str) -> CouchResult<DbInfo> {
+        let path = self.create_path(self.build_dbname(dbname), None)?;
+        let response = self.get(path, None)?.send().await?.error_for_status()?;
+        let info = response.json().await?;
+        Ok(info)
+    }
+
+    /// Returns meta information about the instance. The response contains information about the server,
+    /// including a welcome message and the version of the server.
+    /// See [common](https://docs.couchdb.org/en/stable/api/server/common.html) for more details.
     pub async fn check_status(&self) -> CouchResult<CouchStatus> {
         let response = self
             ._client
@@ -222,7 +262,6 @@ impl Client {
             .await?;
 
         let status = response.json().await?;
-
         Ok(status)
     }
 
