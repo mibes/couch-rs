@@ -36,25 +36,25 @@ impl Database {
     }
 
     fn create_document_path(&self, id: &str) -> String {
-        let encoded: String = byte_serialize(id.as_bytes()).collect();
+        let encoded = url_encode!(id);
         format!("{}/{}", self.name, encoded)
     }
 
     fn create_design_path(&self, id: &str) -> String {
-        let encoded: String = byte_serialize(id.as_bytes()).collect();
+        let encoded = url_encode!(id);
         format!("{}/_design/{}", self.name, encoded)
     }
 
     fn create_query_view_path(&self, design_id: &str, view_id: &str) -> String {
-        let encoded_design: String = byte_serialize(design_id.as_bytes()).collect();
-        let encoded_view: String = byte_serialize(view_id.as_bytes()).collect();
+        let encoded_design = url_encode!(design_id);
+        let encoded_view = url_encode!(view_id);
         format!("{}/_design/{}/_view/{}", self.name, encoded_design, encoded_view)
     }
 
     fn create_execute_update_path(&self, design_id: &str, update_id: &str, document_id: &str) -> String {
-        let encoded_design: String = byte_serialize(design_id.as_bytes()).collect();
-        let encoded_update: String = byte_serialize(update_id.as_bytes()).collect();
-        let encoded_document: String = byte_serialize(document_id.as_bytes()).collect();
+        let encoded_design = url_encode!(design_id);
+        let encoded_update = url_encode!(update_id);
+        let encoded_document = url_encode!(document_id);
         format!(
             "{}/_design/{}/_update/{}/{}",
             self.name, encoded_design, encoded_update, encoded_document
@@ -62,7 +62,7 @@ impl Database {
     }
 
     fn create_compact_path(&self, design_name: &str) -> String {
-        let encoded_design: String = byte_serialize(design_name.as_bytes()).collect();
+        let encoded_design = url_encode!(design_name);
         format!("{}/_compact/{}", self.name, encoded_design)
     }
 

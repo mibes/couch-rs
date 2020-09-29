@@ -122,6 +122,13 @@ mod macros {
             tspec_ms!(tm)
         }};
     }
+
+    /// Url encode path segments
+    macro_rules! url_encode {
+        ($id:ident) => {{
+            byte_serialize($id.as_bytes()).collect::<String>()
+        }};
+    }
 }
 
 mod client;
