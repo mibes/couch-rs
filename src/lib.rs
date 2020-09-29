@@ -49,12 +49,12 @@
 //! use couch_rs::types::find::FindQuery;
 //! use std::error::Error;
 //!
-//! const DB_HOST: &str = "http://admin:password@localhost:5984";
+//! const DB_HOST: &str = "http://localhost:5984";
 //! const TEST_DB: &str = "test_db";
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn Error>> {
-//!     let client = couch_rs::Client::new_local_test()?;
+//!     let client = couch_rs::Client::new(DB_HOST, "admin", "password")?;
 //!     let db = client.db(TEST_DB).await?;
 //!     let find_all = FindQuery::find_all();
 //!     let docs = db.find(&find_all).await?;
