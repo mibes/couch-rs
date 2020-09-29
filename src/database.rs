@@ -11,7 +11,6 @@ use reqwest::{RequestBuilder, StatusCode};
 use serde_json::{json, to_string, Value};
 use std::collections::HashMap;
 use tokio::sync::mpsc::Sender;
-use url::form_urlencoded::byte_serialize;
 
 /// Database operations on a CouchDB Database
 /// (sometimes called Collection in other NoSQL flavors such as MongoDB).

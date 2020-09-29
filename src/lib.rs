@@ -126,7 +126,7 @@ mod macros {
     /// Url encode path segments
     macro_rules! url_encode {
         ($id:ident) => {{
-            byte_serialize($id.as_bytes()).collect::<String>()
+            url::form_urlencoded::byte_serialize($id.as_bytes()).collect::<String>()
         }};
     }
 }
