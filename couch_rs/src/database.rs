@@ -1,5 +1,5 @@
 use crate::client::Client;
-use crate::document::{Document, DocumentCollection, TypedCouchDocument};
+use crate::document::{DocumentCollection, TypedCouchDocument};
 use crate::error::{CouchError, CouchResult};
 use crate::types::design::DesignCreated;
 use crate::types::document::{DocumentCreatedResponse, DocumentCreatedResult, DocumentId};
@@ -200,7 +200,7 @@ impl Database {
     }
 
     /// Gets documents in bulk with provided IDs list
-    pub async fn get_bulk(&self, ids: Vec<DocumentId>) -> CouchResult<DocumentCollection> {
+    pub async fn get_bulk<T: TypedCouchDocument>(&self, ids: Vec<DocumentId>) -> CouchResult<DocumentCollection<T>> {
         self.get_bulk_params(ids, None).await
     }
 
@@ -259,9 +259,9 @@ impl Database {
     ///
     /// ```
     /// use couch_rs::types::find::FindQuery;
-    /// use couch_rs::document::Document;
     /// use couch_rs::error::CouchResult;
     /// use serde_json::json;
+    /// use serde_json::Value;
     ///
     /// const TEST_DB: &str = "test_db";
     ///
@@ -269,35 +269,35 @@ impl Database {
     /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new_local_test()?;
     ///     let db = client.db(TEST_DB).await?;
-    ///     let doc_1 = Document::new(json!({
+    ///     let doc_1 = json!({
     ///                     "_id": "john",
     ///                     "first_name": "John",
     ///                     "last_name": "Doe"
-    ///                 }));
+    ///                 });
     ///
-    ///     let doc_2 = Document::new(json!({
+    ///     let doc_2 = json!({
     ///                     "_id": "jane",
     ///                     "first_name": "Jane",
     ///                     "last_name": "Doe"
-    ///                 }));
+    ///                 });
     ///
     ///     // Save these documents
-    ///     db.save_raw(doc_1).await?;
-    ///     db.save_raw(doc_2).await?;
+    ///     db.save(doc_1).await?;
+    ///     db.save(doc_2).await?;
     ///
     ///     // subsequent call updates the existing document
-    ///     let docs = db.get_bulk_params(vec!["john".to_string(), "jane".to_string()], None).await?;
+    ///     let docs = db.get_bulk_params::<Value>(vec!["john".to_string(), "jane".to_string()], None).await?;
     ///
     ///     // verify that we received the 2 documents
     ///     assert_eq!(docs.rows.len(), 2);
     ///     Ok(())
     /// }
     /// ```   
-    pub async fn get_bulk_params(
+    pub async fn get_bulk_params<T: TypedCouchDocument>(
         &self,
         ids: Vec<DocumentId>,
         params: Option<QueryParams>,
-    ) -> CouchResult<DocumentCollection> {
+    ) -> CouchResult<DocumentCollection<T>> {
         let mut options;
         if let Some(opts) = params {
             options = opts;
@@ -319,7 +319,7 @@ impl Database {
     }
 
     /// Gets all the documents in database
-    pub async fn get_all(&self) -> CouchResult<DocumentCollection> {
+    pub async fn get_all<T: TypedCouchDocument>(&self) -> CouchResult<DocumentCollection<T>> {
         self.get_all_params(None).await
     }
 
@@ -331,9 +331,9 @@ impl Database {
     /// This operation is identical to find_batched(FindQuery::find_all(), tx, batch_size, max_results)
     ///
     /// Check out the async_batch_read example for usage details
-    pub async fn get_all_batched(
+    pub async fn get_all_batched<T: TypedCouchDocument>(
         &self,
-        tx: Sender<DocumentCollection>,
+        tx: Sender<DocumentCollection<T>>,
         batch_size: u64,
         max_results: u64,
     ) -> CouchResult<u64> {
@@ -348,10 +348,10 @@ impl Database {
     /// always rounded *up* to the nearest multiplication of batch_size.
     ///
     /// Check out the async_batch_read example for usage details
-    pub async fn find_batched(
+    pub async fn find_batched<T: TypedCouchDocument>(
         &self,
         mut query: FindQuery,
-        mut tx: Sender<DocumentCollection>,
+        mut tx: Sender<DocumentCollection<T>>,
         batch_size: u64,
         max_results: u64,
     ) -> CouchResult<u64> {
@@ -383,7 +383,9 @@ impl Database {
 
             results += all_docs.total_rows as u64;
 
-            tx.send(all_docs).await.unwrap();
+            if let Err(_err) = tx.send(all_docs).await {
+                break None;
+            }
 
             if max_results > 0 && results >= max_results {
                 break None;
@@ -406,7 +408,6 @@ impl Database {
     /// ```
     /// use couch_rs::types::find::FindQuery;
     /// use couch_rs::types::query::{QueryParams, QueriesParams};
-    /// use couch_rs::document::Document;
     /// use couch_rs::error::CouchResult;
     /// use serde_json::json;
     ///
@@ -473,7 +474,10 @@ impl Database {
 
     /// Gets all the documents in database, with applied parameters.
     /// Parameters description can be found here: [api-ddoc-view](https://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view)
-    pub async fn get_all_params(&self, params: Option<QueryParams>) -> CouchResult<DocumentCollection> {
+    pub async fn get_all_params<T: TypedCouchDocument>(
+        &self,
+        params: Option<QueryParams>,
+    ) -> CouchResult<DocumentCollection<T>> {
         let mut options;
         if let Some(opts) = params {
             options = opts;
@@ -500,6 +504,7 @@ impl Database {
     /// ```
     /// use couch_rs::types::find::FindQuery;
     /// use couch_rs::error::CouchResult;
+    /// use serde_json::Value;
     ///
     /// const TEST_DB: &str = "test_db";
     ///
@@ -508,25 +513,25 @@ impl Database {
     ///     let client = couch_rs::Client::new_local_test()?;
     ///     let db = client.db(TEST_DB).await?;
     ///     let find_all = FindQuery::find_all();
-    ///     let docs = db.find(&find_all).await?;
+    ///     let docs = db.find::<Value>(&find_all).await?;
     ///     Ok(())
     /// }
     /// ```
-    pub async fn find(&self, query: &FindQuery) -> CouchResult<DocumentCollection> {
+    pub async fn find<T: TypedCouchDocument>(&self, query: &FindQuery) -> CouchResult<DocumentCollection<T>> {
         let path = self.create_raw_path("_find");
         let response = self._client.post(path, js!(query))?.send().await?;
         let status = response.status();
         let data: FindResult = response.json().await.unwrap();
 
         if let Some(doc_val) = data.docs {
-            let documents: Vec<Document> = doc_val
+            let documents: Vec<T> = doc_val
                 .into_iter()
                 .filter(|d| {
                     // Remove _design documents
-                    let id: String = json_extr!(d["_id"]);
+                    let id: String = d.get_id().into_owned();
                     !id.starts_with('_')
                 })
-                .map(Document::new)
+                .filter_map(|v| serde_json::from_value(v).ok())
                 .collect();
 
             let mut bookmark = Option::None;
@@ -616,37 +621,11 @@ impl Database {
         }
     }
 
-    pub async fn save_raw(&self, doc: Document) -> CouchResult<Document> {
-        let id = doc._id.to_owned();
-        let raw = doc.get_data();
-
-        let body = to_string(&raw)?;
-
-        let response = self._client.put(self.create_document_path(&id), body)?.send().await?;
-
-        let status = response.status();
-        let data: DocumentCreatedResponse = response.json().await?;
-
-        match data.ok {
-            Some(true) => {
-                let mut val = doc.get_data();
-                val["_rev"] = json!(data.rev);
-
-                Ok(Document::new(val))
-            }
-            _ => {
-                let err = data.error.unwrap_or_else(|| s!("unspecified error"));
-                Err(CouchError::new(err, status))
-            }
-        }
-    }
-
     /// Creates a document from a raw JSON document Value.
     /// Usage:
     ///
     /// ```
     /// use couch_rs::types::find::FindQuery;
-    /// use couch_rs::document::Document;
     /// use couch_rs::error::CouchResult;
     /// use serde_json::json;
     /// use couch_rs::document::TypedCouchDocument;
@@ -708,7 +687,6 @@ impl Database {
     ///
     /// ```
     /// use couch_rs::types::find::FindQuery;
-    /// use couch_rs::document::Document;
     /// use couch_rs::error::CouchResult;
     /// use couch_rs::document::TypedCouchDocument;
     /// use serde_json::json;
@@ -862,7 +840,6 @@ impl Database {
     /// use couch_rs::types::find::FindQuery;
     /// use serde_json::{from_value, to_value, Value};
     /// use couch_rs::types::document::DocumentId;
-    /// use couch_rs::document::Document;
     /// use couch_rs::error::CouchResult;
     ///
     /// const TEST_DB: &str = "test_db";

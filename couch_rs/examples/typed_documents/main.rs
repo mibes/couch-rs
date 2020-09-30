@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 const TEST_DB: &str = "test_db";
 
-#[derive(Serialize, Deserialize, CouchDocument, Debug)]
+#[derive(Serialize, Deserialize, CouchDocument, Default, Debug)]
 pub struct TestDoc {
     /// _ids are are the only unique enforced value within CouchDB so you might as well make use of this.
     /// CouchDB stores its documents in a B+ tree. Each additional or updated document is stored as
