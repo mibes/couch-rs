@@ -1,5 +1,5 @@
 use crate::client::Client;
-use crate::document::{Document, DocumentCollection};
+use crate::document::{Document, DocumentCollection, TypedCouchDocument};
 use crate::error::{CouchError, CouchResult};
 use crate::types::design::DesignCreated;
 use crate::types::document::{DocumentCreatedResponse, DocumentCreatedResult, DocumentId};
@@ -139,7 +139,20 @@ impl Database {
     }
 
     /// Gets one document
-    pub async fn get(&self, id: &str) -> CouchResult<Document> {
+    pub async fn get<T: TypedCouchDocument>(&self, id: &str) -> CouchResult<T> {
+        let response = self
+            ._client
+            .get(self.create_document_path(id), None)?
+            .send()
+            .await?
+            .error_for_status()?;
+
+        let doc: T = response.json().await?;
+        Ok(doc)
+    }
+
+    /// Gets one raw (untyped) document
+    pub async fn get_raw(&self, id: &str) -> CouchResult<Document> {
         let response = self
             ._client
             .get(self.create_document_path(id), None)?
@@ -232,8 +245,8 @@ impl Database {
     ///                 }));
     ///
     ///     // Save these documents
-    ///     db.save(doc_1).await?;
-    ///     db.save(doc_2).await?;
+    ///     db.save_raw(doc_1).await?;
+    ///     db.save_raw(doc_2).await?;
     ///
     ///     // subsequent call updates the existing document
     ///     let docs = db.get_bulk_params(vec!["john".to_string(), "jane".to_string()], None).await?;
@@ -505,13 +518,16 @@ impl Database {
     /// use couch_rs::error::CouchResult;
     /// use serde_json::{from_value, to_value};
     /// use couch_rs::types::document::DocumentId;
+    /// use couch_rs::document::TypedCouchDocument;
+    /// use couch_rs::CouchDocument;
+    /// use serde::{Deserialize, Serialize};
     ///
     /// const TEST_DB: &str = "test_db";
     ///
-    /// #[derive(serde::Serialize, serde::Deserialize)]
+    /// #[derive(Serialize, Deserialize, CouchDocument)]
     /// pub struct UserDetails {
     ///     pub _id: DocumentId,
-    ///     #[serde(skip_serializing)]
+    ///     #[serde(skip_serializing_if = "String::is_empty")]
     ///     pub _rev: String,
     ///     #[serde(rename = "firstName")]
     ///     pub first_name: Option<String>,
@@ -535,17 +551,33 @@ impl Database {
     ///     db.create(value).await?;
     ///
     ///     // now that the document is created, we can get it, update it, and save it...
-    ///     let mut doc = db.get("123").await?;
-    ///     let mut user_details: UserDetails = from_value(doc.get_data())?;
+    ///     let mut user_details: UserDetails = db.get("123").await?;
     ///     user_details.first_name = Some("John".to_string());
-    ///     let value = to_value(user_details)?;
-    ///     doc.merge(value);
     ///
-    ///     db.save(doc).await?;
+    ///     db.save(user_details).await?;
     ///     Ok(())
     /// }
     ///```
-    pub async fn save(&self, doc: Document) -> CouchResult<Document> {
+    pub async fn save<T: TypedCouchDocument>(&self, mut doc: T) -> CouchResult<T> {
+        let id = doc.get_id().to_string();
+        let body = to_string(&doc)?;
+        let response = self._client.put(self.create_document_path(&id), body)?.send().await?;
+        let status = response.status();
+        let data: DocumentCreatedResponse = response.json().await?;
+
+        match data.ok {
+            Some(true) => {
+                doc.set_rev(&data.rev.unwrap_or_default());
+                Ok(doc)
+            }
+            _ => {
+                let err = data.error.unwrap_or_else(|| s!("unspecified error"));
+                Err(CouchError::new(err, status))
+            }
+        }
+    }
+
+    pub async fn save_raw(&self, doc: Document) -> CouchResult<Document> {
         let id = doc._id.to_owned();
         let raw = doc.get_data();
 
@@ -646,16 +678,16 @@ impl Database {
     pub async fn upsert(&self, doc: Document) -> CouchResult<Document> {
         let id = doc._id.clone();
 
-        match self.get(&id).await {
+        match self.get_raw(&id).await {
             Ok(mut current_doc) => {
                 current_doc.merge(doc.get_data());
-                let doc = self.save(current_doc).await?;
+                let doc = self.save_raw(current_doc).await?;
                 Ok(doc)
             }
             Err(err) => {
                 if err.is_not_found() {
                     // document does not yet exist
-                    let doc = self.save(doc).await?;
+                    let doc = self.save_raw(doc).await?;
                     Ok(doc)
                 } else {
                     Err(err)
@@ -781,7 +813,7 @@ impl Database {
     ///
     ///     // first we need to get the document, because we need both the _id and _rev in order
     ///     // to delete
-    ///     if let Some(doc) = db.get("123").await.ok() {
+    ///     if let Some(doc) = db.get_raw("123").await.ok() {
     ///         db.remove(doc).await;
     ///     }
     ///

@@ -65,6 +65,16 @@
 //! GitHub repositiory.
 //!
 
+// Re-export #[derive(CouchDocument)].
+#[cfg(feature = "couch_rs_derive")]
+#[allow(unused_imports)]
+#[macro_use]
+extern crate couch_rs_derive;
+
+#[cfg(feature = "couch_rs_derive")]
+#[doc(hidden)]
+pub use couch_rs_derive::*;
+
 /// Macros that the crate exports to facilitate most of the
 /// doc-to-json-to-string-related tasks
 #[allow(unused_macros)]
@@ -324,7 +334,7 @@ mod couch_rs_tests {
 
             doc["thing"] = json!(false);
 
-            let save_result = db.save(doc).await;
+            let save_result = db.save_raw(doc).await;
             assert!(save_result.is_ok());
             let new_doc = save_result.unwrap();
             assert_eq!(new_doc["thing"], json!(false));
@@ -347,7 +357,7 @@ mod couch_rs_tests {
             assert_eq!(created._id, id);
 
             // update it
-            let save_result = db.save(created.clone()).await;
+            let save_result = db.save_raw(created.clone()).await;
             assert!(save_result.is_ok());
             // make sure db has only 1 doc
             assert_eq!(db.get_all().await.unwrap().rows.len(), 1);

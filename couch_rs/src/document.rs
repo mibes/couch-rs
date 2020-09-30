@@ -1,5 +1,6 @@
 use crate::database::Database;
 use crate::types::document::DocumentId;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::ops::{Index, IndexMut};
@@ -18,6 +19,13 @@ pub struct Document {
     pub _rev: String,
 
     doc: Value,
+}
+
+pub trait TypedCouchDocument: DeserializeOwned + Serialize {
+    fn get_id(&self) -> &str;
+    fn get_rev(&self) -> &str;
+    fn set_rev(&mut self, rev: &str);
+    fn merge_rev(&mut self, other: Self);
 }
 
 impl Document {
@@ -214,5 +222,32 @@ impl Index<usize> for DocumentCollection {
 impl IndexMut<usize> for DocumentCollection {
     fn index_mut(&mut self, index: usize) -> &mut DocumentCollectionItem {
         self.rows.get_mut(index).unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::document::TypedCouchDocument;
+    use couch_rs_derive::CouchDocument;
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Serialize, Deserialize, CouchDocument, Debug)]
+    struct TestDocument {
+        pub _id: DocumentId,
+        #[serde(skip_serializing)]
+        pub _rev: String,
+    }
+
+    #[test]
+    fn test_derive_couch_document() {
+        let doc = TestDocument {
+            _id: "1".to_string(),
+            _rev: "2".to_string(),
+        };
+        let id = doc.get_id();
+        let rev = doc.get_rev();
+        assert_eq!(id, "1");
+        assert_eq!(rev, "2");
     }
 }

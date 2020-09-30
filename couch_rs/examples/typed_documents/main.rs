@@ -1,10 +1,12 @@
+use couch_rs::document::TypedCouchDocument;
 use couch_rs::types::document::DocumentId;
+use couch_rs::CouchDocument;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
 const TEST_DB: &str = "test_db";
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, CouchDocument, Debug)]
 pub struct TestDoc {
     /// _ids are are the only unique enforced value within CouchDB so you might as well make use of this.
     /// CouchDB stores its documents in a B+ tree. Each additional or updated document is stored as
@@ -12,11 +14,9 @@ pub struct TestDoc {
     /// advantage of sequencing your own ids more effectively than the automatically generated ids if
     /// you can arrange them to be sequential yourself. (https://docs.couchdb.org/en/stable/best-practices/documents.html)
     pub _id: DocumentId,
-
     /// Document Revision, provided by CouchDB, helps negotiating conflicts
-    #[serde(skip_serializing)]
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub _rev: String,
-
     pub first_name: String,
     pub last_name: String,
 }
@@ -40,10 +40,9 @@ async fn main() {
     };
 
     // check if the document already exists
-    match db.get(&td._id).await {
-        Ok(existing) => {
-            println!("Document has been previously created with Rev: {}", existing._rev);
-            let e: TestDoc = serde_json::from_value(existing.get_data()).unwrap();
+    match db.get::<TestDoc>(&td._id).await {
+        Ok(e) => {
+            println!("Document has been previously created with Rev: {}", e._rev);
             println!("Name: {} {}", e.first_name, e.last_name);
         }
         Err(e) => {
