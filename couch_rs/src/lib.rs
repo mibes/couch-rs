@@ -201,9 +201,31 @@ pub use client::Client;
 #[allow(unused_mut, unused_variables)]
 #[cfg(test)]
 mod couch_rs_tests {
+    use crate as couch_rs;
+    use couch_rs::document::TypedCouchDocument;
+    use couch_rs::types::document::DocumentId;
+    use couch_rs::CouchDocument;
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Serialize, Deserialize, CouchDocument, Default, Debug)]
+    pub struct TestDoc {
+        /// _ids are are the only unique enforced value within CouchDB so you might as well make use of this.
+        /// CouchDB stores its documents in a B+ tree. Each additional or updated document is stored as
+        /// a leaf node, and may require re-writing intermediary and parent nodes. You may be able to take
+        /// advantage of sequencing your own ids more effectively than the automatically generated ids if
+        /// you can arrange them to be sequential yourself. (https://docs.couchdb.org/en/stable/best-practices/documents.html)
+        #[serde(skip_serializing_if = "String::is_empty")]
+        pub _id: DocumentId,
+        /// Document Revision, provided by CouchDB, helps negotiating conflicts
+        #[serde(skip_serializing_if = "String::is_empty")]
+        pub _rev: String,
+        pub first_name: String,
+        pub last_name: String,
+    }
 
     mod client_tests {
         use crate::client::Client;
+        use crate::couch_rs_tests::TestDoc;
         use reqwest::StatusCode;
         use serde_json::json;
 
@@ -263,6 +285,31 @@ mod couch_rs_tests {
             assert_eq!(doc["thing"], json!(true));
 
             let _ = client.destroy_db("should_create_a_document");
+        }
+
+        #[tokio::test]
+        async fn should_create_a_typed_document() {
+            let client = Client::new_local_test().unwrap();
+            let dbw = client.db("should_create_a_typed_document").await;
+            assert!(dbw.is_ok());
+            let db = dbw.unwrap();
+            let my_doc = TestDoc {
+                _id: "".to_string(),
+                _rev: "".to_string(),
+                first_name: "John".to_string(),
+                last_name: "Doe".to_string(),
+            };
+
+            let ndoc_result = db.create(my_doc).await;
+
+            assert!(ndoc_result.is_ok());
+
+            let mut doc = ndoc_result.unwrap();
+            assert_eq!(doc.first_name, "John");
+            assert!(!doc._id.is_empty());
+            assert!(doc._rev.starts_with("1-"));
+
+            let _ = client.destroy_db("should_create_a_typed_document");
         }
 
         #[tokio::test]
