@@ -49,6 +49,7 @@
 //! use couch_rs::types::find::FindQuery;
 //! use std::error::Error;
 //! use serde_json::Value;
+//! use couch_rs::document::DocumentCollection;
 //!
 //! const DB_HOST: &str = "http://localhost:5984";
 //! const TEST_DB: &str = "test_db";
@@ -58,10 +59,48 @@
 //!     let client = couch_rs::Client::new(DB_HOST, "admin", "password")?;
 //!     let db = client.db(TEST_DB).await?;
 //!     let find_all = FindQuery::find_all();
-//!     let docs = db.find::<Value>(&find_all).await?;
+//!     let docs: DocumentCollection<Value> = db.find(&find_all).await?;
 //!     Ok(())
 //! }
 //!```
+//!
+//! You can use a similar operation to get a typed Couch document.
+//!
+//! ```
+//! use couch_rs::types::find::FindQuery;
+//! use std::error::Error;
+//! use serde_json::Value;
+//! use couch_rs::document::TypedCouchDocument;
+//! use couch_rs::CouchDocument;
+//! use couch_rs::types::document::DocumentId;
+//! use serde::{Deserialize, Serialize};
+//! use couch_rs::document::DocumentCollection;
+//!
+//! const DB_HOST: &str = "http://localhost:5984";
+//! const TEST_DB: &str = "test_db";
+//!
+//! #[derive(Serialize, Deserialize, CouchDocument)]
+//! pub struct UserDetails {
+//!    #[serde(skip_serializing_if = "String::is_empty")]
+//!     pub _id: DocumentId,
+//!     #[serde(skip_serializing_if = "String::is_empty")]
+//!     pub _rev: String,
+//!     #[serde(rename = "firstName")]
+//!     pub first_name: Option<String>,
+//!     #[serde(rename = "lastName")]
+//!     pub last_name: String,
+//! }
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn Error>> {
+//!     let client = couch_rs::Client::new(DB_HOST, "admin", "password")?;
+//!     let db = client.db(TEST_DB).await?;
+//!     let find_all = FindQuery::find_all();
+//!     let docs: DocumentCollection<UserDetails> = db.find(&find_all).await?;
+//!     Ok(())
+//! }
+//!```
+//!
 //! See the `database` module for additional usage examples. Or have a look at the `examples` in the
 //! GitHub repositiory.
 //!

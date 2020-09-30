@@ -154,6 +154,7 @@ impl Database {
     ///
     /// #[derive(Serialize, Deserialize, CouchDocument)]
     /// pub struct UserDetails {
+    ///     #[serde(skip_serializing_if = "String::is_empty")]
     ///     pub _id: DocumentId,
     ///     #[serde(skip_serializing_if = "String::is_empty")]
     ///     pub _rev: String,
