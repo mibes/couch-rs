@@ -138,6 +138,11 @@ impl Database {
         self.is_ok(request).await
     }
 
+    /// Convenience wrapper around get::<Value>(id)
+    pub async fn get_raw(&self, id: &str) -> CouchResult<Value> {
+        self.get(id).await
+    }
+
     /// Gets one document
     ///
     /// Usage:
@@ -202,6 +207,11 @@ impl Database {
 
     /// Gets documents in bulk with provided IDs list
     pub async fn get_bulk<T: TypedCouchDocument>(&self, ids: Vec<DocumentId>) -> CouchResult<DocumentCollection<T>> {
+        self.get_bulk_params(ids, None).await
+    }
+
+    /// Gets documents in bulk with provided IDs list, as raw Values
+    pub async fn get_bulk_raw(&self, ids: Vec<DocumentId>) -> CouchResult<DocumentCollection<Value>> {
         self.get_bulk_params(ids, None).await
     }
 
@@ -321,6 +331,11 @@ impl Database {
 
     /// Gets all the documents in database
     pub async fn get_all<T: TypedCouchDocument>(&self) -> CouchResult<DocumentCollection<T>> {
+        self.get_all_params(None).await
+    }
+
+    /// Gets all the documents in database as raw Values
+    pub async fn get_all_raw(&self) -> CouchResult<DocumentCollection<Value>> {
         self.get_all_params(None).await
     }
 
@@ -473,6 +488,10 @@ impl Database {
         Ok(results.results)
     }
 
+    pub async fn get_all_params_raw(&self, params: Option<QueryParams>) -> CouchResult<DocumentCollection<Value>> {
+        self.get_all_params(params).await
+    }
+
     /// Gets all the documents in database, with applied parameters.
     /// Parameters description can be found here: [api-ddoc-view](https://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view)
     pub async fn get_all_params<T: TypedCouchDocument>(
@@ -500,7 +519,9 @@ impl Database {
         Ok(DocumentCollection::new(response.json().await?))
     }
 
-    /// Finds a document in the database through a Mango query.
+    /// Finds a document in the database through a Mango query as raw Values.
+    /// Convenience function for find::<Value>(query)
+    ///
     /// Usage:
     /// ```
     /// use couch_rs::types::find::FindQuery;
@@ -514,7 +535,45 @@ impl Database {
     ///     let client = couch_rs::Client::new_local_test()?;
     ///     let db = client.db(TEST_DB).await?;
     ///     let find_all = FindQuery::find_all();
-    ///     let docs = db.find::<Value>(&find_all).await?;
+    ///     let docs = db.find_raw(&find_all).await?;
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn find_raw(&self, query: &FindQuery) -> CouchResult<DocumentCollection<Value>> {
+        self.find(query).await
+    }
+
+    /// Finds a document in the database through a Mango query.
+    ///
+    /// Usage:
+    /// ```
+    /// use couch_rs::types::find::FindQuery;
+    /// use couch_rs::error::CouchResult;
+    /// use serde_json::Value;
+    /// use couch_rs::document::TypedCouchDocument;
+    /// use couch_rs::types::document::DocumentId;
+    /// use couch_rs::CouchDocument;
+    /// use couch_rs::document::DocumentCollection;
+    /// use serde::{Deserialize, Serialize};
+    ///
+    /// const TEST_DB: &str = "test_db";
+    ///
+    /// #[derive(Serialize, Deserialize, CouchDocument, Default, Debug)]
+    /// pub struct TestDoc {
+    ///     #[serde(skip_serializing_if = "String::is_empty")]
+    ///     pub _id: DocumentId,
+    ///     #[serde(skip_serializing_if = "String::is_empty")]
+    ///     pub _rev: String,
+    ///     pub first_name: String,
+    ///     pub last_name: String,
+    /// }
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> CouchResult<()> {
+    ///     let client = couch_rs::Client::new_local_test()?;
+    ///     let db = client.db(TEST_DB).await?;
+    ///     let find_all = FindQuery::find_all();
+    ///     let docs: DocumentCollection<TestDoc> = db.find(&find_all).await?;
     ///     Ok(())
     /// }
     /// ```

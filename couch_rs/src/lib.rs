@@ -59,7 +59,7 @@
 //!     let client = couch_rs::Client::new(DB_HOST, "admin", "password")?;
 //!     let db = client.db(TEST_DB).await?;
 //!     let find_all = FindQuery::find_all();
-//!     let docs: DocumentCollection<Value> = db.find(&find_all).await?;
+//!     let docs = db.find_raw(&find_all).await?;
 //!     Ok(())
 //! }
 //!```
@@ -209,14 +209,8 @@ mod couch_rs_tests {
 
     #[derive(Serialize, Deserialize, CouchDocument, Default, Debug)]
     pub struct TestDoc {
-        /// _ids are are the only unique enforced value within CouchDB so you might as well make use of this.
-        /// CouchDB stores its documents in a B+ tree. Each additional or updated document is stored as
-        /// a leaf node, and may require re-writing intermediary and parent nodes. You may be able to take
-        /// advantage of sequencing your own ids more effectively than the automatically generated ids if
-        /// you can arrange them to be sequential yourself. (https://docs.couchdb.org/en/stable/best-practices/documents.html)
         #[serde(skip_serializing_if = "String::is_empty")]
         pub _id: DocumentId,
-        /// Document Revision, provided by CouchDB, helps negotiating conflicts
         #[serde(skip_serializing_if = "String::is_empty")]
         pub _rev: String,
         pub first_name: String,
@@ -438,7 +432,7 @@ mod couch_rs_tests {
 
             assert!(db.remove(doc).await);
             // make sure db is empty
-            assert_eq!(db.get_all::<Value>().await.unwrap().rows.len(), 0);
+            assert_eq!(db.get_all_raw().await.unwrap().rows.len(), 0);
 
             // create 1 doc with plus sign in the _id
             let id = "1+2";
@@ -449,12 +443,12 @@ mod couch_rs_tests {
             let save_result = db.save(created.clone()).await;
             assert!(save_result.is_ok());
             // make sure db has only 1 doc
-            assert_eq!(db.get_all::<Value>().await.unwrap().rows.len(), 1);
+            assert_eq!(db.get_all_raw().await.unwrap().rows.len(), 1);
 
             // delete it
             assert!(db.remove(save_result.unwrap()).await);
             // make sure db has no docs
-            assert_eq!(db.get_all::<Value>().await.unwrap().rows.len(), 0);
+            assert_eq!(db.get_all_raw().await.unwrap().rows.len(), 0);
 
             teardown(client, dbname).await;
         }
@@ -528,7 +522,7 @@ mod couch_rs_tests {
                 }]
             }));
 
-            let documents_res = db.find::<Value>(&query).await;
+            let documents_res = db.find_raw(&query).await;
 
             assert!(documents_res.is_ok());
             let documents = documents_res.unwrap();
@@ -542,7 +536,7 @@ mod couch_rs_tests {
             let (client, db, doc) = setup("should_bulk_get_a_document").await;
             let id = doc.get_id().into_owned();
 
-            let collection = db.get_bulk::<Value>(vec![id]).await.unwrap();
+            let collection = db.get_bulk_raw(vec![id]).await.unwrap();
             assert_eq!(collection.rows.len(), 1);
             assert!(db.remove(doc).await);
 
@@ -555,7 +549,7 @@ mod couch_rs_tests {
             let id = doc.get_id().into_owned();
             let invalid_id = "does_not_exist".to_string();
 
-            let collection = db.get_bulk::<Value>(vec![id, invalid_id]).await.unwrap();
+            let collection = db.get_bulk_raw(vec![id, invalid_id]).await.unwrap();
             assert_eq!(collection.rows.len(), 1);
             assert!(db.remove(doc).await);
 
@@ -569,7 +563,7 @@ mod couch_rs_tests {
 
             let params = QueryParams::from_keys(vec![id]);
 
-            let collection = db.get_all_params::<Value>(Some(params)).await.unwrap();
+            let collection = db.get_all_params_raw(Some(params)).await.unwrap();
             assert_eq!(collection.rows.len(), 1);
             assert!(db.remove(doc).await);
 
