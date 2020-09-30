@@ -75,6 +75,8 @@ extern crate couch_rs_derive;
 #[doc(hidden)]
 pub use couch_rs_derive::*;
 
+pub use std::borrow::Cow;
+
 /// Macros that the crate exports to facilitate most of the
 /// doc-to-json-to-string-related tasks
 #[allow(unused_macros)]
@@ -271,7 +273,7 @@ mod couch_rs_tests {
     mod database_tests {
         use crate::client::Client;
         use crate::database::Database;
-        use crate::document::{Document, DocumentCollection};
+        use crate::document::{DocumentCollection, TypedCouchDocument};
         use crate::types;
         use crate::types::find::FindQuery;
         use crate::types::query::{QueriesParams, QueryParams};
@@ -280,7 +282,7 @@ mod couch_rs_tests {
         use tokio::sync::mpsc;
         use tokio::sync::mpsc::{Receiver, Sender};
 
-        async fn setup(dbname: &str) -> (Client, Database, Document) {
+        async fn setup(dbname: &str) -> (Client, Database, Value) {
             let client = Client::new_local_test().unwrap();
             let dbw = client.db(dbname).await;
             assert!(dbw.is_ok());
@@ -300,7 +302,7 @@ mod couch_rs_tests {
             (client, db, doc)
         }
 
-        async fn setup_multiple(dbname: &str, nr_of_docs: usize) -> (Client, Database, Vec<Document>) {
+        async fn setup_multiple(dbname: &str, nr_of_docs: usize) -> (Client, Database, Vec<Value>) {
             let client = Client::new_local_test().unwrap();
             let dbw = client.db(dbname).await;
             assert!(dbw.is_ok());
@@ -334,7 +336,7 @@ mod couch_rs_tests {
 
             doc["thing"] = json!(false);
 
-            let save_result = db.save_raw(doc).await;
+            let save_result = db.save(doc).await;
             assert!(save_result.is_ok());
             let new_doc = save_result.unwrap();
             assert_eq!(new_doc["thing"], json!(false));
@@ -354,10 +356,10 @@ mod couch_rs_tests {
             // create 1 doc with plus sign in the _id
             let id = "1+2";
             let created = db.create(json!({ "_id": id })).await.unwrap();
-            assert_eq!(created._id, id);
+            assert_eq!(created.get_id(), id);
 
             // update it
-            let save_result = db.save_raw(created.clone()).await;
+            let save_result = db.save(created.clone()).await;
             assert!(save_result.is_ok());
             // make sure db has only 1 doc
             assert_eq!(db.get_all().await.unwrap().rows.len(), 1);
@@ -384,7 +386,7 @@ mod couch_rs_tests {
             teardown(client, "should_get_a_single_document").await;
         }
 
-        async fn setup_create_indexes(dbname: &str) -> (Client, Database, Document) {
+        async fn setup_create_indexes(dbname: &str) -> (Client, Database, Value) {
             let (client, db, doc) = setup(dbname).await;
 
             let spec = types::index::IndexFields::new(vec![types::find::SortSpec::Simple(s!("thing"))]);
@@ -451,7 +453,7 @@ mod couch_rs_tests {
         #[tokio::test]
         async fn should_bulk_get_a_document() {
             let (client, db, doc) = setup("should_bulk_get_a_document").await;
-            let id = doc._id.clone();
+            let id = doc.get_id().into_owned();
 
             let collection = db.get_bulk(vec![id]).await.unwrap();
             assert_eq!(collection.rows.len(), 1);
@@ -463,7 +465,7 @@ mod couch_rs_tests {
         #[tokio::test]
         async fn should_bulk_get_invalid_documents() {
             let (client, db, doc) = setup("should_bulk_get_invalid_documents").await;
-            let id = doc._id.clone();
+            let id = doc.get_id().into_owned();
             let invalid_id = "does_not_exist".to_string();
 
             let collection = db.get_bulk(vec![id, invalid_id]).await.unwrap();
@@ -476,7 +478,7 @@ mod couch_rs_tests {
         #[tokio::test]
         async fn should_get_all_documents_with_keys() {
             let (client, db, doc) = setup("should_get_all_documents_with_keys").await;
-            let id = doc._id.clone();
+            let id = doc.get_id().into_owned();
 
             let params = QueryParams::from_keys(vec![id]);
 
@@ -491,7 +493,7 @@ mod couch_rs_tests {
         async fn should_query_documents_with_keys() {
             let db_name = "should_query_documents_with_keys";
             let (client, db, doc) = setup(db_name).await;
-            let id = doc._id.clone();
+            let id = doc.get_id().into_owned();
             let view_name = "testViewAll";
             db.create_view(
                 view_name,
@@ -514,7 +516,7 @@ mod couch_rs_tests {
                 }))
                 .await
                 .unwrap();
-            let ndoc_id = ndoc._id.clone();
+            let ndoc_id = ndoc.get_id().into_owned();
             let single_view_name = "testViewSingle";
             db.create_view(
                 single_view_name,
@@ -569,7 +571,7 @@ mod couch_rs_tests {
         async fn should_query_documents_with_key() {
             let db_name = "should_query_documents_with_key";
             let (client, db, doc) = setup(db_name).await;
-            let id = doc._id.clone();
+            let id = doc.get_id().into_owned();
             let view_name = "testViewAll";
             db.create_view(
                 view_name,
@@ -592,7 +594,7 @@ mod couch_rs_tests {
                 }))
                 .await
                 .unwrap();
-            let ndoc_id = ndoc._id.clone();
+            let ndoc_id = ndoc.get_id().into_owned();
             let single_view_name = "testViewSingle";
             db.create_view(
                 single_view_name,
@@ -617,7 +619,7 @@ mod couch_rs_tests {
 
             // executing 'all' view querying with a specific key should result in 1 and 0 entries, respectively
             let mut one_key = QueryParams::default();
-            one_key.key = Some(doc._id.clone());
+            one_key.key = Some(doc.get_id().into_owned());
 
             assert_eq!(
                 db.query(view_name, view_name, Some(one_key.clone()))
@@ -646,7 +648,7 @@ mod couch_rs_tests {
         async fn should_query_documents_with_defaultparams() {
             let dbname = "should_query_documents_with_defaultparams";
             let (client, db, doc) = setup(dbname).await;
-            let id = doc._id.clone();
+            let id = doc.get_id().into_owned();
             let view_name = "testViewAll";
             db.create_view(
                 view_name,
@@ -669,7 +671,7 @@ mod couch_rs_tests {
                 }))
                 .await
                 .unwrap();
-            let ndoc_id = ndoc._id.clone();
+            let ndoc_id = ndoc.get_id().into_owned();
             let single_view_name = "testViewSingle";
             db.create_view(
                 single_view_name,
@@ -735,7 +737,7 @@ mod couch_rs_tests {
             let doc = docs.get(0).unwrap();
 
             let mut params1 = QueryParams::default();
-            params1.key = Some(doc._id.clone());
+            params1.key = Some(doc.get_id().into_owned());
             let mut params2 = QueryParams::default();
             params2.include_docs = Some(true);
             let mut params3 = QueryParams::default();

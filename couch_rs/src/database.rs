@@ -139,6 +139,54 @@ impl Database {
     }
 
     /// Gets one document
+    ///
+    /// Usage:
+    /// ```
+    /// use couch_rs::types::find::FindQuery;
+    /// use couch_rs::error::CouchResult;
+    /// use serde_json::{from_value, to_value, Value};
+    /// use couch_rs::types::document::DocumentId;
+    /// use couch_rs::document::TypedCouchDocument;
+    /// use couch_rs::CouchDocument;
+    /// use serde::{Deserialize, Serialize};
+    ///
+    /// const TEST_DB: &str = "test_db";
+    ///
+    /// #[derive(Serialize, Deserialize, CouchDocument)]
+    /// pub struct UserDetails {
+    ///     pub _id: DocumentId,
+    ///     #[serde(skip_serializing_if = "String::is_empty")]
+    ///     pub _rev: String,
+    ///     #[serde(rename = "firstName")]
+    ///     pub first_name: Option<String>,
+    ///     #[serde(rename = "lastName")]
+    ///     pub last_name: String,
+    /// }
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> CouchResult<()> {
+    ///     let client = couch_rs::Client::new_local_test()?;
+    ///     let db = client.db(TEST_DB).await?;
+    ///
+    ///     // before we can get the document, we need to create it first...
+    ///     let seed_doc = UserDetails {
+    ///         _id: "1234".to_string(),
+    ///         _rev: "".to_string(),
+    ///         first_name: None,
+    ///         last_name: "Doe".to_string(),
+    ///     };
+    ///     let value = to_value(seed_doc)?;
+    ///     db.create(value).await?;
+    ///
+    ///     // now that the document is created, we can get it; typed:
+    ///     let _user_details: UserDetails = db.get("1234").await?;
+    ///
+    ///     // now that the document is created, we can get it; or untyped:
+    ///     let _raw_user: Value = db.get("1234").await?;
+    ///
+    ///     Ok(())
+    /// }
+    ///```
     pub async fn get<T: TypedCouchDocument>(&self, id: &str) -> CouchResult<T> {
         let response = self
             ._client
@@ -149,17 +197,6 @@ impl Database {
 
         let doc: T = response.json().await?;
         Ok(doc)
-    }
-
-    /// Gets one raw (untyped) document
-    pub async fn get_raw(&self, id: &str) -> CouchResult<Document> {
-        let response = self
-            ._client
-            .get(self.create_document_path(id), None)?
-            .send()
-            .await?
-            .error_for_status()?;
-        Ok(Document::new(response.json().await?))
     }
 
     /// Gets documents in bulk with provided IDs list
@@ -526,6 +563,7 @@ impl Database {
     ///
     /// #[derive(Serialize, Deserialize, CouchDocument)]
     /// pub struct UserDetails {
+    ///     #[serde(skip_serializing_if = "String::is_empty")]
     ///     pub _id: DocumentId,
     ///     #[serde(skip_serializing_if = "String::is_empty")]
     ///     pub _rev: String,
@@ -567,6 +605,7 @@ impl Database {
 
         match data.ok {
             Some(true) => {
+                doc.set_id(&data.id.unwrap_or_default());
                 doc.set_rev(&data.rev.unwrap_or_default());
                 Ok(doc)
             }
@@ -603,12 +642,35 @@ impl Database {
     }
 
     /// Creates a document from a raw JSON document Value.
-    pub async fn create(&self, raw_doc: Value) -> CouchResult<Document> {
-        let response = self
-            ._client
-            .post(self.name.clone(), to_string(&raw_doc)?)?
-            .send()
-            .await?;
+    /// Usage:
+    ///
+    /// ```
+    /// use couch_rs::types::find::FindQuery;
+    /// use couch_rs::document::Document;
+    /// use couch_rs::error::CouchResult;
+    /// use serde_json::json;
+    /// use couch_rs::document::TypedCouchDocument;
+    ///
+    /// const TEST_DB: &str = "test_db";
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> CouchResult<()> {
+    /// let client = couch_rs::Client::new_local_test()?;
+    ///     let db = client.db(TEST_DB).await?;
+    ///     let doc = json!({
+    ///                     "first_name": "John",
+    ///                     "last_name": "Doe"
+    ///                 });
+    ///
+    ///     let created_doc = db.create(doc).await?;
+    ///
+    ///     // verify that this is the 1st revision of the document
+    ///     assert!(created_doc.get_rev().starts_with('1'));
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn create<T: TypedCouchDocument>(&self, mut doc: T) -> CouchResult<T> {
+        let response = self._client.post(self.name.clone(), to_string(&doc)?)?.send().await?;
 
         let status = response.status();
         let data: DocumentCreatedResponse = response.json().await?;
@@ -625,11 +687,9 @@ impl Database {
                     _ => return Err(CouchError::new(s!("invalid rev"), status)),
                 };
 
-                let mut val = raw_doc.clone();
-                val["_id"] = json!(data_id);
-                val["_rev"] = json!(data_rev);
-
-                Ok(Document::new(val))
+                doc.set_id(&data_id);
+                doc.set_rev(&data_rev);
+                Ok(doc)
             }
             _ => {
                 let err = data.error.unwrap_or_else(|| s!("unspecified error"));
@@ -650,6 +710,7 @@ impl Database {
     /// use couch_rs::types::find::FindQuery;
     /// use couch_rs::document::Document;
     /// use couch_rs::error::CouchResult;
+    /// use couch_rs::document::TypedCouchDocument;
     /// use serde_json::json;
     ///
     /// const TEST_DB: &str = "test_db";
@@ -658,11 +719,11 @@ impl Database {
     /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new_local_test()?;
     ///     let db = client.db(TEST_DB).await?;
-    ///     let doc = Document::new(json!({
+    ///     let doc = json!({
     ///                     "_id": "doe",
     ///                     "first_name": "John",
     ///                     "last_name": "Doe"
-    ///                 }));
+    ///                 });
     ///
     ///     // initial call creates the document
     ///     db.upsert(doc.clone()).await?;
@@ -671,23 +732,23 @@ impl Database {
     ///     let updated_doc = db.upsert(doc).await?;
     ///
     ///     // verify that this is the 2nd revision of the document
-    ///     assert!(updated_doc._rev.starts_with('2'));
+    ///     assert!(updated_doc.get_rev().starts_with('2'));
     ///     Ok(())
     /// }
     /// ```
-    pub async fn upsert(&self, doc: Document) -> CouchResult<Document> {
-        let id = doc._id.clone();
+    pub async fn upsert<T: TypedCouchDocument>(&self, mut doc: T) -> CouchResult<T> {
+        let id = doc.get_id();
 
-        match self.get_raw(&id).await {
-            Ok(mut current_doc) => {
-                current_doc.merge(doc.get_data());
-                let doc = self.save_raw(current_doc).await?;
+        match self.get::<T>(&id).await {
+            Ok(current_doc) => {
+                doc.set_rev(&current_doc.get_rev());
+                let doc = self.save(doc).await?;
                 Ok(doc)
             }
             Err(err) => {
                 if err.is_not_found() {
                     // document does not yet exist
-                    let doc = self.save_raw(doc).await?;
+                    let doc = self.save(doc).await?;
                     Ok(doc)
                 } else {
                     Err(err)
@@ -799,7 +860,7 @@ impl Database {
     /// Usage:
     /// ```
     /// use couch_rs::types::find::FindQuery;
-    /// use serde_json::{from_value, to_value};
+    /// use serde_json::{from_value, to_value, Value};
     /// use couch_rs::types::document::DocumentId;
     /// use couch_rs::document::Document;
     /// use couch_rs::error::CouchResult;
@@ -813,19 +874,19 @@ impl Database {
     ///
     ///     // first we need to get the document, because we need both the _id and _rev in order
     ///     // to delete
-    ///     if let Some(doc) = db.get_raw("123").await.ok() {
+    ///     if let Some(doc) = db.get::<Value>("123").await.ok() {
     ///         db.remove(doc).await;
     ///     }
     ///
     ///     Ok(())
     /// }
     ///```     
-    pub async fn remove(&self, doc: Document) -> bool {
+    pub async fn remove<T: TypedCouchDocument>(&self, doc: T) -> bool {
         let request = self._client.delete(
-            self.create_document_path(&doc._id),
+            self.create_document_path(&doc.get_id()),
             Some({
                 let mut h = HashMap::new();
-                h.insert(s!("rev"), doc._rev.clone());
+                h.insert(s!("rev"), doc.get_rev().into_owned());
                 h
             }),
         );

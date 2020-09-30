@@ -3,6 +3,7 @@ use crate::types::document::DocumentId;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::borrow::Cow;
 use std::ops::{Index, IndexMut};
 
 /// Document abstracts the handling of JSON values and provides direct access
@@ -22,10 +23,40 @@ pub struct Document {
 }
 
 pub trait TypedCouchDocument: DeserializeOwned + Serialize {
-    fn get_id(&self) -> &str;
-    fn get_rev(&self) -> &str;
+    fn get_id(&self) -> Cow<str>;
+    fn get_rev(&self) -> Cow<str>;
     fn set_rev(&mut self, rev: &str);
-    fn merge_rev(&mut self, other: Self);
+    fn set_id(&mut self, rev: &str);
+    fn merge(&mut self, other: Self);
+}
+
+impl TypedCouchDocument for Value {
+    fn get_id(&self) -> Cow<str> {
+        let id: String = json_extr!(self["_id"]);
+        Cow::from(id)
+    }
+
+    fn get_rev(&self) -> Cow<str> {
+        let rev: String = json_extr!(self["_rev"]);
+        Cow::from(rev)
+    }
+
+    fn set_id(&mut self, id: &str) {
+        if let Some(o) = self.as_object_mut() {
+            o.insert("_id".to_string(), Value::from(id));
+        }
+    }
+
+    fn set_rev(&mut self, rev: &str) {
+        if let Some(o) = self.as_object_mut() {
+            o.insert("_rev".to_string(), Value::from(rev));
+        }
+    }
+
+    fn merge(&mut self, other: Self) {
+        self.set_id(&other.get_id());
+        self.set_rev(&other.get_rev());
+    }
 }
 
 impl Document {
@@ -228,6 +259,7 @@ impl IndexMut<usize> for DocumentCollection {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate as couch_rs;
     use crate::document::TypedCouchDocument;
     use couch_rs_derive::CouchDocument;
     use serde::{Deserialize, Serialize};

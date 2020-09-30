@@ -13,6 +13,7 @@ pub struct TestDoc {
     /// a leaf node, and may require re-writing intermediary and parent nodes. You may be able to take
     /// advantage of sequencing your own ids more effectively than the automatically generated ids if
     /// you can arrange them to be sequential yourself. (https://docs.couchdb.org/en/stable/best-practices/documents.html)
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub _id: DocumentId,
     /// Document Revision, provided by CouchDB, helps negotiating conflicts
     #[serde(skip_serializing_if = "String::is_empty")]
@@ -50,7 +51,7 @@ async fn main() {
                 StatusCode::NOT_FOUND => {
                     // create the document
                     match db.create(serde_json::to_value(td).unwrap()).await {
-                        Ok(r) => println!("Document was created with ID: {} and Rev: {}", r._id, r._rev),
+                        Ok(r) => println!("Document was created with ID: {} and Rev: {}", r.get_id(), r.get_rev()),
                         Err(err) => println!("Oops: {:?}", err),
                     }
                 }
