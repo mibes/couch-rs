@@ -556,7 +556,7 @@ impl Database {
     /// use couch_rs::document::DocumentCollection;
     /// use serde::{Deserialize, Serialize};
     ///
-    /// const TEST_DB: &str = "test_db";
+    /// const TEST_DB: &str = "user_db";
     ///
     /// #[derive(Serialize, Deserialize, CouchDocument, Default, Debug)]
     /// pub struct TestDoc {
@@ -581,7 +581,7 @@ impl Database {
         let path = self.create_raw_path("_find");
         let response = self._client.post(path, js!(query))?.send().await?;
         let status = response.status();
-        let data: FindResult = response.json().await.unwrap();
+        let data: FindResult<T> = response.json().await.unwrap();
 
         if let Some(doc_val) = data.docs {
             let documents: Vec<T> = doc_val
@@ -591,7 +591,6 @@ impl Database {
                     let id: String = d.get_id().into_owned();
                     !id.starts_with('_')
                 })
-                .filter_map(|v| serde_json::from_value(v).ok())
                 .collect();
 
             let mut bookmark = Option::None;

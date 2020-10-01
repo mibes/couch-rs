@@ -77,7 +77,7 @@
 //! use couch_rs::document::DocumentCollection;
 //!
 //! const DB_HOST: &str = "http://localhost:5984";
-//! const TEST_DB: &str = "test_db";
+//! const TEST_DB: &str = "user_db";
 //!
 //! #[derive(Serialize, Deserialize, CouchDocument)]
 //! pub struct UserDetails {

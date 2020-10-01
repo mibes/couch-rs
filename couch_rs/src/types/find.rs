@@ -1,3 +1,4 @@
+use crate::document::TypedCouchDocument;
 use serde::export::Formatter;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -83,8 +84,9 @@ pub struct FindQuery {
 
 /// Find result abstraction
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
-pub struct FindResult {
-    pub docs: Option<Vec<Value>>,
+#[serde(bound(deserialize = "T: TypedCouchDocument"))]
+pub struct FindResult<T: TypedCouchDocument> {
+    pub docs: Option<Vec<T>>,
     pub warning: Option<String>,
     pub error: Option<String>,
     pub reason: Option<String>,
