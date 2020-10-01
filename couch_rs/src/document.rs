@@ -4,14 +4,21 @@ use serde_json::Value;
 use std::borrow::Cow;
 use std::ops::{Index, IndexMut};
 
+/// Trait to deal with typed CouchDB documents.
 pub trait TypedCouchDocument: DeserializeOwned + Serialize + Sized {
+    /// get the _id field
     fn get_id(&self) -> Cow<str>;
+    /// get the _rev field
     fn get_rev(&self) -> Cow<str>;
+    /// set the _rev field
     fn set_rev(&mut self, rev: &str);
+    /// set the _id field
     fn set_id(&mut self, rev: &str);
+    /// merge the _id and _rev from the other document with this one
     fn merge(&mut self, other: Self);
 }
 
+/// Allows dealing with _id and _rev fields in untyped (Value) documents
 impl TypedCouchDocument for Value {
     fn get_id(&self) -> Cow<str> {
         let id: String = json_extr!(self["_id"]);
@@ -23,15 +30,15 @@ impl TypedCouchDocument for Value {
         Cow::from(rev)
     }
 
-    fn set_id(&mut self, id: &str) {
-        if let Some(o) = self.as_object_mut() {
-            o.insert("_id".to_string(), Value::from(id));
-        }
-    }
-
     fn set_rev(&mut self, rev: &str) {
         if let Some(o) = self.as_object_mut() {
             o.insert("_rev".to_string(), Value::from(rev));
+        }
+    }
+
+    fn set_id(&mut self, id: &str) {
+        if let Some(o) = self.as_object_mut() {
+            o.insert("_id".to_string(), Value::from(id));
         }
     }
 
