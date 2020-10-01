@@ -1,21 +1,22 @@
 use crate::document::TypedCouchDocument;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(bound(deserialize = "T: TypedCouchDocument"))]
-pub struct ViewCollection<T: TypedCouchDocument> {
+pub struct ViewCollection<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument> {
     pub offset: Option<u32>,
-    pub rows: Vec<ViewItem<T>>,
+    pub rows: Vec<ViewItem<K, V, T>>,
     pub total_rows: Option<u32>,
 }
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(bound(deserialize = "T: TypedCouchDocument"))]
-pub struct ViewItem<T: TypedCouchDocument> {
-    pub key: Value,
-    pub value: Value,
+pub struct ViewItem<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument> {
+    pub key: K,
+    pub value: V,
     pub id: Option<String>,
     // docs field, populated if query was ran with 'include_docs'
     pub doc: Option<T>,

@@ -8,6 +8,7 @@ use crate::types::index::{DatabaseIndexList, IndexFields};
 use crate::types::query::{QueriesCollection, QueriesParams, QueryParams};
 use crate::types::view::ViewCollection;
 use reqwest::{RequestBuilder, StatusCode};
+use serde::de::DeserializeOwned;
 use serde_json::{json, to_string, Value};
 use std::collections::HashMap;
 use tokio::sync::mpsc::Sender;
@@ -458,27 +459,30 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn query_many_all_docs(&self, queries: QueriesParams) -> CouchResult<Vec<ViewCollection<Value>>> {
+    pub async fn query_many_all_docs<K: DeserializeOwned, V: DeserializeOwned>(
+        &self,
+        queries: QueriesParams,
+    ) -> CouchResult<Vec<ViewCollection<K, V, Value>>> {
         self.query_view_many(self.create_raw_path("_all_docs/queries"), queries)
             .await
     }
 
     /// Executes multiple queries against a view.
-    pub async fn query_many<T: TypedCouchDocument>(
+    pub async fn query_many<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument>(
         &self,
         design_name: &str,
         view_name: &str,
         queries: QueriesParams,
-    ) -> CouchResult<Vec<ViewCollection<Value>>> {
+    ) -> CouchResult<Vec<ViewCollection<K, V, Value>>> {
         self.query_view_many(self.create_query_view_path(design_name, view_name), queries)
             .await
     }
 
-    async fn query_view_many(
+    async fn query_view_many<K: DeserializeOwned, V: DeserializeOwned>(
         &self,
         view_path: String,
         queries: QueriesParams,
-    ) -> CouchResult<Vec<ViewCollection<Value>>> {
+    ) -> CouchResult<Vec<ViewCollection<K, V, Value>>> {
         // we use POST here, because this allows for a larger set of keys to be provided, compared
         // to a GET call. It provides the same functionality
 
@@ -488,7 +492,7 @@ impl Database {
             .send()
             .await?
             .error_for_status()?;
-        let results: QueriesCollection<Value> = response.json().await?;
+        let results: QueriesCollection<K, V, Value> = response.json().await?;
         Ok(results.results)
     }
 
@@ -854,22 +858,22 @@ impl Database {
     }
 
     /// Executes a query against a view, returning untyped Values
-    pub async fn query_raw(
+    pub async fn query_raw<K: DeserializeOwned, V: DeserializeOwned>(
         &self,
         design_name: &str,
         view_name: &str,
         options: Option<QueryParams>,
-    ) -> CouchResult<ViewCollection<Value>> {
+    ) -> CouchResult<ViewCollection<K, V, Value>> {
         self.query(design_name, view_name, options).await
     }
 
     /// Executes a query against a view.
-    pub async fn query<T: TypedCouchDocument>(
+    pub async fn query<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument>(
         &self,
         design_name: &str,
         view_name: &str,
         mut options: Option<QueryParams>,
-    ) -> CouchResult<ViewCollection<T>> {
+    ) -> CouchResult<ViewCollection<K, V, T>> {
         if options.is_none() {
             options = Some(QueryParams::default());
         }
