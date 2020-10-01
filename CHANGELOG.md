@@ -13,9 +13,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - WARNING: big changes ahead!
 - Most of the find/get operations now take a typed `TypedCouchDocument`.
-  - To use the generic Value, either use a `.._raw` function, or type the query with `::<Value>`
+  - To use the generic `Value`, either use a `.._raw` function, or type the query with `::<Value>`
+  - Value now holds the raw CouchDocument, including `_id` and `_rev` fields.
   - See the examples and the tests for more details
 - `TypedCouchDocument` traits can be derived using `CouchDocument`
+  - `Value` implements `TypedCouchDocument` traits
 
 ## [0.8.18] - 2020-09-29
 
