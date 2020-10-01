@@ -1,5 +1,5 @@
 use serde::de::DeserializeOwned;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::borrow::Cow;
 use std::ops::{Index, IndexMut};
@@ -63,30 +63,56 @@ impl<T: TypedCouchDocument> Default for DocumentCollection<T> {
     }
 }
 
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[serde(bound(deserialize = "T: TypedCouchDocument"))]
+pub struct AllDocsResponse<T: TypedCouchDocument> {
+    pub total_rows: Option<u32>,
+    pub offset: Option<u32>,
+    pub rows: Vec<DocResponse<T>>,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[serde(bound(deserialize = "T: TypedCouchDocument"))]
+pub struct DocResponse<T: TypedCouchDocument> {
+    pub id: Option<String>,
+    pub key: Option<Value>,
+    pub value: Option<DocResponseValue>,
+    pub error: Option<String>,
+    pub doc: Option<T>,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+pub struct DocResponseValue {
+    pub rev: String,
+}
+
 impl<T: TypedCouchDocument> DocumentCollection<T> {
-    pub fn new(doc: Value) -> DocumentCollection<T> {
-        let rows: Vec<Value> = json_extr!(doc["rows"]);
+    pub fn new(doc: AllDocsResponse<T>) -> DocumentCollection<T> {
+        let rows = doc.rows;
         let items: Vec<T> = rows
             .into_iter()
-            .filter(|d| {
-                let maybe_err: Option<String> = json_extr!(d["error"]);
-                if maybe_err.is_some() {
+            .filter_map(|d| {
+                if d.error.is_some() {
                     // remove errors
-                    false
+                    None
                 } else {
                     // Remove _design documents
-                    let id: String = json_extr!(d["doc"]["_id"]);
-                    !id.starts_with('_')
+                    if let Some(doc) = d.doc {
+                        if doc.get_id().starts_with('_') {
+                            None
+                        } else {
+                            Some(doc)
+                        }
+                    } else {
+                        // no documents retrieved
+                        None
+                    }
                 }
-            })
-            .map(|d| {
-                let document: T = json_extr!(d["doc"]);
-                document
             })
             .collect();
 
         DocumentCollection {
-            offset: json_extr!(doc["offset"]),
+            offset: doc.offset,
             total_rows: items.len() as u32,
             rows: items,
             bookmark: Option::None,
