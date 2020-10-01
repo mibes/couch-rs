@@ -11,6 +11,7 @@ Here: [http://docs.rs/couch_rs](http://docs.rs/couch_rs)
 ## Installation
 
 Include this dependency in the Cargo.toml file:
+
 ```toml
 [dependencies]
 couch_rs = "0.8"
@@ -69,7 +70,8 @@ cargo run --example basic_operations
 
 Make sure that you have an instance of CouchDB 2.0+ running, either via the supplied `docker-compose.yml` file or by
 yourself. It must be listening on the default port. Since Couch 3.0 the "Admin Party" mode is no longer supported. This
-means you need to provide a username and password during launch. The tests and examples assume an "admin" CouchDB user with a "password" CouchDB password. Docker run command:
+means you need to provide a username and password during launch. The tests and examples assume an "admin" CouchDB user
+with a "password" CouchDB password. Docker run command:
 
 ```shell script
 docker run --rm -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password couchdb:3
@@ -81,7 +83,8 @@ And then
 Single-threading the tests is very important because we need to make sure that the basic features are working before
 actually testing features on dbs/documents.
 
-If bash is available on your environment, you can also use the `test.sh` script which basically does the same thing described above.
+If bash is available on your environment, you can also use the `test.sh` script which basically does the same thing
+described above.
 
 ## License
 
