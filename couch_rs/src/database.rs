@@ -5,7 +5,7 @@ use crate::types::design::DesignCreated;
 use crate::types::document::{DocumentCreatedResponse, DocumentCreatedResult, DocumentId};
 use crate::types::find::{FindQuery, FindResult};
 use crate::types::index::{DatabaseIndexList, IndexFields};
-use crate::types::query::{CouchKey, CouchValue, QueriesCollection, QueriesParams, QueryParams};
+use crate::types::query::{QueriesCollection, QueriesParams, QueryParams};
 use crate::types::view::ViewCollection;
 use reqwest::{RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
@@ -459,7 +459,7 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn query_many_all_docs<K: CouchKey, V: CouchValue>(
+    pub async fn query_many_all_docs<K: DeserializeOwned, V: DeserializeOwned>(
         &self,
         queries: QueriesParams,
     ) -> CouchResult<Vec<ViewCollection<K, V, Value>>> {
@@ -468,7 +468,7 @@ impl Database {
     }
 
     /// Executes multiple queries against a view.
-    pub async fn query_many<K: CouchKey, V: CouchValue, T: TypedCouchDocument>(
+    pub async fn query_many<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument>(
         &self,
         design_name: &str,
         view_name: &str,
@@ -478,7 +478,7 @@ impl Database {
             .await
     }
 
-    async fn query_view_many<K: CouchKey, V: CouchValue>(
+    async fn query_view_many<K: DeserializeOwned, V: DeserializeOwned>(
         &self,
         view_path: String,
         queries: QueriesParams,

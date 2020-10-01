@@ -2,7 +2,6 @@ use crate::document::TypedCouchDocument;
 use crate::types::view::ViewCollection;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct QueriesParams {
@@ -15,15 +14,9 @@ impl QueriesParams {
     }
 }
 
-pub trait CouchKey: DeserializeOwned {}
-impl CouchKey for Value {}
-
-pub trait CouchValue: DeserializeOwned {}
-impl CouchValue for Value {}
-
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(bound(deserialize = "T: TypedCouchDocument"))]
-pub struct QueriesCollection<K: CouchKey, V: CouchValue, T: TypedCouchDocument> {
+pub struct QueriesCollection<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument> {
     pub results: Vec<ViewCollection<K, V, T>>,
 }
 
