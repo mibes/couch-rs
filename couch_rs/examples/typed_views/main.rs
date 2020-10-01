@@ -1,9 +1,10 @@
-use serde_json::Value;
+use couch_rs::error::CouchResult;
+use couch_rs::types::view::RawViewCollection;
 
 const TEST_DB: &str = "test_db";
 
 #[tokio::main]
-async fn main() {
+async fn main() -> CouchResult<()> {
     println!("Connecting...");
 
     // Prepare the Sofa client
@@ -16,26 +17,16 @@ async fn main() {
     // execute a view that counts items per field value
     // key of the view result: field name
     // value of the view result: integer
-    match db
-        .query::<String, i32, Value>("countByField", "countByField", None)
-        .await
-    {
-        Ok(view_collection) => {
-            for item in view_collection.rows.into_iter() {
-                let field: String = item.key;
-                let value: i32 = item.value;
-                // view item results are already typed
-                take_i32(value);
-                take_string(field);
-            }
-        }
-        Err(e) => {
-            println!("Unexpected error: {:?}", e);
-        }
+    // doc: Value
+
+    let result: RawViewCollection<String, i32> = db.query("countByField", "countByField", None).await?;
+    for item in result.rows.into_iter() {
+        let field = item.key;
+        let count = item.value;
+        // view item results are already typed
+        println!("fieldname is {} and count is {}", field, count);
     }
+    println!("All operations are done");
 
-    println!("All operations are done")
+    Ok(())
 }
-
-fn take_i32(_param: i32) {}
-fn take_string(_param: String) {}

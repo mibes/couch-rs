@@ -12,6 +12,8 @@ pub struct ViewCollection<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouc
     pub total_rows: Option<u32>,
 }
 
+pub type RawViewCollection<K, V> = ViewCollection<K, V, Value>;
+
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(bound(deserialize = "T: TypedCouchDocument"))]
 pub struct ViewItem<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument> {
