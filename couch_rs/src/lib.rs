@@ -67,14 +67,13 @@
 //! You can use a similar operation to get a typed Couch document.
 //!
 //! ```
+//! use couch_rs::CouchDocument;
 //! use couch_rs::types::find::FindQuery;
+//! use couch_rs::document::{DocumentCollection, TypedCouchDocument};
+//! use couch_rs::types::document::DocumentId;
 //! use std::error::Error;
 //! use serde_json::Value;
-//! use couch_rs::document::TypedCouchDocument;
-//! use couch_rs::CouchDocument;
-//! use couch_rs::types::document::DocumentId;
 //! use serde::{Deserialize, Serialize};
-//! use couch_rs::document::DocumentCollection;
 //!
 //! const DB_HOST: &str = "http://localhost:5984";
 //! const TEST_DB: &str = "user_db";
