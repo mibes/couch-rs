@@ -863,7 +863,7 @@ impl Database {
         design_name: &str,
         view_name: &str,
         options: Option<QueryParams>,
-    ) -> CouchResult<ViewCollection<Value, Value, Value>> {
+    ) -> CouchResult<ViewCollection<String, Value, Value>> {
         self.query(design_name, view_name, options).await
     }
 
