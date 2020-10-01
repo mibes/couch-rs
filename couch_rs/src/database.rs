@@ -425,7 +425,7 @@ impl Database {
     /// use couch_rs::types::find::FindQuery;
     /// use couch_rs::types::query::{QueryParams, QueriesParams};
     /// use couch_rs::error::CouchResult;
-    /// use serde_json::json;
+    /// use serde_json::{json, Value};
     ///
     /// const TEST_DB: &str = "vehicles";
     ///
@@ -458,23 +458,27 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn query_many_all_docs(&self, queries: QueriesParams) -> CouchResult<Vec<ViewCollection>> {
+    pub async fn query_many_all_docs(&self, queries: QueriesParams) -> CouchResult<Vec<ViewCollection<Value>>> {
         self.query_view_many(self.create_raw_path("_all_docs/queries"), queries)
             .await
     }
 
     /// Executes multiple queries against a view.
-    pub async fn query_many(
+    pub async fn query_many<T: TypedCouchDocument>(
         &self,
         design_name: &str,
         view_name: &str,
         queries: QueriesParams,
-    ) -> CouchResult<Vec<ViewCollection>> {
+    ) -> CouchResult<Vec<ViewCollection<Value>>> {
         self.query_view_many(self.create_query_view_path(design_name, view_name), queries)
             .await
     }
 
-    async fn query_view_many(&self, view_path: String, queries: QueriesParams) -> CouchResult<Vec<ViewCollection>> {
+    async fn query_view_many(
+        &self,
+        view_path: String,
+        queries: QueriesParams,
+    ) -> CouchResult<Vec<ViewCollection<Value>>> {
         // we use POST here, because this allows for a larger set of keys to be provided, compared
         // to a GET call. It provides the same functionality
 
@@ -484,7 +488,7 @@ impl Database {
             .send()
             .await?
             .error_for_status()?;
-        let results: QueriesCollection = response.json().await?;
+        let results: QueriesCollection<Value> = response.json().await?;
         Ok(results.results)
     }
 
@@ -849,13 +853,23 @@ impl Database {
         }
     }
 
+    /// Executes a query against a view, returning untyped Values
+    pub async fn query_raw(
+        &self,
+        design_name: &str,
+        view_name: &str,
+        options: Option<QueryParams>,
+    ) -> CouchResult<ViewCollection<Value>> {
+        self.query(design_name, view_name, options).await
+    }
+
     /// Executes a query against a view.
-    pub async fn query(
+    pub async fn query<T: TypedCouchDocument>(
         &self,
         design_name: &str,
         view_name: &str,
         mut options: Option<QueryParams>,
-    ) -> CouchResult<ViewCollection> {
+    ) -> CouchResult<ViewCollection<T>> {
         if options.is_none() {
             options = Some(QueryParams::default());
         }

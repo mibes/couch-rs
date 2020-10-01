@@ -622,7 +622,7 @@ mod couch_rs_tests {
 
             // executing 'all' view querying with keys containing 1 key should result in 1 and 0 entries, respectively
             assert_eq!(
-                db.query(view_name, view_name, Some(QueryParams::from_keys(vec![id.clone()])))
+                db.query_raw(view_name, view_name, Some(QueryParams::from_keys(vec![id.clone()])))
                     .await
                     .unwrap()
                     .rows
@@ -630,7 +630,7 @@ mod couch_rs_tests {
                 1
             );
             assert_eq!(
-                db.query(
+                db.query_raw(
                     single_view_name,
                     single_view_name,
                     Some(QueryParams::from_keys(vec![id])),
@@ -703,7 +703,7 @@ mod couch_rs_tests {
             one_key.key = Some(doc.get_id().into_owned());
 
             assert_eq!(
-                db.query(view_name, view_name, Some(one_key.clone()))
+                db.query_raw(view_name, view_name, Some(one_key.clone()))
                     .await
                     .unwrap()
                     .rows
@@ -711,7 +711,7 @@ mod couch_rs_tests {
                 1
             );
             assert_eq!(
-                db.query(single_view_name, single_view_name, Some(one_key))
+                db.query_raw(single_view_name, single_view_name, Some(one_key))
                     .await
                     .unwrap()
                     .rows
@@ -775,12 +775,12 @@ mod couch_rs_tests {
             .await
             .unwrap();
 
-            let query_result = db.query(view_name, view_name, None).await;
+            let query_result = db.query_raw(view_name, view_name, None).await;
 
             // executing 'all' view without any params should result in 2 and 1 entries, respectively
             assert_eq!(query_result.unwrap().rows.len(), 2);
             assert_eq!(
-                db.query(single_view_name, single_view_name, None)
+                db.query_raw(single_view_name, single_view_name, None)
                     .await
                     .unwrap()
                     .rows
@@ -789,7 +789,7 @@ mod couch_rs_tests {
             );
             // executing 'all' view with default params should result in 2 and 1 entries, respectively
             assert_eq!(
-                db.query(view_name, view_name, Some(QueryParams::default()))
+                db.query_raw(view_name, view_name, Some(QueryParams::default()))
                     .await
                     .unwrap()
                     .rows
@@ -797,7 +797,7 @@ mod couch_rs_tests {
                 2
             );
             assert_eq!(
-                db.query(single_view_name, single_view_name, Some(QueryParams::default()))
+                db.query_raw(single_view_name, single_view_name, Some(QueryParams::default()))
                     .await
                     .unwrap()
                     .rows
@@ -826,6 +826,7 @@ mod couch_rs_tests {
             let params = vec![params1, params2, params3];
 
             let collections = db.query_many_all_docs(QueriesParams::new(params)).await.unwrap();
+
             assert_eq!(collections.len(), 3);
             assert_eq!(collections.get(0).unwrap().rows.len(), 1);
             // first result has no docs and only 1 row
@@ -868,7 +869,7 @@ mod couch_rs_tests {
                 )
                 .await
                 .is_ok());
-            assert!(db.query(view_name, view_name, None,).await.is_ok());
+            assert!(db.query_raw(view_name, view_name, None).await.is_ok());
 
             teardown(client, dbname).await;
         }
