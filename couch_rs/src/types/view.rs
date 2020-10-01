@@ -1,21 +1,24 @@
+use crate::document::TypedCouchDocument;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
-pub struct ViewCollection {
+#[serde(bound(deserialize = "T: TypedCouchDocument"))]
+pub struct ViewCollection<T: TypedCouchDocument> {
     pub offset: Option<u32>,
-    pub rows: Vec<ViewItem>,
+    pub rows: Vec<ViewItem<T>>,
     pub total_rows: Option<u32>,
 }
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
-pub struct ViewItem {
+#[serde(bound(deserialize = "T: TypedCouchDocument"))]
+pub struct ViewItem<T: TypedCouchDocument> {
     pub key: Value,
     pub value: Value,
     pub id: Option<String>,
     // docs field, populated if query was ran with 'include_docs'
-    pub doc: Option<Value>,
+    pub doc: Option<T>,
 }
 
 /// CouchViews can be used to create one of more views in a particular design document.

@@ -1,0 +1,25 @@
+[package]
+name = "couch_rs_derive"
+version = "0.8.19"
+authors = ["mibes <mibes@mibesco.com>"]
+license = "MIT/Apache-2.0"
+description = "CouchDB library for Rust"
+readme = "README.md"
+documentation = "https://docs.rs/couch_rs"
+repository = "https://github.com/mibes/couch-rs"
+keywords = ["couchdb", "orm", "database", "nosql"]
+categories = ["database"]
+edition = "2018"
+include = [
+    "**/*.rs",
+    "Cargo.toml"
+]
+
+[lib]
+name = "couch_rs_derive"
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "1.0.33", features = ["visit"] }
