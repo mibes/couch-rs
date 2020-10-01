@@ -7,13 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased](https://github.com/mibes/couch-rs/compare/0.8.21...develop) - ReleaseDate
 
-## [0.8.21] - 2020-09-29
+## [0.8.21] - 2020-10-01
 
 ### Changed
 
 - Allow `_bulk_docs` to take TypedDocuments
 
-## [0.8.19] - 2020-09-29
+## [0.8.19] - 2020-10-01
 
 ### Changed
 
