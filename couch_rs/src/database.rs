@@ -459,40 +459,40 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn query_many_all_docs<K: DeserializeOwned, V: DeserializeOwned>(
+    pub async fn query_many_all_docs(
         &self,
         queries: QueriesParams,
-    ) -> CouchResult<Vec<ViewCollection<K, V, Value>>> {
+    ) -> CouchResult<Vec<ViewCollection<Value, Value, Value>>> {
         self.query_view_many(self.create_raw_path("_all_docs/queries"), queries)
             .await
     }
 
     /// Executes multiple queries against a view.
-    pub async fn query_many<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument>(
+    pub async fn query_many(
         &self,
         design_name: &str,
         view_name: &str,
         queries: QueriesParams,
-    ) -> CouchResult<Vec<ViewCollection<K, V, Value>>> {
+    ) -> CouchResult<Vec<ViewCollection<Value, Value, Value>>> {
         self.query_view_many(self.create_query_view_path(design_name, view_name), queries)
             .await
     }
 
-    async fn query_view_many<K: DeserializeOwned, V: DeserializeOwned>(
+    async fn query_view_many(
         &self,
         view_path: String,
         queries: QueriesParams,
-    ) -> CouchResult<Vec<ViewCollection<K, V, Value>>> {
+    ) -> CouchResult<Vec<ViewCollection<Value, Value, Value>>> {
         // we use POST here, because this allows for a larger set of keys to be provided, compared
         // to a GET call. It provides the same functionality
-
         let response = self
             ._client
             .post(view_path, js!(&queries))?
             .send()
             .await?
             .error_for_status()?;
-        let results: QueriesCollection<K, V, Value> = response.json().await?;
+
+        let results: QueriesCollection<Value, Value, Value> = response.json().await?;
         Ok(results.results)
     }
 
@@ -817,9 +817,9 @@ impl Database {
     ///     let db = client.db(TEST_DB).await?;
     ///
     ///     let couch_func = CouchFunc {
-    ///             map: "function (doc) { if (doc.CLIP == true) { emit(doc.CLIP); } }".to_string(),
+    ///             map: "function (doc) { if (doc.funny == true) { emit(doc._id, doc.funny); } }".to_string(),
     ///             reduce: None,
-    ///         };
+    ///     };
     ///
     ///     let couch_views = CouchViews::new("clip_view", couch_func);
     ///     db.create_view("clip_design", couch_views).await?;
@@ -863,11 +863,53 @@ impl Database {
         design_name: &str,
         view_name: &str,
         options: Option<QueryParams>,
-    ) -> CouchResult<ViewCollection<String, Value, Value>> {
+    ) -> CouchResult<ViewCollection<Value, Value, Value>> {
         self.query(design_name, view_name, options).await
     }
 
     /// Executes a query against a view.
+    ///
+    /// Usage:
+    /// ```
+    /// use couch_rs::error::CouchResult;
+    /// use couch_rs::types::view::RawViewCollection;
+    /// use couch_rs::types::view::{CouchFunc, CouchViews};
+    /// use serde_json::json;
+    ///
+    /// const TEST_DB: &str = "view_db";
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> CouchResult<()> {
+    ///     let client = couch_rs::Client::new_local_test()?;
+    ///     let db = client.db(TEST_DB).await?;
+    ///
+    ///     let doc = json!({
+    ///                     "_id": "jdoe",
+    ///                     "first_name": "John",
+    ///                     "last_name": "Doe",
+    ///                     "funny": true
+    ///                 });
+    ///
+    ///     db.create(doc).await?;
+    ///
+    ///     let couch_func = CouchFunc {
+    ///             map: "function (doc) { if (doc.funny == true) { emit(doc._id, doc.funny); } }".to_string(),
+    ///             reduce: None,
+    ///     };
+    ///
+    ///     let couch_views = CouchViews::new("funny_guys", couch_func);
+    ///     db.create_view("test_design", couch_views).await?;
+    ///     let result: RawViewCollection<String, bool> = db.query("test_design", "funny_guys", None).await?;
+    ///
+    ///     println!("Funny guys:");
+    ///     for item in result.rows.into_iter() {
+    ///         let id = item.key;
+    ///         let is_funny = item.value;
+    ///         println!("{} is funny: {}", id, is_funny);
+    ///     }
+    ///     Ok(())
+    /// }
+    /// ```    
     pub async fn query<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument>(
         &self,
         design_name: &str,

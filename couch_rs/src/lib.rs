@@ -823,11 +823,7 @@ mod couch_rs_tests {
             let mut params3 = QueryParams::default();
 
             let params = vec![params1, params2, params3];
-
-            let collections = db
-                .query_many_all_docs::<Value, Value>(QueriesParams::new(params))
-                .await
-                .unwrap();
+            let collections = db.query_many_all_docs(QueriesParams::new(params)).await.unwrap();
 
             assert_eq!(collections.len(), 3);
             assert_eq!(collections.get(0).unwrap().rows.len(), 1);
@@ -871,6 +867,7 @@ mod couch_rs_tests {
                 )
                 .await
                 .is_ok());
+
             assert!(db.query_raw(view_name, view_name, None).await.is_ok());
 
             teardown(client, dbname).await;
