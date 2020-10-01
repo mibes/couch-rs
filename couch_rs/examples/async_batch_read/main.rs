@@ -1,4 +1,5 @@
 use couch_rs::document::DocumentCollection;
+use serde_json::Value;
 use std::fs::File;
 use std::io::prelude::*;
 use std::time::SystemTime;
@@ -13,7 +14,7 @@ async fn main() {
     let now = SystemTime::now();
 
     // Create a sender and receiver channel pair
-    let (tx, mut rx): (Sender<DocumentCollection>, Receiver<DocumentCollection>) = mpsc::channel(100);
+    let (tx, mut rx): (Sender<DocumentCollection<Value>>, Receiver<DocumentCollection<Value>>) = mpsc::channel(100);
 
     // Spawn a separate thread to retrieve the batches from Couch
     let t = tokio::spawn(async move {
@@ -35,8 +36,7 @@ async fn main() {
         // unmarshal the documents and write them to a file.
         // (there is probably a more efficient way of doing this...)
         for row in all_docs.rows {
-            file.write_all(serde_json::to_string(&row.doc).unwrap().as_bytes())
-                .unwrap();
+            file.write_all(serde_json::to_string(&row).unwrap().as_bytes()).unwrap();
         }
     }
 
