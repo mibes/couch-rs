@@ -247,7 +247,7 @@ impl Database {
     ///    return Ok(());
     /// }
     /// ```
-    pub async fn bulk_docs(&self, raw_docs: Vec<Value>) -> CouchResult<Vec<DocumentCreatedResult>> {
+    pub async fn bulk_docs<T: TypedCouchDocument>(&self, raw_docs: Vec<T>) -> CouchResult<Vec<DocumentCreatedResult>> {
         let mut body = HashMap::new();
         body.insert(s!("docs"), raw_docs);
 
