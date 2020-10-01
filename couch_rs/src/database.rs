@@ -858,12 +858,12 @@ impl Database {
     }
 
     /// Executes a query against a view, returning untyped Values
-    pub async fn query_raw<K: DeserializeOwned, V: DeserializeOwned>(
+    pub async fn query_raw(
         &self,
         design_name: &str,
         view_name: &str,
         options: Option<QueryParams>,
-    ) -> CouchResult<ViewCollection<K, V, Value>> {
+    ) -> CouchResult<ViewCollection<Value, Value, Value>> {
         self.query(design_name, view_name, options).await
     }
 
