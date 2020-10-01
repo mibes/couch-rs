@@ -5,7 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/mibes/couch-rs/compare/0.8.18...develop) - ReleaseDate
+## [Unreleased](https://github.com/mibes/couch-rs/compare/0.8.19...develop) - ReleaseDate
+
+## [0.8.19] - 2020-09-29
+
+### Changed
+
+- WARNING: big changes ahead!
+- Most of the find/get operations now take a typed `TypedCouchDocument`.
+  - To use the generic Value, either use a `.._raw` function, or type the query with `::<Value>`
+  - See the examples and the tests for more details
+- `TypedCouchDocument` traits can be derived using `CouchDocument`
 
 ## [0.8.18] - 2020-09-29
 
