@@ -1,5 +1,6 @@
 use crate::document::TypedCouchDocument;
 use crate::types::view::ViewCollection;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
@@ -15,8 +16,8 @@ impl QueriesParams {
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(bound(deserialize = "T: TypedCouchDocument"))]
-pub struct QueriesCollection<T: TypedCouchDocument> {
-    pub results: Vec<ViewCollection<T>>,
+pub struct QueriesCollection<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument> {
+    pub results: Vec<ViewCollection<K, V, T>>,
 }
 
 /// Whether or not the view in question should be updated prior to responding to the user
