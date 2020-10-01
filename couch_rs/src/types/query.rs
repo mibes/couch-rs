@@ -16,16 +16,14 @@ impl QueriesParams {
 }
 
 pub trait CouchKey: DeserializeOwned {}
-
 impl CouchKey for Value {}
 
 pub trait CouchValue: DeserializeOwned {}
-
 impl CouchValue for Value {}
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(bound(deserialize = "T: TypedCouchDocument"))]
-pub struct QueriesCollection<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument> {
+pub struct QueriesCollection<K: CouchKey, V: CouchValue, T: TypedCouchDocument> {
     pub results: Vec<ViewCollection<K, V, T>>,
 }
 

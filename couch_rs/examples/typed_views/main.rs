@@ -22,8 +22,8 @@ async fn main() {
     {
         Ok(view_collection) => {
             for item in view_collection.rows.into_iter() {
-                let field = item.key;
-                let value = item.value;
+                let field: String = item.key;
+                let value: i32 = item.value;
                 // view item results are already typed
                 take_i32(value);
                 take_string(field);
