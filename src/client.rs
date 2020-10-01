@@ -42,21 +42,21 @@ const DEFAULT_TIME_OUT: u64 = 10;
 
 impl Client {
     /// new creates a new Couch client with a default timeout of 10 seconds.
-    /// The timeout is applied from the when the request starts connecting until the response body has finished.
+    /// The timeout is applied from when the request starts connecting until the response body has finished.
     /// The URI has to be in this format: http://hostname:5984, for example: http://192.168.64.5:5984
     pub fn new(uri: &str, username: &str, password: &str) -> CouchResult<Client> {
         Client::new_with_timeout(uri, Some(username), Some(password), DEFAULT_TIME_OUT)
     }
 
     /// new_no_auth creates a new Couch client with a default timeout of 10 seconds. *Without authentication*.
-    /// The timeout is applied from the when the request starts connecting until the response body has finished.
+    /// The timeout is applied from when the request starts connecting until the response body has finished.
     /// The URI has to be in this format: http://hostname:5984, for example: http://192.168.64.5:5984
     pub fn new_no_auth(uri: &str) -> CouchResult<Client> {
         Client::new_with_timeout(uri, None, None, DEFAULT_TIME_OUT)
     }
 
     /// new_local_test creates a new Couch client *for testing purposes* with a default timeout of 10 seconds.
-    /// The timeout is applied from the when the request starts connecting until the response body has finished.
+    /// The timeout is applied from when the request starts connecting until the response body has finished.
     /// The URI that will be used is: http://hostname:5984, with a username of "admin" and a password
     /// of "password". Use this only for testing!!!
     pub fn new_local_test() -> CouchResult<Client> {
@@ -64,7 +64,7 @@ impl Client {
     }
 
     /// new_with_timeout creates a new Couch client. The URI has to be in this format: http://hostname:5984,
-    /// The timeout is applied from the when the request starts connecting until the response body has finished.
+    /// The timeout is applied from when the request starts connecting until the response body has finished.
     /// Timeout is in seconds.
     pub fn new_with_timeout(
         uri: &str,
@@ -242,7 +242,7 @@ impl Client {
     }
 
     /// Gets information about the specified database.
-    /// See [common](https://docs.couchdb.org/en/stable/api/server/common.html) for more details.
+    /// See [common](https://docs.couchdb.org/en/stable/api/database/common.html) for more details.
     pub async fn get_info(&self, dbname: &str) -> CouchResult<DbInfo> {
         let path = self.create_path(self.build_dbname(dbname), None)?;
         let response = self.get(path, None)?.send().await?.error_for_status()?;
@@ -295,25 +295,25 @@ impl Client {
         Ok(req)
     }
 
-    pub fn get(&self, path: String, args: Option<HashMap<String, String>>) -> CouchResult<RequestBuilder> {
+    pub(crate) fn get(&self, path: String, args: Option<HashMap<String, String>>) -> CouchResult<RequestBuilder> {
         Ok(self.req(Method::GET, path, args)?)
     }
 
-    pub fn post(&self, path: String, body: String) -> CouchResult<RequestBuilder> {
+    pub(crate) fn post(&self, path: String, body: String) -> CouchResult<RequestBuilder> {
         let req = self.req(Method::POST, path, None)?.body(body);
         Ok(req)
     }
 
-    pub fn put(&self, path: String, body: String) -> CouchResult<RequestBuilder> {
+    pub(crate) fn put(&self, path: String, body: String) -> CouchResult<RequestBuilder> {
         let req = self.req(Method::PUT, path, None)?.body(body);
         Ok(req)
     }
 
-    pub fn head(&self, path: String, args: Option<HashMap<String, String>>) -> CouchResult<RequestBuilder> {
+    pub(crate) fn head(&self, path: String, args: Option<HashMap<String, String>>) -> CouchResult<RequestBuilder> {
         Ok(self.req(Method::HEAD, path, args)?)
     }
 
-    pub fn delete(&self, path: String, args: Option<HashMap<String, String>>) -> CouchResult<RequestBuilder> {
+    pub(crate) fn delete(&self, path: String, args: Option<HashMap<String, String>>) -> CouchResult<RequestBuilder> {
         Ok(self.req(Method::DELETE, path, args)?)
     }
 }

@@ -49,12 +49,12 @@
 //! use couch_rs::types::find::FindQuery;
 //! use std::error::Error;
 //!
-//! const DB_HOST: &str = "http://admin:password@localhost:5984";
+//! const DB_HOST: &str = "http://localhost:5984";
 //! const TEST_DB: &str = "test_db";
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn Error>> {
-//!     let client = couch_rs::Client::new_local_test()?;
+//!     let client = couch_rs::Client::new(DB_HOST, "admin", "password")?;
 //!     let db = client.db(TEST_DB).await?;
 //!     let find_all = FindQuery::find_all();
 //!     let docs = db.find(&find_all).await?;
@@ -122,6 +122,13 @@ mod macros {
             tspec_ms!(tm)
         }};
     }
+
+    /// Url encode path segments
+    macro_rules! url_encode {
+        ($id:ident) => {{
+            url::form_urlencoded::byte_serialize($id.as_bytes()).collect::<String>()
+        }};
+    }
 }
 
 mod client;
@@ -163,6 +170,14 @@ mod couch_rs_tests {
             assert!(dbw.is_ok());
 
             let _ = client.destroy_db("should_create_test_db");
+        }
+
+        #[tokio::test]
+        async fn should_create_test_db_with_a_complex_name() {
+            let client = Client::new_local_test().unwrap();
+            let dbname = "some+database";
+            let dbw = client.db(dbname).await;
+            assert!(dbw.is_err())
         }
 
         #[tokio::test]
@@ -732,6 +747,35 @@ mod couch_rs_tests {
             for doc in docs.into_iter() {
                 assert!(db.remove(doc).await);
             }
+
+            teardown(client, dbname).await;
+        }
+
+        #[tokio::test]
+        async fn should_handle_null_view_keys() {
+            let dbname = "should_handle_null_view_keys";
+            let (client, db, docs) = setup_multiple(dbname, 4).await;
+            let doc = docs.get(0).unwrap();
+            let count_by_id = r#"function (doc) {
+                                        emit(doc._id, null);
+                                    }"#;
+            let view_name = "should_handle_null_view_keys";
+            /* a view/reduce like this will return something like the following:
+
+               {"rows":[
+                   {"key":null,"value":14}
+               ]}
+
+               this will fail to deserialize if ViewItem.key is a String. It needs to be a Value to cover for all json scenarios
+            */
+            assert!(db
+                .create_view(
+                    view_name,
+                    CouchViews::new(view_name, CouchFunc::new(count_by_id, Some("_count"))),
+                )
+                .await
+                .is_ok());
+            assert!(db.query(view_name, view_name, None,).await.is_ok());
 
             teardown(client, dbname).await;
         }

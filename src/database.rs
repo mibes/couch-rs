@@ -11,7 +11,6 @@ use reqwest::{RequestBuilder, StatusCode};
 use serde_json::{json, to_string, Value};
 use std::collections::HashMap;
 use tokio::sync::mpsc::Sender;
-use url::form_urlencoded::byte_serialize;
 
 /// Database operations on a CouchDB Database
 /// (sometimes called Collection in other NoSQL flavors such as MongoDB).
@@ -31,32 +30,39 @@ impl Database {
         &self.name
     }
 
-    fn create_document_path(&self, id: &str) -> String {
+    fn create_raw_path(&self, id: &str) -> String {
         format!("{}/{}", self.name, id)
     }
 
-    fn create_encoded_document_path(&self, id: &str) -> String {
-        let encoded: String = byte_serialize(id.as_bytes()).collect();
+    fn create_document_path(&self, id: &str) -> String {
+        let encoded = url_encode!(id);
         format!("{}/{}", self.name, encoded)
     }
 
     fn create_design_path(&self, id: &str) -> String {
-        format!("{}/_design/{}", self.name, id)
+        let encoded = url_encode!(id);
+        format!("{}/_design/{}", self.name, encoded)
     }
 
     fn create_query_view_path(&self, design_id: &str, view_id: &str) -> String {
-        format!("{}/_design/{}/_view/{}", self.name, design_id, view_id)
+        let encoded_design = url_encode!(design_id);
+        let encoded_view = url_encode!(view_id);
+        format!("{}/_design/{}/_view/{}", self.name, encoded_design, encoded_view)
     }
 
     fn create_execute_update_path(&self, design_id: &str, update_id: &str, document_id: &str) -> String {
+        let encoded_design = url_encode!(design_id);
+        let encoded_update = url_encode!(update_id);
+        let encoded_document = url_encode!(document_id);
         format!(
             "{}/_design/{}/_update/{}/{}",
-            self.name, design_id, update_id, document_id
+            self.name, encoded_design, encoded_update, encoded_document
         )
     }
 
     fn create_compact_path(&self, design_name: &str) -> String {
-        format!("{}/_compact/{}", self.name, design_name)
+        let encoded_design = url_encode!(design_name);
+        format!("{}/_compact/{}", self.name, encoded_design)
     }
 
     async fn is_accepted(&self, request: CouchResult<RequestBuilder>) -> bool {
@@ -186,7 +192,7 @@ impl Database {
 
         let response = self
             ._client
-            .post(self.create_document_path("_bulk_docs"), to_string(&body)?)?
+            .post(self.create_raw_path("_bulk_docs"), to_string(&body)?)?
             .send()
             .await?;
 
@@ -254,7 +260,7 @@ impl Database {
 
         let response = self
             ._client
-            .post(self.create_document_path("_all_docs"), to_string(&options)?)?
+            .post(self.create_raw_path("_all_docs"), to_string(&options)?)?
             .send()
             .await?
             .error_for_status()?;
@@ -386,7 +392,7 @@ impl Database {
     /// }
     /// ```
     pub async fn query_many_all_docs(&self, queries: QueriesParams) -> CouchResult<Vec<ViewCollection>> {
-        self.query_view_many(self.create_document_path("_all_docs/queries"), queries)
+        self.query_view_many(self.create_raw_path("_all_docs/queries"), queries)
             .await
     }
 
@@ -431,7 +437,7 @@ impl Database {
         // to a GET call. It provides the same functionality
         let response = self
             ._client
-            .post(self.create_document_path("_all_docs"), js!(&options))?
+            .post(self.create_raw_path("_all_docs"), js!(&options))?
             .send()
             .await?
             .error_for_status()?;
@@ -457,7 +463,7 @@ impl Database {
     /// }
     /// ```
     pub async fn find(&self, query: &FindQuery) -> CouchResult<DocumentCollection> {
-        let path = self.create_document_path("_find");
+        let path = self.create_raw_path("_find");
         let response = self._client.post(path, js!(query))?.send().await?;
         let status = response.status();
         let data: FindResult = response.json().await.unwrap();
@@ -545,11 +551,7 @@ impl Database {
 
         let body = to_string(&raw)?;
 
-        let response = self
-            ._client
-            .put(self.create_encoded_document_path(&id), body)?
-            .send()
-            .await?;
+        let response = self._client.put(self.create_document_path(&id), body)?.send().await?;
 
         let status = response.status();
         let data: DocumentCreatedResponse = response.json().await?;
@@ -788,7 +790,7 @@ impl Database {
     ///```     
     pub async fn remove(&self, doc: Document) -> bool {
         let request = self._client.delete(
-            self.create_encoded_document_path(&doc._id),
+            self.create_document_path(&doc._id),
             Some({
                 let mut h = HashMap::new();
                 h.insert(s!("rev"), doc._rev.clone());
@@ -805,7 +807,7 @@ impl Database {
         let response = self
             ._client
             .post(
-                self.create_document_path("_index"),
+                self.create_raw_path("_index"),
                 js!(json!({
                     "name": name,
                     "index": spec
@@ -827,12 +829,7 @@ impl Database {
 
     /// Reads the database's indexes and returns them
     pub async fn read_indexes(&self) -> CouchResult<DatabaseIndexList> {
-        let response = self
-            ._client
-            .get(self.create_document_path("_index"), None)?
-            .send()
-            .await?;
-
+        let response = self._client.get(self.create_raw_path("_index"), None)?.send().await?;
         Ok(response.json().await?)
     }
 
@@ -871,14 +868,16 @@ mod tests {
     fn test_document_paths() {
         let client = Client::new_local_test().unwrap();
         let db = Database::new("testdb".to_string(), client);
-        let p = db.create_document_path("123");
+        let p = db.create_raw_path("123");
         assert_eq!(p, "testdb/123");
-        let p = db.create_encoded_document_path("1+3");
+        let p = db.create_document_path("1+3");
         assert_eq!(p, "testdb/1%2B3");
         let p = db.create_design_path("view1");
         assert_eq!(p, "testdb/_design/view1");
         let p = db.create_query_view_path("design1", "view1");
         assert_eq!(p, "testdb/_design/design1/_view/view1");
+        let p = db.create_query_view_path("design+1", "view+1");
+        assert_eq!(p, "testdb/_design/design%2B1/_view/view%2B1");
         let p = db.create_execute_update_path("design1", "update1", "123");
         assert_eq!(p, "testdb/_design/design1/_update/update1/123");
         let p = db.create_compact_path("view1");

@@ -6,7 +6,9 @@ use std::fmt;
 // implementation, or do something in between.
 #[derive(Debug, Clone)]
 pub struct CouchError {
+    /// HTTP Status Code
     pub status: reqwest::StatusCode,
+    /// Detailed error message
     pub message: String,
 }
 

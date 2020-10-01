@@ -16,17 +16,24 @@ pub enum DocumentRef<T> {
 /// Abstracted document creation response
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
 pub struct DocumentCreatedResponse {
+    /// Document ID
     pub id: Option<String>,
-    pub ok: Option<bool>,
+    /// New document revision token. Available if document has saved without errors
     pub rev: Option<String>,
+    /// Operation status. Available in case of success
+    pub ok: Option<bool>,
+    /// Error type. Available if response code is 4xx
     pub error: Option<String>,
+    /// Error description. Available if response code is 4xx
     pub reason: Option<String>,
 }
 
 /// Abstracted document creation result
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
 pub struct DocumentCreatedDetails {
+    /// Document ID
     pub id: Option<String>,
+    /// New document revision token.
     pub rev: Option<String>,
 }
 
