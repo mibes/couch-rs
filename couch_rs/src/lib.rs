@@ -133,7 +133,7 @@ mod macros {
     /// or converted
     macro_rules! json_extr {
         ($e:expr) => {
-            serde_json::from_value($e.to_owned()).expect("can not extract JSON value")
+            serde_json::from_value($e.to_owned()).unwrap_or_default()
         };
     }
 
