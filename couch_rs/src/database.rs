@@ -846,10 +846,12 @@ impl Database {
         } else {
             match result.error {
                 Some(e) => Err(CouchError {
+                    id: result.id,
                     status: response_status,
                     message: e,
                 }),
                 None => Err(CouchError {
+                    id: result.id,
                     status: response_status,
                     message: s!("unspecified error"),
                 }),
@@ -1040,6 +1042,7 @@ impl Database {
         let result: DesignCreated = self.insert_index(name, spec).await?;
         match result.error {
             Some(e) => Err(CouchError {
+                id: result.id,
                 status: reqwest::StatusCode::INTERNAL_SERVER_ERROR,
                 message: e,
             }),

@@ -29,7 +29,7 @@ fn impl_derive_couch_doc(ast: &syn::DeriveInput) -> TokenStream {
                 self._rev = rev.to_string();
             }
 
-            fn merge(&mut self, other: &Self) {
+            fn merge_ids(&mut self, other: &Self) {
                 self.set_id(&other.get_id());
                 self.set_rev(&other.get_rev());
             }
