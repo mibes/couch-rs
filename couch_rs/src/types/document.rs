@@ -47,7 +47,11 @@ impl From<DocumentCreatedResponse> for DocumentCreatedResult {
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             };
 
-            Err(CouchError::new(response.reason.unwrap_or_default(), status_code))
+            Err(CouchError::new_with_id(
+                response.id,
+                response.reason.unwrap_or_default(),
+                status_code,
+            ))
         } else {
             Ok(DocumentCreatedDetails {
                 id: response.id,

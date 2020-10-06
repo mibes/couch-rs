@@ -6,6 +6,8 @@ use std::fmt;
 // implementation, or do something in between.
 #[derive(Debug, Clone)]
 pub struct CouchError {
+    /// Some (bulk) transaction might return an id as part of the error
+    pub id: Option<String>,
     /// HTTP Status Code
     pub status: reqwest::StatusCode,
     /// Detailed error message
@@ -16,7 +18,15 @@ pub type CouchResult<T> = Result<T, CouchError>;
 
 impl CouchError {
     pub fn new(message: String, status: reqwest::StatusCode) -> CouchError {
-        CouchError { message, status }
+        CouchError {
+            id: None,
+            message,
+            status,
+        }
+    }
+
+    pub fn new_with_id(id: Option<String>, message: String, status: reqwest::StatusCode) -> CouchError {
+        CouchError { id, message, status }
     }
 
     pub fn is_not_found(&self) -> bool {
@@ -26,7 +36,11 @@ impl CouchError {
 
 impl fmt::Display for CouchError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}: {}", self.status, self.message)
+        if let Some(id) = &self.id {
+            write!(f, "{} -> {}: {}", id, self.status, self.message)
+        } else {
+            write!(f, "{}: {}", self.status, self.message)
+        }
     }
 }
 
@@ -41,6 +55,7 @@ impl error::Error for CouchError {
 impl std::convert::From<reqwest::Error> for CouchError {
     fn from(err: reqwest::Error) -> Self {
         CouchError {
+            id: None,
             status: err.status().unwrap_or(reqwest::StatusCode::NOT_IMPLEMENTED),
             message: err.to_string(),
         }
@@ -50,6 +65,7 @@ impl std::convert::From<reqwest::Error> for CouchError {
 impl std::convert::From<serde_json::Error> for CouchError {
     fn from(err: serde_json::Error) -> Self {
         CouchError {
+            id: None,
             status: reqwest::StatusCode::NOT_IMPLEMENTED,
             message: err.to_string(),
         }
@@ -59,6 +75,7 @@ impl std::convert::From<serde_json::Error> for CouchError {
 impl std::convert::From<url::ParseError> for CouchError {
     fn from(err: url::ParseError) -> Self {
         CouchError {
+            id: None,
             status: reqwest::StatusCode::NOT_IMPLEMENTED,
             message: err.to_string(),
         }
