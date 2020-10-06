@@ -15,7 +15,7 @@ pub trait TypedCouchDocument: DeserializeOwned + Serialize + Sized {
     /// set the _id field
     fn set_id(&mut self, rev: &str);
     /// merge the _id and _rev from the other document with this one
-    fn merge(&mut self, other: &Self);
+    fn merge_ids(&mut self, other: &Self);
 }
 
 /// Allows dealing with _id and _rev fields in untyped (Value) documents
@@ -42,7 +42,7 @@ impl TypedCouchDocument for Value {
         }
     }
 
-    fn merge(&mut self, other: &Self) {
+    fn merge_ids(&mut self, other: &Self) {
         self.set_id(&other.get_id());
         self.set_rev(&other.get_rev());
     }
