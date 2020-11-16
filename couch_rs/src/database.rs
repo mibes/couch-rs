@@ -79,10 +79,7 @@ impl Database {
     async fn is_ok(&self, request: CouchResult<RequestBuilder>) -> bool {
         if let Ok(req) = request {
             if let Ok(res) = req.send().await {
-                return match res.status() {
-                    StatusCode::OK | StatusCode::NOT_MODIFIED => true,
-                    _ => false,
-                };
+                return matches!(res.status(), StatusCode::OK | StatusCode::NOT_MODIFIED);
             }
         }
 
@@ -589,7 +586,7 @@ impl Database {
         let path = self.create_raw_path("_find");
         let response = self._client.post(path, js!(query))?.send().await?;
         let status = response.status();
-        let data: FindResult<T> = response.json().await.unwrap();
+        let data: FindResult<T> = response.json().await?;
 
         if let Some(doc_val) = data.docs {
             let documents: Vec<T> = doc_val
