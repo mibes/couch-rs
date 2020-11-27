@@ -466,6 +466,22 @@ mod couch_rs_tests {
             teardown(client, "should_get_a_single_document").await;
         }
 
+        #[tokio::test]
+        async fn should_get_a_document_with_a_space_in_id() {
+            let (client, db, _) = setup("should_get_a_document_with_a_space_in_id").await;
+            let space_doc_result = db
+                .create(json!({
+                    "_id": "some crazy name"
+                }))
+                .await;
+            assert!(space_doc_result.is_ok());
+
+            let doc_result = db.get_raw("some crazy name").await;
+            assert!(doc_result.is_ok());
+
+            teardown(client, "should_get_a_document_with_a_space_in_id").await;
+        }
+
         async fn setup_create_indexes(dbname: &str) -> (Client, Database, Value) {
             let (client, db, doc) = setup(dbname).await;
 
