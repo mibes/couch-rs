@@ -1,4 +1,5 @@
 use crate::client::Client;
+use crate::client::{is_ok, is_accepted};
 use crate::document::{DocumentCollection, TypedCouchDocument};
 use crate::error::{CouchError, CouchResult};
 use crate::types::design::DesignCreated;
@@ -7,7 +8,6 @@ use crate::types::find::{FindQuery, FindResult};
 use crate::types::index::{DatabaseIndexList, IndexFields};
 use crate::types::query::{QueriesCollection, QueriesParams, QueryParams};
 use crate::types::view::ViewCollection;
-use reqwest::{RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
 use serde_json::{json, to_string, Value};
 use std::collections::HashMap;
@@ -66,36 +66,13 @@ impl Database {
         format!("{}/_compact/{}", self.name, encoded_design)
     }
 
-    async fn is_accepted(&self, request: CouchResult<RequestBuilder>) -> bool {
-        if let Ok(req) = request {
-            if let Ok(res) = req.send().await {
-                return res.status() == StatusCode::ACCEPTED;
-            }
-        }
-
-        false
-    }
-
-    async fn is_ok(&self, request: CouchResult<RequestBuilder>) -> bool {
-        if let Ok(req) = request {
-            if let Ok(res) = req.send().await {
-                return match res.status() {
-                    StatusCode::OK | StatusCode::NOT_MODIFIED => true,
-                    _ => false,
-                };
-            }
-        }
-
-        false
-    }
-
     /// Launches the compact process
     pub async fn compact(&self) -> bool {
         let mut path: String = self.name.clone();
         path.push_str("/_compact");
 
         let request = self._client.post(path, "".into());
-        self.is_accepted(request).await
+        is_accepted(request).await
     }
 
     /// Starts the compaction of all views
@@ -104,13 +81,13 @@ impl Database {
         path.push_str("/_view_cleanup");
 
         let request = self._client.post(path, "".into());
-        self.is_accepted(request).await
+        is_accepted(request).await
     }
 
     /// Starts the compaction of a given index
     pub async fn compact_index(&self, index: &str) -> bool {
         let request = self._client.post(self.create_compact_path(index), "".into());
-        self.is_accepted(request).await
+        is_accepted(request).await
     }
 
     /// Checks if a document ID exists
@@ -136,7 +113,7 @@ impl Database {
     /// ```
     pub async fn exists(&self, id: &str) -> bool {
         let request = self._client.head(self.create_document_path(id), None);
-        self.is_ok(request).await
+        is_ok(request).await
     }
 
     /// Convenience wrapper around get::<Value>(id)
@@ -989,7 +966,7 @@ impl Database {
             }),
         );
 
-        self.is_ok(request).await
+        is_ok(request).await
     }
 
     /// Inserts an index in a naive way, if it already exists, will throw an

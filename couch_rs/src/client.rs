@@ -21,6 +21,31 @@ fn construct_json_headers(uri: Option<&str>) -> HeaderMap {
     headers
 }
 
+pub(crate) async fn is_accepted(request: CouchResult<RequestBuilder>) -> bool {
+    if let Ok(req) = request {
+        if let Ok(res) = req.send().await {
+            return res.status() == StatusCode::ACCEPTED;
+        }
+    }
+
+    false
+}
+
+pub(crate) async fn is_ok(request: CouchResult<RequestBuilder>) -> bool {
+    if let Ok(req) = request {
+        if let Ok(res) = req.send().await {
+            return match res.status() {
+                StatusCode::OK | StatusCode::NOT_MODIFIED => true,
+                _ => false,
+            };
+        }
+    }
+
+    false
+}
+
+
+
 /// Client handles the URI manipulation logic and the HTTP calls to the CouchDB REST API.
 /// It is also responsible for the creation/access/destruction of databases.
 #[derive(Debug, Clone)]
