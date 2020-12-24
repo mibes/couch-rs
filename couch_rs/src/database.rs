@@ -174,7 +174,7 @@ impl Database {
     pub async fn get<T: TypedCouchDocument>(&self, id: &str) -> CouchResult<T> {
         let response = self
             ._client
-            .get(self.create_document_path(id), None)?
+            .get(self.create_document_path(id), None)
             .send()
             .await?
             .error_for_status()?;
@@ -231,7 +231,7 @@ impl Database {
 
         let response = self
             ._client
-            .post(self.create_raw_path("_bulk_docs"), to_string(&body)?)?
+            .post(self.create_raw_path("_bulk_docs"), to_string(&body)?)
             .send()
             .await?;
 
@@ -299,7 +299,7 @@ impl Database {
 
         let response = self
             ._client
-            .post(self.create_raw_path("_all_docs"), to_string(&options)?)?
+            .post(self.create_raw_path("_all_docs"), to_string(&options)?)
             .send()
             .await?
             .error_for_status()?;
@@ -464,7 +464,7 @@ impl Database {
         // to a GET call. It provides the same functionality
         let response = self
             ._client
-            .post(view_path, js!(&queries))?
+            .post(view_path, js!(&queries))
             .send()
             .await?
             .error_for_status()?;
@@ -496,7 +496,7 @@ impl Database {
         // to a GET call. It provides the same functionality
         let response = self
             ._client
-            .post(self.create_raw_path("_all_docs"), js!(&options))?
+            .post(self.create_raw_path("_all_docs"), js!(&options))
             .send()
             .await?
             .error_for_status()?;
@@ -564,7 +564,7 @@ impl Database {
     /// ```
     pub async fn find<T: TypedCouchDocument>(&self, query: &FindQuery) -> CouchResult<DocumentCollection<T>> {
         let path = self.create_raw_path("_find");
-        let response = self._client.post(path, js!(query))?.send().await?;
+        let response = self._client.post(path, js!(query)).send().await?;
         let status = response.status();
         let data: FindResult<T> = response.json().await.unwrap();
 
@@ -648,7 +648,7 @@ impl Database {
     pub async fn save<T: TypedCouchDocument>(&self, mut doc: T) -> CouchResult<T> {
         let id = doc.get_id().to_string();
         let body = to_string(&doc)?;
-        let response = self._client.put(self.create_document_path(&id), body)?.send().await?;
+        let response = self._client.put(self.create_document_path(&id), body).send().await?;
         let status = response.status();
         let data: DocumentCreatedResponse = response.json().await?;
 
@@ -693,7 +693,7 @@ impl Database {
     /// }
     /// ```
     pub async fn create<T: TypedCouchDocument>(&self, mut doc: T) -> CouchResult<T> {
-        let response = self._client.post(self.name.clone(), to_string(&doc)?)?.send().await?;
+        let response = self._client.post(self.name.clone(), to_string(&doc)?).send().await?;
 
         let status = response.status();
         let data: DocumentCreatedResponse = response.json().await?;
@@ -811,7 +811,7 @@ impl Database {
         let doc: Value = views.into();
         let response = self
             ._client
-            .put(self.create_design_path(design_name), to_string(&doc)?)?
+            .put(self.create_design_path(design_name), to_string(&doc)?)
             .send()
             .await?;
 
@@ -901,7 +901,7 @@ impl Database {
 
         let response = self
             ._client
-            .post(self.create_query_view_path(design_name, view_name), js!(&options))?
+            .post(self.create_query_view_path(design_name, view_name), js!(&options))
             .send()
             .await?
             .error_for_status()?;
@@ -924,7 +924,7 @@ impl Database {
 
         let response = self
             ._client
-            .put(self.create_execute_update_path(design_id, name, document_id), body)?
+            .put(self.create_execute_update_path(design_id, name, document_id), body)
             .send()
             .await?
             .error_for_status()?;
@@ -980,7 +980,7 @@ impl Database {
                     "name": name,
                     "index": spec
                 })),
-            )?
+            )
             .send()
             .await?;
 
@@ -997,7 +997,7 @@ impl Database {
 
     /// Reads the database's indexes and returns them
     pub async fn read_indexes(&self) -> CouchResult<DatabaseIndexList> {
-        let response = self._client.get(self.create_raw_path("_index"), None)?.send().await?;
+        let response = self._client.get(self.create_raw_path("_index"), None).send().await?;
         Ok(response.json().await?)
     }
 
