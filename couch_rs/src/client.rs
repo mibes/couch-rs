@@ -54,7 +54,7 @@ pub struct Client {
     dbs: Vec<&'static str>,
     _gzip: bool,
     _timeout: u64,
-    pub uri: String,
+    uri: Url,
     username: Option<String>,
     password: Option<String>,
     pub db_prefix: String,
@@ -114,6 +114,8 @@ impl Client {
             headers.insert(header::AUTHORIZATION, auth_header);
         }
 
+        let parsed_url = Url::parse(uri)?;
+
         let client = reqwest::Client::builder()
             .default_headers(headers)
             .gzip(true)
@@ -122,7 +124,7 @@ impl Client {
 
         Ok(Client {
             _client: client,
-            uri: uri.to_string(),
+            uri: parsed_url,
             _gzip: true,
             _timeout: timeout,
             dbs: Vec::new(),
@@ -136,9 +138,9 @@ impl Client {
         self
     }
 
-    pub fn set_uri(&mut self, uri: String) -> &Self {
-        self.uri = uri;
-        self
+    pub fn set_uri(&mut self, uri: &str) -> CouchResult<&Self> {
+        self.uri = Url::parse(uri)?;
+        Ok(self)
     }
 
     pub fn set_prefix(&mut self, prefix: String) -> &Self {
@@ -281,7 +283,7 @@ impl Client {
     pub async fn check_status(&self) -> CouchResult<CouchStatus> {
         let response = self
             ._client
-            .get(&self.uri)
+            .get(self.uri.as_str())
             .headers(construct_json_headers(None))
             .send()
             .await?;
@@ -291,7 +293,7 @@ impl Client {
     }
 
     fn create_path(&self, path: String, args: Option<HashMap<String, String>>) -> CouchResult<String> {
-        let mut uri = Url::parse(&self.uri)?.join(&path)?;
+        let mut uri = self.uri.join(&path).unwrap();
 
         if let Some(ref map) = args {
             let mut qp = uri.query_pairs_mut();
