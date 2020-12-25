@@ -240,7 +240,7 @@ impl Client {
     ///     let client = couch_rs::Client::new_local_test()?;
     ///     let db = client.db(TEST_DB).await?;
     ///
-    ///     if db.exists(TEST_DB).await {
+    ///     if client.exists(TEST_DB).await? {
     ///         println!("The database exists");
     ///     }
     ///
