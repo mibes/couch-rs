@@ -21,6 +21,14 @@ fn construct_json_headers(uri: Option<&str>) -> HeaderMap {
     headers
 }
 
+fn parse_server(uri: &str) -> CouchResult<Url> {
+
+    let parsed_url = Url::parse(uri)?;
+    assert!(!parsed_url.cannot_be_a_base());
+    Ok(parsed_url)
+
+}
+
 pub(crate) async fn is_accepted(request: RequestBuilder) -> bool {
     if let Ok(res) = request.send().await {
         res.status() == StatusCode::ACCEPTED
@@ -107,8 +115,6 @@ impl Client {
             headers.insert(header::AUTHORIZATION, auth_header);
         }
 
-        let parsed_url = Url::parse(uri)?;
-
         let client = reqwest::Client::builder()
             .default_headers(headers)
             .gzip(true)
@@ -117,7 +123,7 @@ impl Client {
 
         Ok(Client {
             _client: client,
-            uri: parsed_url,
+            uri: parse_server(uri)?,
             _gzip: true,
             _timeout: timeout,
             dbs: Vec::new(),
@@ -132,7 +138,7 @@ impl Client {
     }
 
     pub fn set_uri(&mut self, uri: &str) -> CouchResult<&Self> {
-        self.uri = Url::parse(uri)?;
+        self.uri = parse_server(uri)?;
         Ok(self)
     }
 
@@ -265,7 +271,7 @@ impl Client {
     /// See [common](https://docs.couchdb.org/en/stable/api/server/common.html) for more details.
     pub async fn check_status(&self) -> CouchResult<CouchStatus> {
         let response = self
-            .get(self.uri.as_str().to_string(), None)
+            .get(String::default(), None)
             .headers(construct_json_headers(None))
             .send()
             .await?;
@@ -281,9 +287,8 @@ impl Client {
         opts: Option<HashMap<String, String>>,
     ) -> RequestBuilder {
 
-        // this cannot panic because the uri is parsed earlier and the path is provided by code
-        // in the library
-        let mut uri = self.uri.join(&path).unwrap();
+        let mut uri = self.uri.clone();
+        uri.set_path(&path);
 
         if let Some(ref map) = opts {
             let mut qp = uri.query_pairs_mut();
