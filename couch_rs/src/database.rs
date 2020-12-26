@@ -1,4 +1,5 @@
 use crate::client::Client;
+use crate::client::{is_ok, is_accepted};
 use crate::document::{DocumentCollection, TypedCouchDocument};
 use crate::error::{CouchError, CouchResult};
 use crate::types::design::DesignCreated;
@@ -7,7 +8,6 @@ use crate::types::find::{FindQuery, FindResult};
 use crate::types::index::{DatabaseIndexList, IndexFields};
 use crate::types::query::{QueriesCollection, QueriesParams, QueryParams};
 use crate::types::view::ViewCollection;
-use reqwest::{RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
 use serde_json::{json, to_string, Value};
 use std::collections::HashMap;
@@ -66,33 +66,13 @@ impl Database {
         format!("{}/_compact/{}", self.name, encoded_design)
     }
 
-    async fn is_accepted(&self, request: CouchResult<RequestBuilder>) -> bool {
-        if let Ok(req) = request {
-            if let Ok(res) = req.send().await {
-                return res.status() == StatusCode::ACCEPTED;
-            }
-        }
-
-        false
-    }
-
-    async fn is_ok(&self, request: CouchResult<RequestBuilder>) -> bool {
-        if let Ok(req) = request {
-            if let Ok(res) = req.send().await {
-                return matches!(res.status(), StatusCode::OK | StatusCode::NOT_MODIFIED);
-            }
-        }
-
-        false
-    }
-
     /// Launches the compact process
     pub async fn compact(&self) -> bool {
         let mut path: String = self.name.clone();
         path.push_str("/_compact");
 
         let request = self._client.post(path, "".into());
-        self.is_accepted(request).await
+        is_accepted(request).await
     }
 
     /// Starts the compaction of all views
@@ -101,13 +81,13 @@ impl Database {
         path.push_str("/_view_cleanup");
 
         let request = self._client.post(path, "".into());
-        self.is_accepted(request).await
+        is_accepted(request).await
     }
 
     /// Starts the compaction of a given index
     pub async fn compact_index(&self, index: &str) -> bool {
         let request = self._client.post(self.create_compact_path(index), "".into());
-        self.is_accepted(request).await
+        is_accepted(request).await
     }
 
     /// Checks if a document ID exists
@@ -133,7 +113,7 @@ impl Database {
     /// ```
     pub async fn exists(&self, id: &str) -> bool {
         let request = self._client.head(self.create_document_path(id), None);
-        self.is_ok(request).await
+        is_ok(request).await
     }
 
     /// Convenience wrapper around get::<Value>(id)
@@ -192,15 +172,13 @@ impl Database {
     /// }
     ///```
     pub async fn get<T: TypedCouchDocument>(&self, id: &str) -> CouchResult<T> {
-        let response = self
-            ._client
-            .get(self.create_document_path(id), None)?
+        self._client
+            .get(self.create_document_path(id), None)
             .send()
             .await?
-            .error_for_status()?;
-
-        let doc: T = response.json().await?;
-        Ok(doc)
+            .error_for_status()?
+            .json().await
+            .map_err(CouchError::from)
     }
 
     /// Gets documents in bulk with provided IDs list
@@ -251,14 +229,13 @@ impl Database {
 
         let response = self
             ._client
-            .post(self.create_raw_path("_bulk_docs"), to_string(&body)?)?
+            .post(self.create_raw_path("_bulk_docs"), to_string(&body)?)
             .send()
             .await?;
 
         let data: Vec<DocumentCreatedResponse> = response.json().await?;
-        let result = data.into_iter().map(|r| r.into()).collect();
+        Ok(data.into_iter().map(|r| r.into()).collect())
 
-        Ok(result)
     }
 
     /// Gets documents in bulk with provided IDs list, with added params. Params description can be found here:
@@ -307,19 +284,14 @@ impl Database {
         ids: Vec<DocumentId>,
         params: Option<QueryParams>,
     ) -> CouchResult<DocumentCollection<T>> {
-        let mut options;
-        if let Some(opts) = params {
-            options = opts;
-        } else {
-            options = QueryParams::default();
-        }
+        let mut options = params.unwrap_or_default();
 
         options.include_docs = Some(true);
         options.keys = ids;
 
         let response = self
             ._client
-            .post(self.create_raw_path("_all_docs"), to_string(&options)?)?
+            .post(self.create_raw_path("_all_docs"), to_string(&options)?)
             .send()
             .await?
             .error_for_status()?;
@@ -484,7 +456,7 @@ impl Database {
         // to a GET call. It provides the same functionality
         let response = self
             ._client
-            .post(view_path, js!(&queries))?
+            .post(view_path, js!(&queries))
             .send()
             .await?
             .error_for_status()?;
@@ -503,12 +475,7 @@ impl Database {
         &self,
         params: Option<QueryParams>,
     ) -> CouchResult<DocumentCollection<T>> {
-        let mut options;
-        if let Some(opts) = params {
-            options = opts;
-        } else {
-            options = QueryParams::default();
-        }
+        let mut options = params.unwrap_or_default();
 
         options.include_docs = Some(true);
 
@@ -516,7 +483,7 @@ impl Database {
         // to a GET call. It provides the same functionality
         let response = self
             ._client
-            .post(self.create_raw_path("_all_docs"), js!(&options))?
+            .post(self.create_raw_path("_all_docs"), js!(&options))
             .send()
             .await?
             .error_for_status()?;
@@ -584,7 +551,7 @@ impl Database {
     /// ```
     pub async fn find<T: TypedCouchDocument>(&self, query: &FindQuery) -> CouchResult<DocumentCollection<T>> {
         let path = self.create_raw_path("_find");
-        let response = self._client.post(path, js!(query))?.send().await?;
+        let response = self._client.post(path, js!(query)).send().await?;
         let status = response.status();
         let data: FindResult<T> = response.json().await?;
 
@@ -668,7 +635,7 @@ impl Database {
     pub async fn save<T: TypedCouchDocument>(&self, mut doc: T) -> CouchResult<T> {
         let id = doc.get_id().to_string();
         let body = to_string(&doc)?;
-        let response = self._client.put(self.create_document_path(&id), body)?.send().await?;
+        let response = self._client.put(self.create_document_path(&id), body).send().await?;
         let status = response.status();
         let data: DocumentCreatedResponse = response.json().await?;
 
@@ -713,22 +680,15 @@ impl Database {
     /// }
     /// ```
     pub async fn create<T: TypedCouchDocument>(&self, mut doc: T) -> CouchResult<T> {
-        let response = self._client.post(self.name.clone(), to_string(&doc)?)?.send().await?;
+        let response = self._client.post(self.name.clone(), to_string(&doc)?).send().await?;
 
         let status = response.status();
         let data: DocumentCreatedResponse = response.json().await?;
 
         match data.ok {
             Some(true) => {
-                let data_id = match data.id {
-                    Some(id) => id,
-                    _ => return Err(CouchError::new(s!("invalid id"), status)),
-                };
-
-                let data_rev = match data.rev {
-                    Some(rev) => rev,
-                    _ => return Err(CouchError::new(s!("invalid rev"), status)),
-                };
+                let data_id = data.id.ok_or_else(|| CouchError::new(s!("invalid id"), status))?;
+                let data_rev = data.rev.ok_or_else(|| CouchError::new(s!("invalid rev"), status))?;
 
                 doc.set_id(&data_id);
                 doc.set_rev(&data_rev);
@@ -784,14 +744,12 @@ impl Database {
         match self.get::<T>(&id).await {
             Ok(current_doc) => {
                 doc.set_rev(&current_doc.get_rev());
-                let doc = self.save(doc).await?;
-                Ok(doc)
+                self.save(doc).await
             }
             Err(err) => {
                 if err.is_not_found() {
                     // document does not yet exist
-                    let doc = self.save(doc).await?;
-                    Ok(doc)
+                    self.save(doc).await
                 } else {
                     Err(err)
                 }
@@ -831,7 +789,7 @@ impl Database {
         let doc: Value = views.into();
         let response = self
             ._client
-            .put(self.create_design_path(design_name), to_string(&doc)?)?
+            .put(self.create_design_path(design_name), to_string(&doc)?)
             .send()
             .await?;
 
@@ -841,18 +799,12 @@ impl Database {
         if response_status.is_success() {
             Ok(result)
         } else {
-            match result.error {
-                Some(e) => Err(CouchError {
-                    id: result.id,
-                    status: response_status,
-                    message: e,
-                }),
-                None => Err(CouchError {
-                    id: result.id,
-                    status: response_status,
-                    message: s!("unspecified error"),
-                }),
-            }
+            let error_msg = result.error.unwrap_or_else(|| s!("unspecified error"));
+            Err(CouchError {
+                id: result.id,
+                status: response_status,
+                message: error_msg,
+            })
         }
     }
 
@@ -919,14 +871,13 @@ impl Database {
             options = Some(QueryParams::default());
         }
 
-        let response = self
-            ._client
-            .post(self.create_query_view_path(design_name, view_name), js!(&options))?
+        self._client
+            .post(self.create_query_view_path(design_name, view_name), js!(&options))
             .send()
             .await?
-            .error_for_status()?;
-
-        Ok(response.json().await?)
+            .error_for_status()?
+            .json().await
+            .map_err(CouchError::from)
     }
 
     /// Executes an update function.
@@ -939,17 +890,16 @@ impl Database {
     ) -> CouchResult<String> {
         let body = match body {
             Some(v) => to_string(&v)?,
-            None => "".to_string(),
+            None => String::default(),
         };
 
-        let response = self
-            ._client
-            .put(self.create_execute_update_path(design_id, name, document_id), body)?
+        self._client
+            .put(self.create_execute_update_path(design_id, name, document_id), body)
             .send()
             .await?
-            .error_for_status()?;
-
-        Ok(response.text().await?)
+            .error_for_status()?
+            .text().await
+            .map_err(CouchError::from)
     }
 
     /// Removes a document from the database. Returns success in a `bool`
@@ -986,7 +936,7 @@ impl Database {
             }),
         );
 
-        self.is_ok(request).await
+        is_ok(request).await
     }
 
     /// Inserts an index in a naive way, if it already exists, will throw an
@@ -1000,7 +950,7 @@ impl Database {
                     "name": name,
                     "index": spec
                 })),
-            )?
+            )
             .send()
             .await?;
 
@@ -1017,8 +967,7 @@ impl Database {
 
     /// Reads the database's indexes and returns them
     pub async fn read_indexes(&self) -> CouchResult<DatabaseIndexList> {
-        let response = self._client.get(self.create_raw_path("_index"), None)?.send().await?;
-        Ok(response.json().await?)
+        self._client.get(self.create_raw_path("_index"), None).send().await?.json().await.map_err(CouchError::from)
     }
 
     /// Method to ensure an index is created on the database with the following
