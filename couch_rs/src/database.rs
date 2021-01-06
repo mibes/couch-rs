@@ -1,5 +1,5 @@
 use crate::client::Client;
-use crate::client::{is_ok, is_accepted};
+use crate::client::{is_accepted, is_ok};
 use crate::document::{DocumentCollection, TypedCouchDocument};
 use crate::error::{CouchError, CouchResult};
 use crate::types::design::DesignCreated;
@@ -177,7 +177,8 @@ impl Database {
             .send()
             .await?
             .error_for_status()?
-            .json().await
+            .json()
+            .await
             .map_err(CouchError::from)
     }
 
@@ -235,7 +236,6 @@ impl Database {
 
         let data: Vec<DocumentCreatedResponse> = response.json().await?;
         Ok(data.into_iter().map(|r| r.into()).collect())
-
     }
 
     /// Gets documents in bulk with provided IDs list, with added params. Params description can be found here:
@@ -337,7 +337,7 @@ impl Database {
     pub async fn find_batched<T: TypedCouchDocument>(
         &self,
         mut query: FindQuery,
-        mut tx: Sender<DocumentCollection<T>>,
+        tx: Sender<DocumentCollection<T>>,
         batch_size: u64,
         max_results: u64,
     ) -> CouchResult<u64> {
@@ -568,7 +568,7 @@ impl Database {
             let mut bookmark = Option::None;
             let returned_bookmark = data.bookmark.unwrap_or_default();
 
-            if returned_bookmark != "nil" && returned_bookmark != "" {
+            if returned_bookmark != "nil" && !returned_bookmark.is_empty() {
                 // a valid bookmark has been returned
                 bookmark.replace(returned_bookmark);
             }
@@ -876,7 +876,8 @@ impl Database {
             .send()
             .await?
             .error_for_status()?
-            .json().await
+            .json()
+            .await
             .map_err(CouchError::from)
     }
 
@@ -898,7 +899,8 @@ impl Database {
             .send()
             .await?
             .error_for_status()?
-            .text().await
+            .text()
+            .await
             .map_err(CouchError::from)
     }
 
@@ -967,7 +969,13 @@ impl Database {
 
     /// Reads the database's indexes and returns them
     pub async fn read_indexes(&self) -> CouchResult<DatabaseIndexList> {
-        self._client.get(self.create_raw_path("_index"), None).send().await?.json().await.map_err(CouchError::from)
+        self._client
+            .get(self.create_raw_path("_index"), None)
+            .send()
+            .await?
+            .json()
+            .await
+            .map_err(CouchError::from)
     }
 
     /// Method to ensure an index is created on the database with the following

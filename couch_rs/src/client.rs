@@ -22,30 +22,26 @@ fn construct_json_headers(uri: Option<&str>) -> HeaderMap {
 }
 
 fn parse_server(uri: &str) -> CouchResult<Url> {
-
     let parsed_url = Url::parse(uri)?;
     assert!(!parsed_url.cannot_be_a_base());
     Ok(parsed_url)
-
 }
 
 pub(crate) async fn is_accepted(request: RequestBuilder) -> bool {
     if let Ok(res) = request.send().await {
         res.status() == StatusCode::ACCEPTED
+    } else {
+        false
     }
-    else { false }
 }
 
 pub(crate) async fn is_ok(request: RequestBuilder) -> bool {
     if let Ok(res) = request.send().await {
-        match res.status() {
-            StatusCode::OK | StatusCode::NOT_MODIFIED => true,
-            _ => false,
-        }
+        matches!(res.status(), StatusCode::OK | StatusCode::NOT_MODIFIED)
+    } else {
+        false
     }
-    else { false }
 }
-
 
 /// Client handles the URI manipulation logic and the HTTP calls to the CouchDB REST API.
 /// It is also responsible for the creation/access/destruction of databases.
@@ -261,7 +257,11 @@ impl Client {
     /// Gets information about the specified database.
     /// See [common](https://docs.couchdb.org/en/stable/api/database/common.html) for more details.
     pub async fn get_info(&self, dbname: &str) -> CouchResult<DbInfo> {
-        let response = self.get(self.build_dbname(dbname), None).send().await?.error_for_status()?;
+        let response = self
+            .get(self.build_dbname(dbname), None)
+            .send()
+            .await?
+            .error_for_status()?;
         let info = response.json().await?;
         Ok(info)
     }
@@ -279,14 +279,8 @@ impl Client {
         let status = response.json().await?;
         Ok(status)
     }
-        
-    pub fn req(
-        &self,
-        method: Method,
-        path: String,
-        opts: Option<HashMap<String, String>>,
-    ) -> RequestBuilder {
 
+    pub fn req(&self, method: Method, path: String, opts: Option<HashMap<String, String>>) -> RequestBuilder {
         let mut uri = self.uri.clone();
         uri.set_path(&path);
 
@@ -300,7 +294,6 @@ impl Client {
         self._client
             .request(method, uri.as_str())
             .headers(construct_json_headers(Some(uri.as_str())))
-
     }
 
     pub(crate) fn get(&self, path: String, args: Option<HashMap<String, String>>) -> RequestBuilder {
