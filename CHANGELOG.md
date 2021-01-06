@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/mibes/couch-rs/compare/0.8.25...develop) - ReleaseDate
+## [Unreleased](https://github.com/mibes/couch-rs/compare/0.8.26...develop) - ReleaseDate
+
+## [0.8.26] - 2021-01-06
+
+- Upgraded reqwest to 0.11 and tokio to 1.0
+- Add support for partitioned databases; contibuted by krishna-kashyap
 
 ## [0.8.25] - 2020-11-16
 
