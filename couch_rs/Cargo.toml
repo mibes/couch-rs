@@ -1,6 +1,6 @@
 [package]
 name = "couch_rs"
-version = "0.8.26"
+version = "0.8.27"
 authors = ["Mathieu Amiot <mathieu.amiot@yellowinnovation.fr>", "mibes <mibes@mibesco.com>"]
 license = "MIT/Apache-2.0"
 description = "CouchDB library for Rust"
@@ -18,7 +18,7 @@ include = [
 [dependencies]
 serde = { version = "^1.0.116", features = ["derive"] }
 serde_json = "^1.0.57"
-couch_rs_derive = { version = "0.8.24", optional = true, path = "../couch_rs_derive" }
+couch_rs_derive = { version = "0.8.27", optional = true, path = "../couch_rs_derive" }
 url = "^2.1.1"
 tokio = { version = "1", features = ["rt-multi-thread"] }
 base64 = "0.12"
