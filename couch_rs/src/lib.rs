@@ -332,7 +332,7 @@ mod couch_rs_tests {
             let mut docs = docs.into_iter();
             let first_result = docs.next().unwrap();
             assert!(first_result.is_ok());
-            assert!(first_result.unwrap().rev.is_some());
+            assert!(first_result.unwrap().as_object().unwrap().get("_rev").is_some());
 
             let second_result = docs.next().unwrap();
             assert!(second_result.is_err());
@@ -714,8 +714,10 @@ mod couch_rs_tests {
             .unwrap();
 
             // executing 'all' view querying with a specific key should result in 1 and 0 entries, respectively
-            let mut one_key = QueryParams::default();
-            one_key.key = Some(doc.get_id().into_owned());
+            let one_key = QueryParams {
+                key: Some(doc.get_id().into_owned()),
+                ..Default::default()
+            };
 
             assert_eq!(
                 db.query_raw(view_name, view_name, Some(one_key.clone()))
@@ -832,10 +834,14 @@ mod couch_rs_tests {
             let (client, db, docs) = setup_multiple(dbname, 4).await;
             let doc = docs.get(0).unwrap();
 
-            let mut params1 = QueryParams::default();
-            params1.key = Some(doc.get_id().into_owned());
-            let mut params2 = QueryParams::default();
-            params2.include_docs = Some(true);
+            let params1 = QueryParams {
+                key: Some(doc.get_id().into_owned()),
+                ..Default::default()
+            };
+            let params2 = QueryParams {
+                include_docs: Some(true),
+                ..Default::default()
+            };
             let mut params3 = QueryParams::default();
 
             let params = vec![params1, params2, params3];

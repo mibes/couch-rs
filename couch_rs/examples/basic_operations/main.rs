@@ -64,7 +64,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
             for r in resp {
                 match r {
-                    Ok(details) => println!("Id: {}", details.id.unwrap_or_else(|| "--".to_string())),
+                    Ok(details) => println!(
+                        "Id: {}",
+                        details
+                            .as_object()
+                            .unwrap()
+                            .get("_id")
+                            .map(|v| v.as_str().unwrap().to_owned())
+                            .unwrap_or_else(|| "--".to_string())
+                    ),
                     Err(err) => println!("Error: {:?}", err),
                 }
             }
