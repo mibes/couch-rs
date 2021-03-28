@@ -3,7 +3,7 @@ use crate::client::{is_accepted, is_ok};
 use crate::document::{DocumentCollection, TypedCouchDocument};
 use crate::error::{CouchError, CouchResult};
 use crate::types::design::DesignCreated;
-use crate::types::document::{DocumentCreatedResponse, DocumentCreatedResult, DocumentId};
+use crate::types::document::{DocumentCreatedResponse, DocumentId};
 use crate::types::find::{FindQuery, FindResult};
 use crate::types::index::{DatabaseIndexList, IndexFields};
 use crate::types::query::{QueriesCollection, QueriesParams, QueryParams};

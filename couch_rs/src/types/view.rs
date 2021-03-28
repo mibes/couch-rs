@@ -84,15 +84,15 @@ impl CouchFunc {
     }
 }
 
-impl Into<serde_json::Value> for CouchViews {
-    fn into(self) -> Value {
-        serde_json::to_value(self).unwrap()
+impl From<CouchViews> for serde_json::Value {
+    fn from(v: CouchViews) -> Self {
+        serde_json::to_value(v).unwrap()
     }
 }
 
-impl Into<serde_json::Value> for CouchFunc {
-    fn into(self) -> Value {
-        serde_json::to_value(self).unwrap()
+impl From<CouchFunc> for serde_json::Value {
+    fn from(f: CouchFunc) -> Self {
+        serde_json::to_value(f).unwrap()
     }
 }
 
@@ -110,8 +110,8 @@ impl CouchUpdate {
     }
 }
 
-impl Into<serde_json::Value> for CouchUpdate {
-    fn into(self) -> Value {
-        serde_json::to_value(self).unwrap()
+impl From<CouchUpdate> for serde_json::Value {
+    fn from(u: CouchUpdate) -> Self {
+        serde_json::to_value(u).unwrap()
     }
 }
