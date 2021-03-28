@@ -8,6 +8,7 @@ use crate::types::find::{FindQuery, FindResult};
 use crate::types::index::{DatabaseIndexList, IndexFields};
 use crate::types::query::{QueriesCollection, QueriesParams, QueryParams};
 use crate::types::view::ViewCollection;
+use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
 use serde_json::{json, to_string, Value};
 use std::collections::HashMap;
@@ -224,7 +225,7 @@ impl Database {
     ///    return Ok(());
     /// }
     /// ```
-    pub async fn bulk_docs<T: TypedCouchDocument>(&self, raw_docs: Vec<T>) -> CouchResult<Vec<DocumentCreatedResult>> {
+    pub async fn bulk_docs<T: TypedCouchDocument>(&self, raw_docs: Vec<T>) -> CouchResult<Vec<CouchResult<T>>> {
         let mut body = HashMap::new();
         body.insert(s!("docs"), raw_docs);
 
@@ -234,8 +235,40 @@ impl Database {
             .send()
             .await?;
 
+        // TODO: handle this differently
+        let raw_docs = body.remove("docs").unwrap();
         let data: Vec<DocumentCreatedResponse> = response.json().await?;
-        Ok(data.into_iter().map(|r| r.into()).collect())
+        if raw_docs.len() != data.len() {
+            return Err(CouchError::new(
+                format!(
+                    "Unexpected size of response: {} given size of request: {}",
+                    data.len(),
+                    raw_docs.len()
+                ),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ));
+        }
+        let result = raw_docs
+            .into_iter()
+            .zip(data.into_iter())
+            .map(|(mut doc, response)| match (response.ok, response.id, response.rev) {
+                (Some(true), Some(id), Some(rev)) => {
+                    doc.set_id(id.as_str());
+                    doc.set_rev(rev.as_str());
+                    Ok(doc)
+                }
+                (None, id, _) => Err(CouchError::new_with_id(
+                    id,
+                    response.error.unwrap(),
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                )),
+                (_, _, _) => Err(CouchError::new(
+                    response.error.unwrap(),
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                )),
+            })
+            .collect();
+        Ok(result)
     }
 
     /// Gets documents in bulk with provided IDs list, with added params. Params description can be found here:
