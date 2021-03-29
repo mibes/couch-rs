@@ -1,5 +1,3 @@
-use crate::client::Client;
-use crate::client::{is_accepted, is_ok};
 use crate::document::{DocumentCollection, TypedCouchDocument};
 use crate::error::{CouchError, CouchResult};
 use crate::types::design::DesignCreated;
@@ -8,6 +6,11 @@ use crate::types::find::{FindQuery, FindResult};
 use crate::types::index::{DatabaseIndexList, IndexFields};
 use crate::types::query::{QueriesCollection, QueriesParams, QueryParams};
 use crate::types::view::ViewCollection;
+use crate::{client::Client, types::document::DocumentCreatedResult};
+use crate::{
+    client::{is_accepted, is_ok},
+    types::document::DocumentCreatedDetails,
+};
 use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
 use serde_json::{json, to_string, Value};
@@ -160,8 +163,8 @@ impl Database {
     ///         first_name: None,
     ///         last_name: "Doe".to_string(),
     ///     };
-    ///     let value = to_value(seed_doc)?;
-    ///     db.create(value).await?;
+    ///     let mut value = to_value(seed_doc)?;
+    ///     db.create(&mut value).await?;
     ///
     ///     // now that the document is created, we can get it; typed:
     ///     let _user_details: UserDetails = db.get("1234").await?;
@@ -217,7 +220,7 @@ impl Database {
     ///    let db = client.db(TEST_DB).await?;
     ///
     ///    let _ndoc_result = db
-    ///         .bulk_docs(vec![
+    ///         .bulk_docs(&mut vec![
     ///             json!({"_id": "first", "thing": true}),
     ///             json!({"_id": "second", "thing": false}),
     ///         ]).await?;
@@ -225,19 +228,21 @@ impl Database {
     ///    return Ok(());
     /// }
     /// ```
-    pub async fn bulk_docs<T: TypedCouchDocument>(&self, raw_docs: Vec<T>) -> CouchResult<Vec<CouchResult<T>>> {
-        let mut body = HashMap::new();
-        body.insert(s!("docs"), raw_docs);
-
+    pub async fn bulk_docs<T: TypedCouchDocument>(
+        &self,
+        raw_docs: &mut [T],
+    ) -> CouchResult<Vec<CouchResult<DocumentCreatedDetails>>> {
+        let body = format!(r#"{{"docs":{} }}"#, to_string(raw_docs)?);
+        dbg!(&body);
         let response = self
             ._client
-            .post(self.create_raw_path("_bulk_docs"), to_string(&body)?)
+            .post(self.create_raw_path("_bulk_docs"), body)
             .send()
             .await?;
 
-        // TODO: handle this differently
-        let raw_docs = body.remove("docs").unwrap();
         let data: Vec<DocumentCreatedResponse> = response.json().await?;
+        dbg!(&data);
+
         if raw_docs.len() != data.len() {
             return Err(CouchError::new(
                 format!(
@@ -249,23 +254,18 @@ impl Database {
             ));
         }
         let result = raw_docs
-            .into_iter()
+            .iter_mut()
             .zip(data.into_iter())
-            .map(|(mut doc, response)| match (response.ok, response.id, response.rev) {
-                (Some(true), Some(id), Some(rev)) => {
-                    doc.set_id(id.as_str());
-                    doc.set_rev(rev.as_str());
-                    Ok(doc)
+            .map(|(doc, response): (&mut T, DocumentCreatedResponse)| {
+                let result: DocumentCreatedResult = response.into();
+                match result {
+                    Ok(r) => {
+                        doc.set_id(r.id.as_str());
+                        doc.set_rev(r.rev.as_str());
+                        Ok(r)
+                    }
+                    Err(e) => Err(e),
                 }
-                (None, id, _) => Err(CouchError::new_with_id(
-                    id,
-                    response.error.unwrap(),
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                )),
-                (_, _, _) => Err(CouchError::new(
-                    response.error.unwrap(),
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                )),
             })
             .collect();
         Ok(result)
@@ -288,21 +288,21 @@ impl Database {
     /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new_local_test()?;
     ///     let db = client.db(TEST_DB).await?;
-    ///     let doc_1 = json!({
+    ///     let mut doc_1 = json!({
     ///                     "_id": "john",
     ///                     "first_name": "John",
     ///                     "last_name": "Doe"
     ///                 });
     ///
-    ///     let doc_2 = json!({
+    ///     let mut doc_2 = json!({
     ///                     "_id": "jane",
     ///                     "first_name": "Jane",
     ///                     "last_name": "Doe"
     ///                 });
     ///
     ///     // Save these documents
-    ///     db.save(doc_1).await?;
-    ///     db.save(doc_2).await?;
+    ///     db.save(&mut doc_1).await?;
+    ///     db.save(&mut doc_2).await?;
     ///
     ///     // subsequent call updates the existing document
     ///     let docs = db.get_bulk_params::<Value>(vec!["john".to_string(), "jane".to_string()], None).await?;
@@ -654,29 +654,29 @@ impl Database {
     ///         first_name: None,
     ///         last_name: "Doe".to_string(),
     ///     };
-    ///     let value = to_value(seed_doc)?;
-    ///     db.create(value).await?;
+    ///     let mut value = to_value(seed_doc)?;
+    ///     db.create(&mut value).await?;
     ///
     ///     // now that the document is created, we can get it, update it, and save it...
     ///     let mut user_details: UserDetails = db.get("123").await?;
     ///     user_details.first_name = Some("John".to_string());
     ///
-    ///     db.save(user_details).await?;
+    ///     db.save(&mut user_details).await?;
     ///     Ok(())
     /// }
     ///```
-    pub async fn save<T: TypedCouchDocument>(&self, mut doc: T) -> CouchResult<T> {
+    pub async fn save<T: TypedCouchDocument>(&self, doc: &mut T) -> DocumentCreatedResult {
         let id = doc.get_id().to_string();
         let body = to_string(&doc)?;
         let response = self._client.put(self.create_document_path(&id), body).send().await?;
         let status = response.status();
         let data: DocumentCreatedResponse = response.json().await?;
 
-        match data.ok {
-            Some(true) => {
-                doc.set_id(&data.id.unwrap_or_default());
-                doc.set_rev(&data.rev.unwrap_or_default());
-                Ok(doc)
+        match (data.ok, data.id, data.rev) {
+            (Some(true), Some(id), Some(rev)) => {
+                doc.set_id(&id);
+                doc.set_rev(&rev);
+                Ok(DocumentCreatedDetails { id, rev })
             }
             _ => {
                 let err = data.error.unwrap_or_else(|| s!("unspecified error"));
@@ -700,19 +700,19 @@ impl Database {
     /// async fn main() -> CouchResult<()> {
     /// let client = couch_rs::Client::new_local_test()?;
     ///     let db = client.db(TEST_DB).await?;
-    ///     let doc = json!({
+    ///     let mut doc = json!({
     ///                     "first_name": "John",
     ///                     "last_name": "Doe"
     ///                 });
     ///
-    ///     let created_doc = db.create(doc).await?;
+    ///     let details = db.create(&mut doc).await?;
     ///
     ///     // verify that this is the 1st revision of the document
-    ///     assert!(created_doc.get_rev().starts_with('1'));
+    ///     assert!(details.rev.starts_with('1'));
     ///     Ok(())
     /// }
     /// ```
-    pub async fn create<T: TypedCouchDocument>(&self, mut doc: T) -> CouchResult<T> {
+    pub async fn create<T: TypedCouchDocument>(&self, doc: &mut T) -> CouchResult<DocumentCreatedDetails> {
         let response = self._client.post(self.name.clone(), to_string(&doc)?).send().await?;
 
         let status = response.status();
@@ -720,12 +720,12 @@ impl Database {
 
         match data.ok {
             Some(true) => {
-                let data_id = data.id.ok_or_else(|| CouchError::new(s!("invalid id"), status))?;
-                let data_rev = data.rev.ok_or_else(|| CouchError::new(s!("invalid rev"), status))?;
+                let id = data.id.ok_or_else(|| CouchError::new(s!("invalid id"), status))?;
+                let rev = data.rev.ok_or_else(|| CouchError::new(s!("invalid rev"), status))?;
 
-                doc.set_id(&data_id);
-                doc.set_rev(&data_rev);
-                Ok(doc)
+                doc.set_id(&id);
+                doc.set_rev(&rev);
+                Ok(DocumentCreatedDetails { id, rev })
             }
             _ => {
                 let err = data.error.unwrap_or_else(|| s!("unspecified error"));
@@ -754,24 +754,24 @@ impl Database {
     /// async fn main() -> CouchResult<()> {
     ///     let client = couch_rs::Client::new_local_test()?;
     ///     let db = client.db(TEST_DB).await?;
-    ///     let doc = json!({
+    ///     let mut doc = json!({
     ///                     "_id": "doe",
     ///                     "first_name": "John",
     ///                     "last_name": "Doe"
     ///                 });
     ///
     ///     // initial call creates the document
-    ///     db.upsert(doc.clone()).await?;
+    ///     db.upsert(&mut doc).await?;
     ///
     ///     // subsequent call updates the existing document
-    ///     let updated_doc = db.upsert(doc).await?;
+    ///     let details = db.upsert(&mut doc).await?;
     ///
     ///     // verify that this is the 2nd revision of the document
-    ///     assert!(updated_doc.get_rev().starts_with('2'));
+    ///     assert!(details.rev.starts_with('2'));
     ///     Ok(())
     /// }
     /// ```
-    pub async fn upsert<T: TypedCouchDocument>(&self, mut doc: T) -> CouchResult<T> {
+    pub async fn upsert<T: TypedCouchDocument>(&self, doc: &mut T) -> DocumentCreatedResult {
         let id = doc.get_id();
 
         match self.get::<T>(&id).await {
@@ -867,14 +867,14 @@ impl Database {
     ///     let client = couch_rs::Client::new_local_test()?;
     ///     let db = client.db(TEST_DB).await?;
     ///
-    ///     let doc = json!({
+    ///     let mut doc = json!({
     ///                     "_id": "jdoe",
     ///                     "first_name": "John",
     ///                     "last_name": "Doe",
     ///                     "funny": true
     ///                 });
     ///
-    ///     db.create(doc).await?;
+    ///     db.create(&mut doc).await?;
     ///
     ///     let couch_func = CouchFunc {
     ///             map: "function (doc) { if (doc.funny == true) { emit(doc._id, doc.funny); } }".to_string(),
@@ -955,13 +955,13 @@ impl Database {
     ///     // first we need to get the document, because we need both the _id and _rev in order
     ///     // to delete
     ///     if let Some(doc) = db.get::<Value>("123").await.ok() {
-    ///         db.remove(doc).await;
+    ///         db.remove(&doc).await;
     ///     }
     ///
     ///     Ok(())
     /// }
     ///```     
-    pub async fn remove<T: TypedCouchDocument>(&self, doc: T) -> bool {
+    pub async fn remove<T: TypedCouchDocument>(&self, doc: &T) -> bool {
         let request = self._client.delete(
             self.create_document_path(&doc.get_id()),
             Some({

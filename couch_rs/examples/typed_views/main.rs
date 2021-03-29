@@ -10,14 +10,14 @@ async fn main() -> CouchResult<()> {
     let client = couch_rs::Client::new_local_test()?;
     let db = client.db(TEST_DB).await?;
 
-    let doc = json!({
+    let mut doc = json!({
         "_id": "jdoe",
         "first_name": "John",
         "last_name": "Doe",
         "funny": true
     });
 
-    db.create(doc).await?;
+    db.create(&mut doc).await?;
 
     let couch_func = CouchFunc {
         map: "function (doc) { if (doc.funny == true) { emit(doc._id, doc.funny); } }".to_string(),

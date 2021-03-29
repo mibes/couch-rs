@@ -266,16 +266,15 @@ mod couch_rs_tests {
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
 
-            let ndoc_result = db
-                .create(json!({
-                    "thing": true
-                }))
-                .await;
+            let mut doc = json!({
+                "thing": true
+            });
+            let ndoc_result = db.create(&mut doc).await;
 
             assert!(ndoc_result.is_ok());
 
-            let mut doc = ndoc_result.unwrap();
-            assert_eq!(doc["thing"], json!(true));
+            let details = ndoc_result.unwrap();
+            assert_eq!(details.rev, doc.get("_rev").unwrap().as_str().unwrap());
 
             let _ = client.destroy_db("should_create_a_document");
         }
@@ -286,21 +285,21 @@ mod couch_rs_tests {
             let dbw = client.db("should_create_a_typed_document").await;
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
-            let my_doc = TestDoc {
+            let mut my_doc = TestDoc {
                 _id: "".to_string(),
                 _rev: "".to_string(),
                 first_name: "John".to_string(),
                 last_name: "Doe".to_string(),
             };
 
-            let ndoc_result = db.create(my_doc).await;
+            let ndoc_result = db.create(&mut my_doc).await;
 
             assert!(ndoc_result.is_ok());
 
-            let mut doc = ndoc_result.unwrap();
-            assert_eq!(doc.first_name, "John");
-            assert!(!doc._id.is_empty());
-            assert!(doc._rev.starts_with("1-"));
+            let details = ndoc_result.unwrap();
+            assert_eq!(details.rev, my_doc._rev);
+            assert!(!my_doc._id.is_empty());
+            assert!(my_doc._rev.starts_with("1-"));
 
             let _ = client.destroy_db("should_create_a_typed_document");
         }
@@ -313,28 +312,31 @@ mod couch_rs_tests {
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
 
-            let ndoc_result = db
-                .bulk_docs(vec![
-                    json!({
-                        "_id":"first",
-                        "thing": true
-                    }),
-                    json!({
-                        "_id":"first",
-                        "thing": false
-                    }),
-                ])
-                .await;
+            let mut docs = vec![
+                json!({
+                    "_id":"first",
+                    "thing": true
+                }),
+                json!({
+                    "_id":"first",
+                    "thing": false
+                }),
+            ];
+            let ndoc_result = db.bulk_docs(&mut docs).await;
 
             assert!(ndoc_result.is_ok());
 
-            let mut docs = ndoc_result.unwrap();
-            let mut docs = docs.into_iter();
-            let first_result = docs.next().unwrap();
+            let mut ndoc_result = ndoc_result.unwrap().into_iter();
+            let first_result = ndoc_result.next().unwrap();
             assert!(first_result.is_ok());
-            assert!(first_result.unwrap().as_object().unwrap().get("_rev").is_some());
+            let mut docs = docs.into_iter();
+            let first_doc = docs.next().unwrap();
+            assert_eq!(
+                first_doc.as_object().unwrap().get("_rev").unwrap().as_str().unwrap(),
+                first_result.unwrap().rev.as_str()
+            );
 
-            let second_result = docs.next().unwrap();
+            let second_result = ndoc_result.next().unwrap();
             assert!(second_result.is_err());
             assert_eq!(second_result.err().unwrap().status, StatusCode::CONFLICT);
 
@@ -368,17 +370,15 @@ mod couch_rs_tests {
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
 
-            let ndoc_result = db
-                .create(json!({
-                    "thing": true
-                }))
-                .await;
+            let mut doc = json!({
+                "thing": true
+            });
+            let ndoc_result = db.create(&mut doc).await;
 
             assert!(ndoc_result.is_ok());
 
-            let mut doc = ndoc_result.unwrap();
-            assert_eq!(doc["thing"], json!(true));
-
+            let details = ndoc_result.unwrap();
+            assert_eq!(details.rev, doc.get("_rev").unwrap().as_str().unwrap());
             (client, db, doc)
         }
 
@@ -390,16 +390,16 @@ mod couch_rs_tests {
             let mut docs = vec![];
 
             for _ in 0..nr_of_docs {
-                let ndoc_result = db
-                    .create(json!({
-                        "thing": true
-                    }))
-                    .await;
+                let mut doc = json!({
+                    "thing": true
+                });
+                let ndoc_result = db.create(&mut doc).await;
 
                 assert!(ndoc_result.is_ok());
 
-                let mut doc = ndoc_result.unwrap();
-                assert_eq!(doc["thing"], json!(true));
+                let details = ndoc_result.unwrap();
+                assert_eq!(details.rev, doc.get("_rev").unwrap().as_str().unwrap());
+
                 docs.push(doc)
             }
 
@@ -416,10 +416,10 @@ mod couch_rs_tests {
 
             doc["thing"] = json!(false);
 
-            let save_result = db.save(doc).await;
+            let save_result = db.save(&mut doc).await;
             assert!(save_result.is_ok());
-            let new_doc = save_result.unwrap();
-            assert_eq!(new_doc["thing"], json!(false));
+            let details = save_result.unwrap();
+            assert_eq!(doc["_rev"], details.rev);
 
             teardown(client, "should_update_a_document").await;
         }
@@ -429,23 +429,24 @@ mod couch_rs_tests {
             let dbname = "should_handle_a_document_plus";
             let (client, db, mut doc) = setup(dbname).await;
 
-            assert!(db.remove(doc).await);
+            assert!(db.remove(&doc).await);
             // make sure db is empty
             assert_eq!(db.get_all_raw().await.unwrap().rows.len(), 0);
 
             // create 1 doc with plus sign in the _id
             let id = "1+2";
-            let created = db.create(json!({ "_id": id })).await.unwrap();
-            assert_eq!(created.get_id(), id);
+            let mut created = json!({ "_id": id });
+            let details = db.create(&mut created).await.unwrap();
+            assert_eq!(details.id, id);
 
             // update it
-            let save_result = db.save(created.clone()).await;
+            let save_result = db.save(&mut created).await;
             assert!(save_result.is_ok());
             // make sure db has only 1 doc
             assert_eq!(db.get_all_raw().await.unwrap().rows.len(), 1);
 
             // delete it
-            assert!(db.remove(save_result.unwrap()).await);
+            assert!(db.remove(&created).await);
             // make sure db has no docs
             assert_eq!(db.get_all_raw().await.unwrap().rows.len(), 0);
 
@@ -455,7 +456,7 @@ mod couch_rs_tests {
         #[tokio::test]
         async fn should_remove_a_document() {
             let (client, db, doc) = setup("should_remove_a_document").await;
-            assert!(db.remove(doc).await);
+            assert!(db.remove(&doc).await);
 
             teardown(client, "should_remove_a_document").await;
         }
@@ -470,7 +471,7 @@ mod couch_rs_tests {
         async fn should_get_a_document_with_a_space_in_id() {
             let (client, db, _) = setup("should_get_a_document_with_a_space_in_id").await;
             let space_doc_result = db
-                .create(json!({
+                .create(&mut json!({
                     "_id": "some crazy name"
                 }))
                 .await;
@@ -553,7 +554,7 @@ mod couch_rs_tests {
 
             let collection = db.get_bulk_raw(vec![id]).await.unwrap();
             assert_eq!(collection.rows.len(), 1);
-            assert!(db.remove(doc).await);
+            assert!(db.remove(&doc).await);
 
             teardown(client, "should_bulk_get_a_document").await;
         }
@@ -566,7 +567,7 @@ mod couch_rs_tests {
 
             let collection = db.get_bulk_raw(vec![id, invalid_id]).await.unwrap();
             assert_eq!(collection.rows.len(), 1);
-            assert!(db.remove(doc).await);
+            assert!(db.remove(&doc).await);
 
             teardown(client, "should_bulk_get_invalid_documents").await;
         }
@@ -580,7 +581,7 @@ mod couch_rs_tests {
 
             let collection = db.get_all_params_raw(Some(params)).await.unwrap();
             assert_eq!(collection.rows.len(), 1);
-            assert!(db.remove(doc).await);
+            assert!(db.remove(&doc).await);
 
             teardown(client, "should_get_all_documents_with_keys").await;
         }
@@ -606,13 +607,11 @@ mod couch_rs_tests {
             )
             .await
             .unwrap();
-            let ndoc = db
-                .create(json!({
-                    "thing": true
-                }))
-                .await
-                .unwrap();
-            let ndoc_id = ndoc.get_id().into_owned();
+            let mut second_doc = json!({
+                "thing": true
+            });
+            let details = db.create(&mut second_doc).await.unwrap();
+            let ndoc_id = details.id;
             let single_view_name = "testViewSingle";
             db.create_view(
                 single_view_name,
@@ -657,8 +656,8 @@ mod couch_rs_tests {
                 0
             );
 
-            assert!(db.remove(ndoc).await);
-            assert!(db.remove(doc).await);
+            assert!(db.remove(&second_doc).await);
+            assert!(db.remove(&doc).await);
 
             teardown(client, db_name).await;
         }
@@ -684,12 +683,10 @@ mod couch_rs_tests {
             )
             .await
             .unwrap();
-            let ndoc = db
-                .create(json!({
-                    "thing": true
-                }))
-                .await
-                .unwrap();
+            let mut ndoc = json!({
+                "thing": true
+            });
+            let details = db.create(&mut ndoc).await.unwrap();
             let ndoc_id = ndoc.get_id().into_owned();
             let single_view_name = "testViewSingle";
             db.create_view(
@@ -736,8 +733,8 @@ mod couch_rs_tests {
                 0
             );
 
-            assert!(db.remove(ndoc).await);
-            assert!(db.remove(doc).await);
+            assert!(db.remove(&ndoc).await);
+            assert!(db.remove(&doc).await);
 
             teardown(client, db_name).await;
         }
@@ -763,12 +760,10 @@ mod couch_rs_tests {
             )
             .await
             .unwrap();
-            let ndoc = db
-                .create(json!({
-                    "thing": true
-                }))
-                .await
-                .unwrap();
+            let mut ndoc = json!({
+                "thing": true
+            });
+            let details = db.create(&mut ndoc).await.unwrap();
             let ndoc_id = ndoc.get_id().into_owned();
             let single_view_name = "testViewSingle";
             db.create_view(
@@ -822,8 +817,8 @@ mod couch_rs_tests {
                 1
             );
 
-            assert!(db.remove(ndoc).await);
-            assert!(db.remove(doc).await);
+            assert!(db.remove(&ndoc).await);
+            assert!(db.remove(&doc).await);
 
             teardown(client, dbname).await;
         }
@@ -859,7 +854,7 @@ mod couch_rs_tests {
             assert!(collections.get(2).unwrap().rows.get(0).unwrap().doc.is_none());
 
             for doc in docs.into_iter() {
-                assert!(db.remove(doc).await);
+                assert!(db.remove(&doc).await);
             }
 
             teardown(client, dbname).await;
@@ -898,7 +893,7 @@ mod couch_rs_tests {
         #[tokio::test]
         async fn should_bulk_insert_and_get_many_docs() {
             let (client, db, _doc) = setup("should_bulk_insert_and_get_many_docs").await;
-            let docs: Vec<Value> = (0..2000)
+            let mut docs: Vec<Value> = (0..2000)
                 .map(|idx| {
                     json!({
                         "_id": format!("bd_{}", idx),
@@ -907,7 +902,7 @@ mod couch_rs_tests {
                 })
                 .collect();
 
-            db.bulk_docs(docs).await.expect("should insert 2000 documents");
+            db.bulk_docs(&mut docs).await.expect("should insert 2000 documents");
 
             // Create a sender and receiver channel pair
             let (tx, mut rx): (Sender<DocumentCollection<Value>>, Receiver<DocumentCollection<Value>>) =

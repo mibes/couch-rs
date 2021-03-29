@@ -58,21 +58,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("--- Creating ---");
 
     // let's add some docs
-    match db.bulk_docs(test_docs(100)).await {
+    match db.bulk_docs(&mut test_docs(100)).await {
         Ok(resp) => {
             println!("Bulk docs completed");
 
             for r in resp {
                 match r {
-                    Ok(details) => println!(
-                        "Id: {}",
-                        details
-                            .as_object()
-                            .unwrap()
-                            .get("_id")
-                            .map(|v| v.as_str().unwrap().to_owned())
-                            .unwrap_or_else(|| "--".to_string())
-                    ),
+                    Ok(details) => println!("Id: {}", details.id),
                     Err(err) => println!("Error: {:?}", err),
                 }
             }
