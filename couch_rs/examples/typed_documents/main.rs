@@ -53,7 +53,7 @@ async fn main() {
                     // create the document
                     match db.create(&mut doc).await {
                         Ok(r) => println!("Document was created with ID: {} and Rev: {}", r.id, r.rev),
-                        Err(err) => println!("Oops: {:?}", err),
+                        Err(err) => println!("error creating document {}: {:?}", doc, err),
                     }
                 }
                 _ => {
