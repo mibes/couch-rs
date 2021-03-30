@@ -231,7 +231,7 @@ impl Database {
     pub async fn bulk_docs<T: TypedCouchDocument>(
         &self,
         raw_docs: &mut [T],
-    ) -> CouchResult<Vec<CouchResult<DocumentCreatedDetails>>> {
+    ) -> CouchResult<Vec<DocumentCreatedResult>> {
         let body = format!(r#"{{"docs":{} }}"#, to_string(raw_docs)?);
         dbg!(&body);
         let response = self
@@ -712,7 +712,7 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn create<T: TypedCouchDocument>(&self, doc: &mut T) -> CouchResult<DocumentCreatedDetails> {
+    pub async fn create<T: TypedCouchDocument>(&self, doc: &mut T) -> DocumentCreatedResult {
         let response = self._client.post(self.name.clone(), to_string(&doc)?).send().await?;
 
         let status = response.status();
