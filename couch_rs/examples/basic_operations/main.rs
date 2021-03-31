@@ -70,7 +70,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
         }
-        Err(err) => println!("Oops: unable to create documents {}: {:?}", test_docs, err),
+        Err(err) => println!("Oops: unable to create documents {:?}: {:?}", test_docs, err),
     }
 
     println!("--- Finding ---");
