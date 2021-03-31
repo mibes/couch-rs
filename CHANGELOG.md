@@ -5,7 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/mibes/couch-rs/compare/0.8.28...develop) - ReleaseDate
+## [Unreleased](https://github.com/mibes/couch-rs/compare/0.8.29...develop) - ReleaseDate
+
+## [0.8.29] - 2021-03-30
+
+- BREAKING CHANGE: mutually borrow documents on create and update; contributed by horacimacias
 
 ## [0.8.28] - 2021-02-05
 
@@ -116,12 +120,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.8.11] - 2020-09-27
 
 ### Changed
+
 - Use `&str` instead of `DocumentId` in a few places to make the API easier to use
 - Include an example for `query_many_all_docs`
 
 ## [0.8.10] - 2020-09-27
 
 ### Changed
+
 - Introduce gitflow
 - Updated rustfmt configuration
 - Test for query params
@@ -129,11 +135,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.8.9] - 2020-09-27
 
 ### Changed
+
 - Let `get_bulk_params` take `Option<QueryParams>`
 
 ## [0.8.8] - 2020-09-27
 
 ### Changed
+
 - Use `Into<serde_json::Value>` trait for `create_view` to not break compatibility with `CouchUpdate`
 
 ## [0.8.7] - 2020-09-27
@@ -236,8 +244,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 
-- `json_extr!` does not panic when called on a non-existent field. Like in find for _id, when the find result does not
-  include an _id.
+- `json_extr!` does not panic when called on a non-existent field. Like in find for \_id, when the find result does not
+  include an \_id.
 
 ## [0.7.8] - 2020-09-09
 

@@ -137,9 +137,9 @@ impl SelectAll {
     }
 }
 
-impl Into<serde_json::Value> for &SelectAll {
-    fn into(self) -> Value {
-        serde_json::to_value(&self).expect("can not convert into json")
+impl From<&SelectAll> for serde_json::Value {
+    fn from(s: &SelectAll) -> Self {
+        serde_json::to_value(&s).expect("can not convert into json")
     }
 }
 
@@ -250,15 +250,15 @@ impl FindQuery {
     }
 }
 
-impl Into<serde_json::Value> for FindQuery {
-    fn into(self) -> Value {
-        serde_json::to_value(&self).expect("can not convert into json")
+impl From<FindQuery> for serde_json::Value {
+    fn from(q: FindQuery) -> Self {
+        serde_json::to_value(&q).expect("can not convert into json")
     }
 }
 
-impl Into<serde_json::Value> for &FindQuery {
-    fn into(self) -> Value {
-        serde_json::to_value(&self).expect("can not convert into json")
+impl From<&FindQuery> for serde_json::Value {
+    fn from(q: &FindQuery) -> Self {
+        serde_json::to_value(&q).expect("can not convert into json")
     }
 }
 

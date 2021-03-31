@@ -49,10 +49,11 @@ async fn main() {
         Err(e) => {
             match e.status {
                 StatusCode::NOT_FOUND => {
+                    let mut doc = serde_json::to_value(td).unwrap();
                     // create the document
-                    match db.create(serde_json::to_value(td).unwrap()).await {
-                        Ok(r) => println!("Document was created with ID: {} and Rev: {}", r.get_id(), r.get_rev()),
-                        Err(err) => println!("Oops: {:?}", err),
+                    match db.create(&mut doc).await {
+                        Ok(r) => println!("Document was created with ID: {} and Rev: {}", r.id, r.rev),
+                        Err(err) => println!("error creating document {}: {:?}", doc, err),
                     }
                 }
                 _ => {

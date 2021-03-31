@@ -15,7 +15,7 @@ pub enum DocumentRef<T> {
 
 /// Abstracted document creation response
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
-pub struct DocumentCreatedResponse {
+pub(crate) struct DocumentCreatedResponse {
     /// Document ID
     pub id: Option<String>,
     /// New document revision token. Available if document has saved without errors
@@ -32,9 +32,9 @@ pub struct DocumentCreatedResponse {
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
 pub struct DocumentCreatedDetails {
     /// Document ID
-    pub id: Option<String>,
+    pub id: String,
     /// New document revision token.
-    pub rev: Option<String>,
+    pub rev: String,
 }
 
 impl From<DocumentCreatedResponse> for DocumentCreatedResult {
@@ -53,10 +53,13 @@ impl From<DocumentCreatedResponse> for DocumentCreatedResult {
                 status_code,
             ))
         } else {
-            Ok(DocumentCreatedDetails {
-                id: response.id,
-                rev: response.rev,
-            })
+            match (response.id, response.rev) {
+                (Some(id), Some(rev)) => Ok(DocumentCreatedDetails { id, rev }),
+                (_, _) => Err(CouchError::new(
+                    "Unexpected response format".to_string(),
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                )),
+            }
         }
     }
 }
