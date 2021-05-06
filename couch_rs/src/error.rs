@@ -26,7 +26,7 @@ impl CouchError {
     }
 
     pub fn new_with_id(id: Option<String>, message: String, status: reqwest::StatusCode) -> CouchError {
-        CouchError { id, message, status }
+        CouchError { id, status, message }
     }
 
     pub fn is_not_found(&self) -> bool {

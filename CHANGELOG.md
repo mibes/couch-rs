@@ -5,7 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/mibes/couch-rs/compare/0.8.29...develop) - ReleaseDate
+## [Unreleased](https://github.com/mibes/couch-rs/compare/0.8.30...develop) - ReleaseDate
+
+## [0.8.30] - 2021-04-06
+
+- cleaned-up some left-over dbg! statements
 
 ## [0.8.29] - 2021-03-30
 
