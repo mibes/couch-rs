@@ -233,7 +233,6 @@ impl Database {
         raw_docs: &mut [T],
     ) -> CouchResult<Vec<DocumentCreatedResult>> {
         let body = format!(r#"{{"docs":{} }}"#, to_string(raw_docs)?);
-        dbg!(&body);
         let response = self
             ._client
             .post(self.create_raw_path("_bulk_docs"), body)
@@ -241,7 +240,6 @@ impl Database {
             .await?;
 
         let data: Vec<DocumentCreatedResponse> = response.json().await?;
-        dbg!(&data);
 
         if raw_docs.len() != data.len() {
             return Err(CouchError::new(
