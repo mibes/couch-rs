@@ -850,6 +850,10 @@ impl Database {
     }
 
     /// Executes a query against a view.
+    /// Make sure the types you use for K, V and T represent the structures the query will return.
+    /// For example, if a query can return a `null` value, but the type used for query() is <K:String, V:String, T:TypedCouchDocument>
+    /// the couchdb query will succeed but deserialising the overall result will fail ('null' cannot be deserialized to String).
+    /// In such case, you can use serde::Value since it can hold both 'null' and String.
     ///
     /// Usage:
     /// ```
