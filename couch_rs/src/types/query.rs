@@ -138,28 +138,8 @@ impl Default for QueryParams {
 impl QueryParams {
     pub fn from_keys(keys: Vec<String>) -> Self {
         QueryParams {
-            conflicts: None,
-            descending: None,
-            end_key: None,
-            end_key_doc_id: None,
-            group: None,
-            group_level: None,
-            include_docs: None,
-            attachments: None,
-            att_encoding_info: None,
-            inclusive_end: None,
-            key: None,
             keys,
-            limit: None,
-            reduce: None,
-            skip: None,
-            sorted: None,
-            stable: None,
-            stale: None,
-            start_key: None,
-            start_key_doc_id: None,
-            update: None,
-            update_seq: None,
+            ..Default::default()
         }
     }
 
