@@ -353,13 +353,13 @@ mod couch_rs_tests {
     }
 
     mod database_tests {
-        use crate::client::Client;
-        use crate::database::Database;
         use crate::document::{DocumentCollection, TypedCouchDocument};
         use crate::types;
         use crate::types::find::FindQuery;
         use crate::types::query::{QueriesParams, QueryParams};
         use crate::types::view::{CouchFunc, CouchViews};
+        use crate::{client::Client, types::view::ViewCollection};
+        use crate::{database::Database, error::CouchResult};
         use serde_json::{json, Value};
         use tokio::sync::mpsc;
         use tokio::sync::mpsc::{Receiver, Sender};
@@ -887,6 +887,67 @@ mod couch_rs_tests {
 
             assert!(db.query_raw(view_name, view_name, None).await.is_ok());
 
+            teardown(client, dbname).await;
+        }
+
+        #[tokio::test]
+        async fn should_handle_null_values() {
+            let dbname = "should_handle_null_values";
+            let nr_of_docs = 4;
+            let (client, db, docs) = setup_multiple(dbname, nr_of_docs).await;
+            let doc = docs.get(0).unwrap();
+            // this view generates 'null' values
+            let count_by_id = r#"function (doc) {
+                                        emit(doc._id, null);
+                                    }"#;
+            let view_name = "should_handle_null_values";
+            /* a view/reduce like this will return something like the following:
+
+               {"rows":[
+                   {"key":"aaa","value":null}
+               ]}
+            */
+            assert!(
+                db.create_view(view_name, CouchViews::new(view_name, CouchFunc::new(count_by_id, None)),)
+                    .await
+                    .is_ok(),
+                "problems creating view"
+            );
+
+            // executing a view against a non-existing key
+            let options = QueryParams::from_keys(vec!["doesnotexist".to_string()]);
+            // we expect the operation to work even if the type of key is String because there will be no results returned so deserialization will not fail
+            let result: CouchResult<ViewCollection<String, String, Value>> =
+                db.query(view_name, view_name, Some(options)).await;
+
+            match result {
+                Ok(_) => {}
+                Err(e) => {
+                    panic!("problems executing query: {}", e);
+                }
+            }
+
+            // getting all entries fails because value is null and we're deserializing to String
+            let result: CouchResult<ViewCollection<String, String, Value>> = db.query(view_name, view_name, None).await;
+
+            match result {
+                Ok(entries) => {
+                    panic!("previous query should have failed, but succeeded");
+                }
+                Err(e) => {}
+            }
+
+            // getting all entries now succeeds because value is null and we're deserializing to Value
+            let result: CouchResult<ViewCollection<String, Value, Value>> = db.query(view_name, view_name, None).await;
+
+            match result {
+                Ok(entries) => {
+                    assert_eq!(nr_of_docs, entries.rows.len());
+                }
+                Err(e) => {
+                    panic!("{}", e)
+                }
+            }
             teardown(client, dbname).await;
         }
 
