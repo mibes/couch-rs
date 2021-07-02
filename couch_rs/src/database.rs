@@ -1,3 +1,4 @@
+use crate::changes::ChangesStream;
 use crate::document::{DocumentCollection, TypedCouchDocument};
 use crate::error::{CouchError, CouchResult};
 use crate::types::design::DesignCreated;
@@ -1034,6 +1035,10 @@ impl Database {
             // Created and alright
             None => Ok(true),
         }
+    }
+
+    pub async fn changes(&self, last_seq: Option<String>) -> ChangesStream {
+        ChangesStream::new(self._client.clone(), self.name.clone(), last_seq)
     }
 }
 
