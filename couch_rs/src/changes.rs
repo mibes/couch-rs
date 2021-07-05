@@ -14,6 +14,12 @@ use tokio_util::io::StreamReader;
 use crate::error::{CouchError, CouchResult};
 use crate::types::changes::{ChangeEvent, Event};
 
+/// The max timeout value for longpoll/continous HTTP requests
+/// that CouchDB supports (see [1]).
+///
+/// [1]: https://docs.couchdb.org/en/stable/api/database/changes.html
+const COUCH_MAX_TIMEOUT: &'static str = "60000";
+
 /// The stream for the `_changes` endpoint.
 ///
 /// This is returned from [Database::changes].
@@ -71,7 +77,7 @@ impl ChangesStream {
     pub fn set_infinite(&mut self, infinite: bool) {
         self.infinite = infinite;
         let timeout = match infinite {
-            true => "60000".to_string(),
+            true => COUCH_MAX_TIMEOUT.to_string(),
             false => "0".to_string(),
         };
         self.params.insert("timeout".to_string(), timeout);
@@ -112,7 +118,6 @@ impl Stream for ChangesStream {
                     Ok(res) => match res.status().is_success() {
                         true => {
                             let stream = res.bytes_stream().map_err(|err| {
-                                eprintln!("orig err {:#?}", err);
                                 io::Error::new(io::ErrorKind::Other, err)
                             });
                             let reader = StreamReader::new(stream);
