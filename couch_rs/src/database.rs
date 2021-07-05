@@ -788,6 +788,43 @@ impl Database {
         }
     }
 
+    /// Bulk upsert a list of documents.
+    ///
+    /// This will first fetch the latest rev for each document that does not have a rev set. It
+    /// will then insert all documents into the database.
+    pub async fn bulk_upsert<T: TypedCouchDocument + Clone>(&self, mut docs: &mut Vec<T>)-> CouchResult<Vec<DocumentCreatedResult>>
+    {
+        // First collect all docs that do not have a rev set.
+        let mut docs_without_rev = vec![];
+        for (i, doc) in docs.iter().enumerate() {
+            if doc.get_rev().is_empty() && !doc.get_id().is_empty() {
+                docs_without_rev.push((doc.get_id().to_string(), i));
+            }
+        }
+
+        // Fetch the latest rev for the docs that do not have a rev set.
+        let ids_without_rev: Vec<String> = docs_without_rev.iter().map(|(id, _)| id.to_string()).collect();
+        let bulk_get = self.get_bulk::<Value>(ids_without_rev).await?;
+        for (req_idx, (sent_id, doc_idx)) in docs_without_rev.iter().enumerate() {
+            let result = bulk_get.get_data().get(req_idx);
+            let rev = match result {
+                Some(doc) if doc.get_id().as_ref() == sent_id  => {
+                    doc.get_rev().to_string()
+                }
+                _ => {
+                    return Err(
+                        CouchError::new("Response does not match request".to_string(), StatusCode::INTERNAL_SERVER_ERROR)
+                    );
+                }
+            };
+            docs.get_mut(*doc_idx).unwrap().set_rev(&rev);
+        }
+
+        // Bulk insert the docs, this also updates the revs.
+        let res = self.bulk_docs(&mut docs).await?;
+        Ok(res)
+    }
+
     /// Creates a design with one of more view documents.
     ///
     /// Usage:
