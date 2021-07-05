@@ -195,6 +195,8 @@ pub mod model;
 /// Data types to support CouchDB operations.
 pub mod types;
 
+mod changes;
+
 pub use client::Client;
 
 #[allow(unused_mut, unused_variables)]
