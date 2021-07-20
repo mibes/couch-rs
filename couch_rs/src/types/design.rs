@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Design document created abstraction
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
@@ -7,5 +7,5 @@ pub struct DesignCreated {
     pub id: Option<String>,
     pub name: Option<String>,
     pub error: Option<String>,
-    pub reason: Option<String>
+    pub reason: Option<String>,
 }

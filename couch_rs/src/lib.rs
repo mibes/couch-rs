@@ -1006,7 +1006,9 @@ mod couch_rs_tests {
             db.bulk_docs(&mut docs).await.expect("should insert documents");
 
             for doc in docs.iter_mut() {
-                doc.as_object_mut().unwrap().insert("updated".to_string(), serde_json::Value::Bool(true));
+                doc.as_object_mut()
+                    .unwrap()
+                    .insert("updated".to_string(), serde_json::Value::Bool(true));
             }
 
             let res = db.bulk_upsert(&mut docs).await.expect("should upsert documents");
@@ -1019,7 +1021,14 @@ mod couch_rs_tests {
 
             for i in 0..count {
                 assert!(docs[i].get_rev() == res[i].as_ref().unwrap().rev);
-                assert!(docs[i].as_object().expect("should be an object").get("updated").expect("should have updated key") == true);
+                assert!(
+                    docs[i]
+                        .as_object()
+                        .expect("should be an object")
+                        .get("updated")
+                        .expect("should have updated key")
+                        == true
+                );
             }
             teardown(client, "should_bulk_upsert_docs").await;
         }

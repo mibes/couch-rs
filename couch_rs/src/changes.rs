@@ -18,7 +18,7 @@ use crate::types::changes::{ChangeEvent, Event};
 /// that CouchDB supports (see [1]).
 ///
 /// [1]: https://docs.couchdb.org/en/stable/api/database/changes.html
-const COUCH_MAX_TIMEOUT: &'static str = "60000";
+const COUCH_MAX_TIMEOUT: usize = 60000;
 
 /// The stream for the `_changes` endpoint.
 ///
@@ -78,7 +78,7 @@ impl ChangesStream {
         self.infinite = infinite;
         let timeout = match infinite {
             true => COUCH_MAX_TIMEOUT.to_string(),
-            false => "0".to_string(),
+            false => 0.to_string(),
         };
         self.params.insert("timeout".to_string(), timeout);
     }
@@ -117,9 +117,9 @@ impl Stream for ChangesStream {
                     Err(err) => return Poll::Ready(Some(Err(err))),
                     Ok(res) => match res.status().is_success() {
                         true => {
-                            let stream = res.bytes_stream().map_err(|err| {
-                                io::Error::new(io::ErrorKind::Other, err)
-                            });
+                            let stream = res
+                                .bytes_stream()
+                                .map_err(|err| io::Error::new(io::ErrorKind::Other, err));
                             let reader = StreamReader::new(stream);
                             let lines = Box::pin(LinesStream::new(reader.lines()));
                             ChangesStreamState::Reading(lines)

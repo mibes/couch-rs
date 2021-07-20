@@ -111,7 +111,7 @@ impl Database {
     ///     // check if the design document "_design/clip_view" exists
     ///     if db.exists("_design/clip_view").await {
     ///         println!("The design document exists");
-    ///     }   
+    ///     }
     ///
     ///     return Ok(());
     /// }
@@ -310,7 +310,7 @@ impl Database {
     ///     assert_eq!(docs.rows.len(), 2);
     ///     Ok(())
     /// }
-    /// ```   
+    /// ```
     pub async fn get_bulk_params<T: TypedCouchDocument>(
         &self,
         ids: Vec<DocumentId>,
@@ -793,8 +793,10 @@ impl Database {
     ///
     /// This will first fetch the latest rev for each document that does not have a rev set. It
     /// will then insert all documents into the database.
-    pub async fn bulk_upsert<T: TypedCouchDocument + Clone>(&self, mut docs: &mut Vec<T>)-> CouchResult<Vec<DocumentCreatedResult>>
-    {
+    pub async fn bulk_upsert<T: TypedCouchDocument + Clone>(
+        &self,
+        mut docs: &mut Vec<T>,
+    ) -> CouchResult<Vec<DocumentCreatedResult>> {
         // First collect all docs that do not have a rev set.
         let mut docs_without_rev = vec![];
         for (i, doc) in docs.iter().enumerate() {
@@ -809,13 +811,12 @@ impl Database {
         for (req_idx, (sent_id, doc_idx)) in docs_without_rev.iter().enumerate() {
             let result = bulk_get.get_data().get(req_idx);
             let rev = match result {
-                Some(doc) if doc.get_id().as_ref() == sent_id  => {
-                    doc.get_rev().to_string()
-                }
+                Some(doc) if doc.get_id().as_ref() == sent_id => doc.get_rev().to_string(),
                 _ => {
-                    return Err(
-                        CouchError::new("Response does not match request".to_string(), StatusCode::INTERNAL_SERVER_ERROR)
-                    );
+                    return Err(CouchError::new(
+                        "Response does not match request".to_string(),
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                    ));
                 }
             };
             docs.get_mut(*doc_idx).unwrap().set_rev(&rev);
@@ -933,7 +934,7 @@ impl Database {
     ///     }
     ///     Ok(())
     /// }
-    /// ```    
+    /// ```
     pub async fn query<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument>(
         &self,
         design_name: &str,
@@ -1000,7 +1001,7 @@ impl Database {
     ///
     ///     Ok(())
     /// }
-    ///```     
+    ///```
     pub async fn remove<T: TypedCouchDocument>(&self, doc: &T) -> bool {
         let request = self._client.delete(
             self.create_document_path(&doc.get_id()),
@@ -1079,7 +1080,7 @@ impl Database {
     }
 
     /// A streaming handler for the CouchDB `_changes` endpoint.
-    /// 
+    ///
     /// See the [CouchDB docs](https://docs.couchdb.org/en/stable/api/database/changes.html)
     /// for details on the semantics.
     ///
