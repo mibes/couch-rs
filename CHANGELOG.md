@@ -7,25 +7,45 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased](https://github.com/mibes/couch-rs/compare/0.8.30...develop) - ReleaseDate
 
+## [0.8.31] - 2021-07-20
+
+### Added
+
+- stream changes; contributed by Frando
+- bulk upsert; contributed by Frando
+
 ## [0.8.30] - 2021-04-06
+
+### Changed
 
 - cleaned-up some left-over dbg! statements
 
 ## [0.8.29] - 2021-03-30
 
+### Changed
+
 - BREAKING CHANGE: mutually borrow documents on create and update; contributed by horacimacias
 
 ## [0.8.28] - 2021-02-05
+
+### Changed
 
 - Loosened the dependency requirements
 
 ## [0.8.27] - 2021-01-14
 
+### Changed
+
 - Depend on std::fmt::Formatter not the serde::export one.
 
 ## [0.8.26] - 2021-01-06
 
+### Changed
+
 - Upgraded reqwest to 0.11 and tokio to 1.0
+
+### Added
+
 - Add support for partitioned databases; contibuted by krishna-kashyap
 
 ## [0.8.25] - 2020-11-16

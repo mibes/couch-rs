@@ -1,3 +1,4 @@
+use crate::changes::ChangesStream;
 use crate::document::{DocumentCollection, TypedCouchDocument};
 use crate::error::{CouchError, CouchResult};
 use crate::types::design::DesignCreated;
@@ -110,7 +111,7 @@ impl Database {
     ///     // check if the design document "_design/clip_view" exists
     ///     if db.exists("_design/clip_view").await {
     ///         println!("The design document exists");
-    ///     }   
+    ///     }
     ///
     ///     return Ok(());
     /// }
@@ -309,7 +310,7 @@ impl Database {
     ///     assert_eq!(docs.rows.len(), 2);
     ///     Ok(())
     /// }
-    /// ```   
+    /// ```
     pub async fn get_bulk_params<T: TypedCouchDocument>(
         &self,
         ids: Vec<DocumentId>,
@@ -788,6 +789,44 @@ impl Database {
         }
     }
 
+    /// Bulk upsert a list of documents.
+    ///
+    /// This will first fetch the latest rev for each document that does not have a rev set. It
+    /// will then insert all documents into the database.
+    pub async fn bulk_upsert<T: TypedCouchDocument + Clone>(
+        &self,
+        mut docs: &mut Vec<T>,
+    ) -> CouchResult<Vec<DocumentCreatedResult>> {
+        // First collect all docs that do not have a rev set.
+        let mut docs_without_rev = vec![];
+        for (i, doc) in docs.iter().enumerate() {
+            if doc.get_rev().is_empty() && !doc.get_id().is_empty() {
+                docs_without_rev.push((doc.get_id().to_string(), i));
+            }
+        }
+
+        // Fetch the latest rev for the docs that do not have a rev set.
+        let ids_without_rev: Vec<String> = docs_without_rev.iter().map(|(id, _)| id.to_string()).collect();
+        let bulk_get = self.get_bulk::<Value>(ids_without_rev).await?;
+        for (req_idx, (sent_id, doc_idx)) in docs_without_rev.iter().enumerate() {
+            let result = bulk_get.get_data().get(req_idx);
+            let rev = match result {
+                Some(doc) if doc.get_id().as_ref() == sent_id => doc.get_rev().to_string(),
+                _ => {
+                    return Err(CouchError::new(
+                        "Response does not match request".to_string(),
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                    ));
+                }
+            };
+            docs.get_mut(*doc_idx).unwrap().set_rev(&rev);
+        }
+
+        // Bulk insert the docs, this also updates the revs.
+        let res = self.bulk_docs(&mut docs).await?;
+        Ok(res)
+    }
+
     /// Creates a design with one of more view documents.
     ///
     /// Usage:
@@ -850,6 +889,10 @@ impl Database {
     }
 
     /// Executes a query against a view.
+    /// Make sure the types you use for K, V and T represent the structures the query will return.
+    /// For example, if a query can return a `null` value, but the type used for query() is <K:String, V:String, T:TypedCouchDocument>
+    /// the couchdb query will succeed but deserialising the overall result will fail ('null' cannot be deserialized to String).
+    /// In such case, you can use serde::Value since it can hold both 'null' and String.
     ///
     /// Usage:
     /// ```
@@ -891,7 +934,7 @@ impl Database {
     ///     }
     ///     Ok(())
     /// }
-    /// ```    
+    /// ```
     pub async fn query<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument>(
         &self,
         design_name: &str,
@@ -958,7 +1001,7 @@ impl Database {
     ///
     ///     Ok(())
     /// }
-    ///```     
+    ///```
     pub async fn remove<T: TypedCouchDocument>(&self, doc: &T) -> bool {
         let request = self._client.delete(
             self.create_document_path(&doc.get_id()),
@@ -1034,6 +1077,17 @@ impl Database {
             // Created and alright
             None => Ok(true),
         }
+    }
+
+    /// A streaming handler for the CouchDB `_changes` endpoint.
+    ///
+    /// See the [CouchDB docs](https://docs.couchdb.org/en/stable/api/database/changes.html)
+    /// for details on the semantics.
+    ///
+    /// It can return all changes from a `seq` string, and can optionally run in infinite (live)
+    /// mode.
+    pub fn changes(&self, last_seq: Option<String>) -> ChangesStream {
+        ChangesStream::new(self._client.clone(), self.name.clone(), last_seq)
     }
 }
 

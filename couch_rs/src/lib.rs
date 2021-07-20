@@ -195,6 +195,8 @@ pub mod model;
 /// Data types to support CouchDB operations.
 pub mod types;
 
+mod changes;
+
 pub use client::Client;
 
 #[allow(unused_mut, unused_variables)]
@@ -353,13 +355,13 @@ mod couch_rs_tests {
     }
 
     mod database_tests {
-        use crate::client::Client;
-        use crate::database::Database;
         use crate::document::{DocumentCollection, TypedCouchDocument};
         use crate::types;
         use crate::types::find::FindQuery;
         use crate::types::query::{QueriesParams, QueryParams};
         use crate::types::view::{CouchFunc, CouchViews};
+        use crate::{client::Client, types::view::ViewCollection};
+        use crate::{database::Database, error::CouchResult};
         use serde_json::{json, Value};
         use tokio::sync::mpsc;
         use tokio::sync::mpsc::{Receiver, Sender};
@@ -891,6 +893,67 @@ mod couch_rs_tests {
         }
 
         #[tokio::test]
+        async fn should_handle_null_values() {
+            let dbname = "should_handle_null_values";
+            let nr_of_docs = 4;
+            let (client, db, docs) = setup_multiple(dbname, nr_of_docs).await;
+            let doc = docs.get(0).unwrap();
+            // this view generates 'null' values
+            let count_by_id = r#"function (doc) {
+                                        emit(doc._id, null);
+                                    }"#;
+            let view_name = "should_handle_null_values";
+            /* a view/reduce like this will return something like the following:
+
+               {"rows":[
+                   {"key":"aaa","value":null}
+               ]}
+            */
+            assert!(
+                db.create_view(view_name, CouchViews::new(view_name, CouchFunc::new(count_by_id, None)),)
+                    .await
+                    .is_ok(),
+                "problems creating view"
+            );
+
+            // executing a view against a non-existing key
+            let options = QueryParams::from_keys(vec!["doesnotexist".to_string()]);
+            // we expect the operation to work even if the type of key is String because there will be no results returned so deserialization will not fail
+            let result: CouchResult<ViewCollection<String, String, Value>> =
+                db.query(view_name, view_name, Some(options)).await;
+
+            match result {
+                Ok(_) => {}
+                Err(e) => {
+                    panic!("problems executing query: {}", e);
+                }
+            }
+
+            // getting all entries fails because value is null and we're deserializing to String
+            let result: CouchResult<ViewCollection<String, String, Value>> = db.query(view_name, view_name, None).await;
+
+            match result {
+                Ok(entries) => {
+                    panic!("previous query should have failed, but succeeded");
+                }
+                Err(e) => {}
+            }
+
+            // getting all entries now succeeds because value is null and we're deserializing to Value
+            let result: CouchResult<ViewCollection<String, Value, Value>> = db.query(view_name, view_name, None).await;
+
+            match result {
+                Ok(entries) => {
+                    assert_eq!(nr_of_docs, entries.rows.len());
+                }
+                Err(e) => {
+                    panic!("{}", e)
+                }
+            }
+            teardown(client, dbname).await;
+        }
+
+        #[tokio::test]
         async fn should_bulk_insert_and_get_many_docs() {
             let (client, db, _doc) = setup("should_bulk_insert_and_get_many_docs").await;
             let mut docs: Vec<Value> = (0..2000)
@@ -924,6 +987,50 @@ mod couch_rs_tests {
             // Wait for the spawned task to finish (should be done by now).
             t.await.unwrap();
             teardown(client, "should_bulk_insert_and_get_many_docs").await;
+        }
+
+        #[tokio::test]
+        async fn should_bulk_upsert_docs() {
+            let (client, db, _doc) = setup("should_bulk_upsert_docs").await;
+            let count = 3;
+            let mut docs: Vec<Value> = (0..count)
+                .map(|idx| {
+                    json!({
+                        "_id": format!("bd_{}", idx),
+                        "value": "hello",
+                        "count": idx,
+                    })
+                })
+                .collect();
+
+            db.bulk_docs(&mut docs).await.expect("should insert documents");
+
+            for doc in docs.iter_mut() {
+                doc.as_object_mut()
+                    .unwrap()
+                    .insert("updated".to_string(), serde_json::Value::Bool(true));
+            }
+
+            let res = db.bulk_upsert(&mut docs).await.expect("should upsert documents");
+
+            for i in 0..count {
+                assert!(res[i].as_ref().unwrap().rev == docs[i].get_rev());
+            }
+            let ids: Vec<String> = (0..count).map(|idx| format!("bd_{}", idx)).collect();
+            let docs = db.get_bulk::<Value>(ids).await.expect("should get documents");
+
+            for i in 0..count {
+                assert!(docs[i].get_rev() == res[i].as_ref().unwrap().rev);
+                assert!(
+                    docs[i]
+                        .as_object()
+                        .expect("should be an object")
+                        .get("updated")
+                        .expect("should have updated key")
+                        == true
+                );
+            }
+            teardown(client, "should_bulk_upsert_docs").await;
         }
     }
 }
