@@ -22,10 +22,15 @@ couch_rs_derive = { version = "0.8.30", optional = true, path = "../couch_rs_der
 url = "2"
 tokio = { version = "1", features = ["rt-multi-thread"] }
 base64 = "0.13"
+tokio-util = "0.6.7"
+bytes = "1.0.1"
+tokio-stream = { version = "0.1.6", features = ["io-util"] }
+futures-util = "0.3.15"
+futures-core = "0.3.15"
 
 [dependencies.reqwest]
 version = "0.11"
-features = ["json", "gzip", "cookies"]
+features = ["json", "gzip", "cookies", "stream"]
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

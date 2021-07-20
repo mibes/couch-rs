@@ -1,3 +1,4 @@
+use crate::changes::ChangesStream;
 use crate::document::{DocumentCollection, TypedCouchDocument};
 use crate::error::{CouchError, CouchResult};
 use crate::types::design::DesignCreated;
@@ -1075,6 +1076,17 @@ impl Database {
             // Created and alright
             None => Ok(true),
         }
+    }
+
+    /// A streaming handler for the CouchDB `_changes` endpoint.
+    /// 
+    /// See the [CouchDB docs](https://docs.couchdb.org/en/stable/api/database/changes.html)
+    /// for details on the semantics.
+    ///
+    /// It can return all changes from a `seq` string, and can optionally run in infinite (live)
+    /// mode.
+    pub fn changes(&self, last_seq: Option<String>) -> ChangesStream {
+        ChangesStream::new(self._client.clone(), self.name.clone(), last_seq)
     }
 }
 
