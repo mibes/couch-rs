@@ -9,7 +9,7 @@ pub enum Event {
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct ChangeEvent {
-    pub seq: String,
+    pub seq: serde_json::Value,
     pub id: String,
     pub changes: Vec<Change>,
 
@@ -27,6 +27,6 @@ pub struct Change {
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct FinishedEvent {
-    pub last_seq: String,
+    pub last_seq: serde_json::Value,
     pub pending: Option<u64>, // not available on CouchDB 1.0
 }

@@ -15,6 +15,9 @@ Cargo.lock
 # Exclude IntelliJ files
 .idea
 
+# Exclude VSCode files
+.vscode
+
 test_db.json
 *.tgz
 
