@@ -17,6 +17,8 @@ done
 echo "CouchDB is up. Starting tests in 1s"
 sleep 1
 
+# Do a quick check for any issues using rustls-tls
+cargo clippy --features rustls-tls
 cargo test -- --test-threads=1 --nocapture
 
 docker kill "$docker_id" &> /dev/null || true
