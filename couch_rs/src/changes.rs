@@ -24,7 +24,7 @@ const COUCH_MAX_TIMEOUT: usize = 60000;
 ///
 /// This is returned from [Database::changes].
 pub struct ChangesStream {
-    last_seq: Option<String>,
+    last_seq: Option<serde_json::Value>,
     client: Client,
     database: String,
     state: ChangesStreamState,
@@ -40,7 +40,7 @@ enum ChangesStreamState {
 
 impl ChangesStream {
     /// Create a new changes stream.
-    pub fn new(client: Client, database: String, last_seq: Option<String>) -> Self {
+    pub fn new(client: Client, database: String, last_seq: Option<serde_json::Value>) -> Self {
         let mut params = HashMap::new();
         params.insert("feed".to_string(), "continuous".to_string());
         params.insert("timeout".to_string(), "0".to_string());
@@ -52,7 +52,7 @@ impl ChangesStream {
     pub fn with_params(
         client: Client,
         database: String,
-        last_seq: Option<String>,
+        last_seq: Option<serde_json::Value>,
         params: HashMap<String, String>,
     ) -> Self {
         Self {
@@ -66,7 +66,7 @@ impl ChangesStream {
     }
 
     /// Set the starting seq.
-    pub fn set_last_seq(&mut self, last_seq: Option<String>) {
+    pub fn set_last_seq(&mut self, last_seq: Option<serde_json::Value>) {
         self.last_seq = last_seq;
     }
 
@@ -84,7 +84,7 @@ impl ChangesStream {
     }
 
     /// Get the last retrieved seq.
-    pub fn last_seq(&self) -> &Option<String> {
+    pub fn last_seq(&self) -> &Option<serde_json::Value> {
         &self.last_seq
     }
 
@@ -108,7 +108,7 @@ impl Stream for ChangesStream {
                 ChangesStreamState::Idle => {
                     let mut params = self.params.clone();
                     if let Some(seq) = &self.last_seq {
-                        params.insert("since".to_string(), seq.clone());
+                        params.insert("since".to_string(), seq.to_string());
                     }
                     let fut = get_changes(self.client.clone(), self.database.clone(), params);
                     ChangesStreamState::Requesting(Box::pin(fut))

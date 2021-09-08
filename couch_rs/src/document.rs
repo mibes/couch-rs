@@ -160,7 +160,7 @@ impl<T: TypedCouchDocument> Index<usize> for DocumentCollection<T> {
     type Output = T;
 
     fn index(&self, index: usize) -> &T {
-        &self.rows.get(index).unwrap()
+        self.rows.get(index).unwrap()
     }
 }
 

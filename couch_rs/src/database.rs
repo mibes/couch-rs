@@ -1086,7 +1086,7 @@ impl Database {
     ///
     /// It can return all changes from a `seq` string, and can optionally run in infinite (live)
     /// mode.
-    pub fn changes(&self, last_seq: Option<String>) -> ChangesStream {
+    pub fn changes(&self, last_seq: Option<serde_json::Value>) -> ChangesStream {
         ChangesStream::new(self._client.clone(), self.name.clone(), last_seq)
     }
 }
