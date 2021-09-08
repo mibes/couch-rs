@@ -31,12 +31,22 @@ futures-core = "0.3.15"
 [dependencies.reqwest]
 version = "0.11"
 features = ["json", "gzip", "cookies", "stream"]
+default-features = false
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 
 [features]
-default = ["derive"]
+default = ["derive", "native-tls"]
 
 # Provide derive(CouchDocument) macros.
 derive = ["couch_rs_derive"]
+
+# tls backend, copied from reqwest
+native-tls = ["reqwest/native-tls"]
+native-tls-alpn = ["reqwest/native-tls-alpn"]
+native-tls-vendored = ["reqwest/native-tls-vendored"]
+rustls-tls = ["reqwest/rustls-tls"]
+rustls-tls-manual-roots = ["reqwest/rustls-tls-manual-roots"]
+rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots"]
+rustls-tls-native-roots = ["reqwest/rustls-tls-native-roots"]
