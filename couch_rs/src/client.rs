@@ -50,7 +50,7 @@ pub struct Client {
     _client: reqwest::Client,
     dbs: Vec<&'static str>,
     _gzip: bool,
-    _timeout: u64,
+    _timeout: Option<u64>,
     uri: Url,
     username: Option<String>,
     password: Option<String>,
@@ -67,14 +67,14 @@ impl Client {
     /// The timeout is applied from when the request starts connecting until the response body has finished.
     /// The URI has to be in this format: http://hostname:5984, for example: http://192.168.64.5:5984
     pub fn new(uri: &str, username: &str, password: &str) -> CouchResult<Client> {
-        Client::new_with_timeout(uri, Some(username), Some(password), DEFAULT_TIME_OUT)
+        Client::new_with_timeout(uri, Some(username), Some(password), Some(DEFAULT_TIME_OUT))
     }
 
     /// new_no_auth creates a new Couch client with a default timeout of 10 seconds. *Without authentication*.
     /// The timeout is applied from when the request starts connecting until the response body has finished.
     /// The URI has to be in this format: http://hostname:5984, for example: http://192.168.64.5:5984
     pub fn new_no_auth(uri: &str) -> CouchResult<Client> {
-        Client::new_with_timeout(uri, None, None, DEFAULT_TIME_OUT)
+        Client::new_with_timeout(uri, None, None, Some(DEFAULT_TIME_OUT))
     }
 
     /// new_local_test creates a new Couch client *for testing purposes* with a default timeout of 10 seconds.
@@ -82,7 +82,12 @@ impl Client {
     /// The URI that will be used is: http://hostname:5984, with a username of "admin" and a password
     /// of "password". Use this only for testing!!!
     pub fn new_local_test() -> CouchResult<Client> {
-        Client::new_with_timeout(TEST_DB_HOST, Some(TEST_DB_USER), Some(TEST_DB_PW), DEFAULT_TIME_OUT)
+        Client::new_with_timeout(
+            TEST_DB_HOST,
+            Some(TEST_DB_USER),
+            Some(TEST_DB_PW),
+            Some(DEFAULT_TIME_OUT),
+        )
     }
 
     /// new_with_timeout creates a new Couch client. The URI has to be in this format: http://hostname:5984,
@@ -92,7 +97,7 @@ impl Client {
         uri: &str,
         username: Option<&str>,
         password: Option<&str>,
-        timeout: u64,
+        timeout: Option<u64>,
     ) -> CouchResult<Client> {
         let mut headers = header::HeaderMap::new();
 
@@ -111,11 +116,11 @@ impl Client {
             headers.insert(header::AUTHORIZATION, auth_header);
         }
 
-        let client = reqwest::Client::builder()
-            .default_headers(headers)
-            .gzip(true)
-            .timeout(Duration::new(timeout, 0))
-            .build()?;
+        let mut client_builder = reqwest::Client::builder().default_headers(headers).gzip(true);
+        if let Some(t) = timeout {
+            client_builder = client_builder.timeout(Duration::new(t, 0));
+        }
+        let client = client_builder.build()?;
 
         Ok(Client {
             _client: client,
