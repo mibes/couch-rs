@@ -96,7 +96,7 @@ impl ChangesStream {
 
 async fn get_changes(client: Client, database: String, params: HashMap<String, String>) -> CouchResult<Response> {
     let path = format!("{}/_changes", database);
-    let res = client.req(Method::GET, path, Some(params)).send().await?;
+    let res = client.req(Method::GET, &path, Some(&params)).send().await?;
     Ok(res)
 }
 

@@ -13,7 +13,7 @@ pub trait TypedCouchDocument: DeserializeOwned + Serialize + Sized {
     /// set the _rev field
     fn set_rev(&mut self, rev: &str);
     /// set the _id field
-    fn set_id(&mut self, rev: &str);
+    fn set_id(&mut self, id: &str);
     /// merge the _id and _rev from the other document with this one
     fn merge_ids(&mut self, other: &Self);
 }

@@ -1,6 +1,6 @@
 [package]
 name = "couch_rs"
-version = "0.8.32"
+version = "0.8.33"
 authors = ["Mathieu Amiot <mathieu.amiot@yellowinnovation.fr>", "mibes <mibes@mibesco.com>"]
 license = "MIT/Apache-2.0"
 description = "CouchDB library for Rust"
@@ -9,7 +9,7 @@ documentation = "https://docs.rs/couch_rs"
 repository = "https://github.com/mibes/couch-rs"
 keywords = ["couchdb", "orm", "database", "nosql"]
 categories = ["database"]
-edition = "2018"
+edition = "2021"
 include = [
     "**/*.rs",
     "Cargo.toml"
@@ -18,7 +18,7 @@ include = [
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-couch_rs_derive = { version = "0.8.32", optional = true, path = "../couch_rs_derive" }
+couch_rs_derive = { version = "0.8.33", optional = true, path = "../couch_rs_derive" }
 url = "2"
 tokio = { version = "1", features = ["rt-multi-thread"] }
 base64 = "0.13"
@@ -30,7 +30,7 @@ futures-core = "0.3.15"
 
 [dependencies.reqwest]
 version = "0.11"
-features = ["json", "gzip", "cookies", "stream"]
+features = ["json", "gzip", "stream"]
 default-features = false
 
 [dev-dependencies]
