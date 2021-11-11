@@ -262,6 +262,14 @@ mod couch_rs_tests {
         }
 
         #[tokio::test]
+        async fn should_not_exist() {
+            let client = Client::new_local_test().unwrap();
+            let dbname = "should_not_exist";
+            let dbw = client.exists(dbname).await;
+            assert!(!client.exists(dbname).await.unwrap());
+        }
+
+        #[tokio::test]
         async fn should_create_a_document() {
             let client = Client::new_local_test().unwrap();
             let dbw = client.db("should_create_a_document").await;
