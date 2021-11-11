@@ -249,7 +249,7 @@ impl Client {
     /// }
     /// ```
     pub async fn exists(&self, dbname: &str) -> CouchResult<bool> {
-        let result = self.head(self.build_dbname(dbname), None).send().await?;
+        let result = self.head(&self.build_dbname(dbname), None).send().await?;
         Ok(result.status().is_success())
     }
 
