@@ -76,7 +76,7 @@ impl Database {
         let mut path: String = self.name.clone();
         path.push_str("/_compact");
 
-        let request = self._client.post(path, "".into());
+        let request = self._client.post(&path, "".into());
         is_accepted(request).await
     }
 
@@ -85,13 +85,13 @@ impl Database {
         let mut path: String = self.name.clone();
         path.push_str("/_view_cleanup");
 
-        let request = self._client.post(path, "".into());
+        let request = self._client.post(&path, "".into());
         is_accepted(request).await
     }
 
     /// Starts the compaction of a given index
     pub async fn compact_index(&self, index: &str) -> bool {
-        let request = self._client.post(self.create_compact_path(index), "".into());
+        let request = self._client.post(&self.create_compact_path(index), "".into());
         is_accepted(request).await
     }
 
@@ -117,7 +117,7 @@ impl Database {
     /// }
     /// ```
     pub async fn exists(&self, id: &str) -> bool {
-        let request = self._client.head(self.create_document_path(id), None);
+        let request = self._client.head(&self.create_document_path(id), None);
         is_ok(request).await
     }
 
@@ -178,7 +178,7 @@ impl Database {
     ///```
     pub async fn get<T: TypedCouchDocument>(&self, id: &str) -> CouchResult<T> {
         self._client
-            .get(self.create_document_path(id), None)
+            .get(&self.create_document_path(id), None)
             .send()
             .await?
             .error_for_status()?
@@ -236,7 +236,7 @@ impl Database {
         let body = format!(r#"{{"docs":{} }}"#, to_string(raw_docs)?);
         let response = self
             ._client
-            .post(self.create_raw_path("_bulk_docs"), body)
+            .post(&self.create_raw_path("_bulk_docs"), body)
             .send()
             .await?;
 
@@ -323,7 +323,7 @@ impl Database {
 
         let response = self
             ._client
-            .post(self.create_raw_path("_all_docs"), to_string(&options)?)
+            .post(&self.create_raw_path("_all_docs"), to_string(&options)?)
             .send()
             .await?
             .error_for_status()?;
@@ -464,7 +464,7 @@ impl Database {
         &self,
         queries: QueriesParams,
     ) -> CouchResult<Vec<ViewCollection<Value, Value, Value>>> {
-        self.query_view_many(self.create_raw_path("_all_docs/queries"), queries)
+        self.query_view_many(&self.create_raw_path("_all_docs/queries"), queries)
             .await
     }
 
@@ -475,13 +475,13 @@ impl Database {
         view_name: &str,
         queries: QueriesParams,
     ) -> CouchResult<Vec<ViewCollection<Value, Value, Value>>> {
-        self.query_view_many(self.create_query_view_path(design_name, view_name), queries)
+        self.query_view_many(&self.create_query_view_path(design_name, view_name), queries)
             .await
     }
 
     async fn query_view_many(
         &self,
-        view_path: String,
+        view_path: &str,
         queries: QueriesParams,
     ) -> CouchResult<Vec<ViewCollection<Value, Value, Value>>> {
         // we use POST here, because this allows for a larger set of keys to be provided, compared
@@ -515,7 +515,7 @@ impl Database {
         // to a GET call. It provides the same functionality
         let response = self
             ._client
-            .post(self.create_raw_path("_all_docs"), js!(&options))
+            .post(&self.create_raw_path("_all_docs"), js!(&options))
             .send()
             .await?
             .error_for_status()?;
@@ -583,7 +583,7 @@ impl Database {
     /// ```
     pub async fn find<T: TypedCouchDocument>(&self, query: &FindQuery) -> CouchResult<DocumentCollection<T>> {
         let path = self.create_raw_path("_find");
-        let response = self._client.post(path, js!(query)).send().await?;
+        let response = self._client.post(&path, js!(query)).send().await?;
         let status = response.status();
         let data: FindResult<T> = response.json().await?;
 
@@ -667,20 +667,17 @@ impl Database {
     pub async fn save<T: TypedCouchDocument>(&self, doc: &mut T) -> DocumentCreatedResult {
         let id = doc.get_id().to_string();
         let body = to_string(&doc)?;
-        let response = self._client.put(self.create_document_path(&id), body).send().await?;
+        let response = self._client.put(&self.create_document_path(&id), body).send().await?;
         let status = response.status();
         let data: DocumentCreatedResponse = response.json().await?;
 
-        match (data.ok, data.id, data.rev) {
-            (Some(true), Some(id), Some(rev)) => {
-                doc.set_id(&id);
-                doc.set_rev(&rev);
-                Ok(DocumentCreatedDetails { id, rev })
-            }
-            _ => {
-                let err = data.error.unwrap_or_else(|| s!("unspecified error"));
-                Err(CouchError::new(err, status))
-            }
+        if let (Some(true), Some(id), Some(rev)) = (data.ok, data.id, data.rev) {
+            doc.set_id(&id);
+            doc.set_rev(&rev);
+            Ok(DocumentCreatedDetails { id, rev })
+        } else {
+            let err = data.error.unwrap_or_else(|| s!("unspecified error"));
+            Err(CouchError::new(err, status))
         }
     }
 
@@ -712,24 +709,21 @@ impl Database {
     /// }
     /// ```
     pub async fn create<T: TypedCouchDocument>(&self, doc: &mut T) -> DocumentCreatedResult {
-        let response = self._client.post(self.name.clone(), to_string(&doc)?).send().await?;
+        let response = self._client.post(&self.name, to_string(&doc)?).send().await?;
 
         let status = response.status();
         let data: DocumentCreatedResponse = response.json().await?;
 
-        match data.ok {
-            Some(true) => {
-                let id = data.id.ok_or_else(|| CouchError::new(s!("invalid id"), status))?;
-                let rev = data.rev.ok_or_else(|| CouchError::new(s!("invalid rev"), status))?;
+        if let Some(true) = data.ok {
+            let id = data.id.ok_or_else(|| CouchError::new(s!("invalid id"), status))?;
+            let rev = data.rev.ok_or_else(|| CouchError::new(s!("invalid rev"), status))?;
 
-                doc.set_id(&id);
-                doc.set_rev(&rev);
-                Ok(DocumentCreatedDetails { id, rev })
-            }
-            _ => {
-                let err = data.error.unwrap_or_else(|| s!("unspecified error"));
-                Err(CouchError::new(err, status))
-            }
+            doc.set_id(&id);
+            doc.set_rev(&rev);
+            Ok(DocumentCreatedDetails { id, rev })
+        } else {
+            let err = data.error.unwrap_or_else(|| s!("unspecified error"));
+            Err(CouchError::new(err, status))
         }
     }
 
@@ -819,7 +813,12 @@ impl Database {
                     ));
                 }
             };
-            docs.get_mut(*doc_idx).unwrap().set_rev(&rev);
+
+            if let Some(docs) = docs.get_mut(*doc_idx) {
+                docs.set_rev(&rev)
+            } else {
+                // todo: do we need a warning here?
+            }
         }
 
         // Bulk insert the docs, this also updates the revs.
@@ -859,7 +858,7 @@ impl Database {
         let doc: Value = views.into();
         let response = self
             ._client
-            .put(self.create_design_path(design_name), to_string(&doc)?)
+            .put(&self.create_design_path(design_name), to_string(&doc)?)
             .send()
             .await?;
 
@@ -946,7 +945,7 @@ impl Database {
         }
 
         self._client
-            .post(self.create_query_view_path(design_name, view_name), js!(&options))
+            .post(&self.create_query_view_path(design_name, view_name), js!(&options))
             .send()
             .await?
             .error_for_status()?
@@ -969,7 +968,7 @@ impl Database {
         };
 
         self._client
-            .put(self.create_execute_update_path(design_id, name, document_id), body)
+            .put(&self.create_execute_update_path(design_id, name, document_id), body)
             .send()
             .await?
             .error_for_status()?
@@ -1003,15 +1002,10 @@ impl Database {
     /// }
     ///```
     pub async fn remove<T: TypedCouchDocument>(&self, doc: &T) -> bool {
-        let request = self._client.delete(
-            self.create_document_path(&doc.get_id()),
-            Some({
-                let mut h = HashMap::new();
-                h.insert(s!("rev"), doc.get_rev().into_owned());
-                h
-            }),
-        );
+        let mut h = HashMap::new();
+        h.insert(s!("rev"), doc.get_rev().into_owned());
 
+        let request = self._client.delete(&self.create_document_path(&doc.get_id()), Some(&h));
         is_ok(request).await
     }
 
@@ -1021,7 +1015,7 @@ impl Database {
         let response = self
             ._client
             .post(
-                self.create_raw_path("_index"),
+                &self.create_raw_path("_index"),
                 js!(json!({
                     "name": name,
                     "index": spec
@@ -1044,7 +1038,7 @@ impl Database {
     /// Reads the database's indexes and returns them
     pub async fn read_indexes(&self) -> CouchResult<DatabaseIndexList> {
         self._client
-            .get(self.create_raw_path("_index"), None)
+            .get(&self.create_raw_path("_index"), None)
             .send()
             .await?
             .json()

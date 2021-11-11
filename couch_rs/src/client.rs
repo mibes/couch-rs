@@ -162,9 +162,9 @@ impl Client {
     ///     dbs.iter().for_each(|db| println!("Database: {}", db));
     ///     Ok(())
     /// }
-    ///```     
+    ///```
     pub async fn list_dbs(&self) -> CouchResult<Vec<String>> {
-        let response = self.get(String::from("/_all_dbs"), None).send().await?;
+        let response = self.get("/_all_dbs", None).send().await?;
         let data = response.json().await?;
 
         Ok(data)
@@ -181,7 +181,7 @@ impl Client {
         let db = Database::new(name.clone(), self.clone());
 
         let head_response = self
-            .head(name, None)
+            .head(&name, None)
             .headers(construct_json_headers(None))
             .send()
             .await?;
@@ -199,7 +199,7 @@ impl Client {
         let db = Database::new(name.clone(), self.clone());
 
         let put_response = self
-            .put(name, String::default())
+            .put(&name, String::default())
             .headers(construct_json_headers(None))
             .send()
             .await?;
@@ -207,19 +207,18 @@ impl Client {
         let status = put_response.status();
         let s: CouchResponse = put_response.json().await?;
 
-        match s.ok {
-            Some(true) => Ok(db),
-            _ => {
-                let err = s.error.unwrap_or_else(|| s!("unspecified error"));
-                Err(CouchError::new(err, status))
-            }
+        if let Some(true) = s.ok {
+            Ok(db)
+        } else {
+            let err = s.error.unwrap_or_else(|| s!("unspecified error"));
+            Err(CouchError::new(err, status))
         }
     }
 
     /// Destroy the database with the given name
     pub async fn destroy_db(&self, dbname: &str) -> CouchResult<bool> {
         let response = self
-            .delete(self.build_dbname(dbname), None)
+            .delete(&self.build_dbname(dbname), None)
             .headers(construct_json_headers(None))
             .send()
             .await?;
@@ -250,15 +249,15 @@ impl Client {
     /// }
     /// ```
     pub async fn exists(&self, dbname: &str) -> CouchResult<bool> {
-        let result = self.head(self.build_dbname(dbname), None).send().await;
-        Ok(result.is_ok())
+        let resp = self.head(&self.build_dbname(dbname), None).send().await?;
+        Ok(resp.status().is_success())
     }
 
     /// Gets information about the specified database.
     /// See [common](https://docs.couchdb.org/en/stable/api/database/common.html) for more details.
     pub async fn get_info(&self, dbname: &str) -> CouchResult<DbInfo> {
         let response = self
-            .get(self.build_dbname(dbname), None)
+            .get(&self.build_dbname(dbname), None)
             .send()
             .await?
             .error_for_status()?;
@@ -270,21 +269,17 @@ impl Client {
     /// including a welcome message and the version of the server.
     /// See [common](https://docs.couchdb.org/en/stable/api/server/common.html) for more details.
     pub async fn check_status(&self) -> CouchResult<CouchStatus> {
-        let response = self
-            .get(String::default(), None)
-            .headers(construct_json_headers(None))
-            .send()
-            .await?;
+        let response = self.get("", None).headers(construct_json_headers(None)).send().await?;
 
         let status = response.json().await?;
         Ok(status)
     }
 
-    pub fn req(&self, method: Method, path: String, opts: Option<HashMap<String, String>>) -> RequestBuilder {
+    pub fn req(&self, method: Method, path: &str, opts: Option<&HashMap<String, String>>) -> RequestBuilder {
         let mut uri = self.uri.clone();
-        uri.set_path(&path);
+        uri.set_path(path);
 
-        if let Some(ref map) = opts {
+        if let Some(map) = opts {
             let mut qp = uri.query_pairs_mut();
             for (k, v) in map {
                 qp.append_pair(k, v);
@@ -296,23 +291,23 @@ impl Client {
             .headers(construct_json_headers(Some(uri.as_str())))
     }
 
-    pub(crate) fn get(&self, path: String, args: Option<HashMap<String, String>>) -> RequestBuilder {
+    pub(crate) fn get(&self, path: &str, args: Option<&HashMap<String, String>>) -> RequestBuilder {
         self.req(Method::GET, path, args)
     }
 
-    pub(crate) fn post(&self, path: String, body: String) -> RequestBuilder {
+    pub(crate) fn post(&self, path: &str, body: String) -> RequestBuilder {
         self.req(Method::POST, path, None).body(body)
     }
 
-    pub(crate) fn put(&self, path: String, body: String) -> RequestBuilder {
+    pub(crate) fn put(&self, path: &str, body: String) -> RequestBuilder {
         self.req(Method::PUT, path, None).body(body)
     }
 
-    pub(crate) fn head(&self, path: String, args: Option<HashMap<String, String>>) -> RequestBuilder {
+    pub(crate) fn head(&self, path: &str, args: Option<&HashMap<String, String>>) -> RequestBuilder {
         self.req(Method::HEAD, path, args)
     }
 
-    pub(crate) fn delete(&self, path: String, args: Option<HashMap<String, String>>) -> RequestBuilder {
+    pub(crate) fn delete(&self, path: &str, args: Option<&HashMap<String, String>>) -> RequestBuilder {
         self.req(Method::DELETE, path, args)
     }
 }

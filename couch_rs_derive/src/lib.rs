@@ -3,6 +3,7 @@ extern crate quote;
 
 use proc_macro::TokenStream;
 
+#[allow(clippy::missing_panics_doc)]
 #[proc_macro_derive(CouchDocument, attributes(serde))]
 pub fn derive_couch_doc(input: TokenStream) -> TokenStream {
     impl_derive_couch_doc(&syn::parse(input).unwrap())
