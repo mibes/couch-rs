@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/mibes/couch-rs/compare/0.8.33...develop) - ReleaseDate
+## [Unreleased](https://github.com/mibes/couch-rs/compare/0.8.34...develop) - ReleaseDate
+
+## [0.8.34] - 2021-11-29
+
+### Changed
+
+- Reverted to 2018 edition (address issue: [#17](https://github.com/mibes/couch-rs/issues/17))
 
 ## [0.8.33] - 2021-11-11
 
