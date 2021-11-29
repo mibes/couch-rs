@@ -1,6 +1,6 @@
 [package]
 name = "couch_rs_derive"
-version = "0.8.33"
+version = "0.8.34"
 authors = ["mibes <mibes@mibesco.com>"]
 license = "MIT/Apache-2.0"
 description = "CouchDB library for Rust"
