@@ -37,7 +37,8 @@ pub(crate) async fn is_accepted(request: RequestBuilder) -> bool {
 
 pub(crate) async fn is_ok(request: RequestBuilder) -> bool {
     if let Ok(res) = request.send().await {
-        matches!(res.status(), StatusCode::OK | StatusCode::NOT_MODIFIED)
+        let status = res.status();
+        status.is_success() || status == StatusCode::NOT_MODIFIED
     } else {
         false
     }
@@ -48,12 +49,9 @@ pub(crate) async fn is_ok(request: RequestBuilder) -> bool {
 #[derive(Debug, Clone)]
 pub struct Client {
     _client: reqwest::Client,
-    dbs: Vec<&'static str>,
     _gzip: bool,
     _timeout: Option<u64>,
     uri: Url,
-    username: Option<String>,
-    password: Option<String>,
     pub db_prefix: String,
 }
 
@@ -127,10 +125,7 @@ impl Client {
             uri: parse_server(uri)?,
             _gzip: true,
             _timeout: timeout,
-            dbs: Vec::new(),
             db_prefix: String::new(),
-            username: username.map(|u| u.to_string()),
-            password: password.map(|p| p.to_string()),
         })
     }
 

@@ -789,7 +789,7 @@ impl Database {
     /// will then insert all documents into the database.
     pub async fn bulk_upsert<T: TypedCouchDocument + Clone>(
         &self,
-        mut docs: &mut Vec<T>,
+        docs: &mut Vec<T>,
     ) -> CouchResult<Vec<DocumentCreatedResult>> {
         // First collect all docs that do not have a rev set.
         let mut docs_without_rev = vec![];
@@ -822,7 +822,7 @@ impl Database {
         }
 
         // Bulk insert the docs, this also updates the revs.
-        let res = self.bulk_docs(&mut docs).await?;
+        let res = self.bulk_docs(docs).await?;
         Ok(res)
     }
 
