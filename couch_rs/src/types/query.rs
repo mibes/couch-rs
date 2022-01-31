@@ -37,7 +37,7 @@ pub enum UpdateView {
 /// use couch_rs::types::query::QueryParams;
 /// let _qp = QueryParams::default().group(true).conflicts(false).start_key("1");
 /// ```
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Default)]
 pub struct QueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub conflicts: Option<bool>,
@@ -104,35 +104,6 @@ pub struct QueryParams {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub update_seq: Option<bool>,
-}
-
-impl Default for QueryParams {
-    fn default() -> Self {
-        QueryParams {
-            conflicts: None,
-            descending: None,
-            end_key: None,
-            end_key_doc_id: None,
-            group: None,
-            group_level: None,
-            include_docs: None,
-            attachments: None,
-            att_encoding_info: None,
-            inclusive_end: None,
-            key: None,
-            keys: vec![],
-            limit: None,
-            reduce: None,
-            skip: None,
-            sorted: None,
-            stable: None,
-            stale: None,
-            start_key: None,
-            start_key_doc_id: None,
-            update: None,
-            update_seq: None,
-        }
-    }
 }
 
 impl QueryParams {
