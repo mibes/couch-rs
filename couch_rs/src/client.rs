@@ -37,7 +37,8 @@ pub(crate) async fn is_accepted(request: RequestBuilder) -> bool {
 
 pub(crate) async fn is_ok(request: RequestBuilder) -> bool {
     if let Ok(res) = request.send().await {
-        matches!(res.status(), StatusCode::OK | StatusCode::NOT_MODIFIED)
+        let status = res.status();
+        status.is_success() || status == StatusCode::NOT_MODIFIED
     } else {
         false
     }

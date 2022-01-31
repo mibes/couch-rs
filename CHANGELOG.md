@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased](https://github.com/mibes/couch-rs/compare/0.8.34...develop) - ReleaseDate
 
+## [0.8.35] - 2022-01-31
+
+### Changed
+
+- Fixed is_ok() to accept HTTP status 200 <= n < 300 as successes too
+
 ## [0.8.34] - 2021-11-29
 
 ### Changed
