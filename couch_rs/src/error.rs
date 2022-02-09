@@ -34,6 +34,26 @@ impl CouchError {
     }
 }
 
+pub trait CouchResultExt<T> {
+    /// turns an Ok into an Ok(Some), a not-found into an Ok(None), otherwise it will return the error.
+    fn into_option(self) -> CouchResult<Option<T>>;
+}
+
+impl<T> CouchResultExt<T> for CouchResult<T> {
+    fn into_option(self) -> CouchResult<Option<T>> {
+        match self {
+            Ok(r) => Ok(Some(r)),
+            Err(err) => {
+                if err.is_not_found() {
+                    Ok(None)
+                } else {
+                    Err(err)
+                }
+            }
+        }
+    }
+}
+
 impl fmt::Display for CouchError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(id) = &self.id {

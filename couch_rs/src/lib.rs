@@ -364,6 +364,7 @@ mod couch_rs_tests {
 
     mod database_tests {
         use crate::document::{DocumentCollection, TypedCouchDocument};
+        use crate::error::CouchResultExt;
         use crate::types;
         use crate::types::find::FindQuery;
         use crate::types::query::{QueriesParams, QueryParams};
@@ -469,6 +470,23 @@ mod couch_rs_tests {
             assert!(db.remove(&doc).await);
 
             teardown(client, "should_remove_a_document").await;
+        }
+
+        #[tokio::test]
+        async fn should_recognize_a_non_existent_document() {
+            let (client, db, doc) = setup("should_recognize_a_non_existent_document").await;
+            let result = db.get_raw("non_existent").await;
+            assert!(result.expect_err("should be a 404").is_not_found());
+            teardown(client, "should_recognize_a_non_existent_document").await;
+        }
+
+        #[tokio::test]
+        async fn should_turn_a_non_existent_document_into_an_option() {
+            let (client, db, doc) = setup("should_turn_a_non_existent_document_into_an_option").await;
+            let result = db.get_raw("non_existent").await;
+            let maybe_doc = result.into_option();
+            assert!(maybe_doc.expect("should not be an error").is_none());
+            teardown(client, "should_turn_a_non_existent_document_into_an_option").await;
         }
 
         #[tokio::test]
