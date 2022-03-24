@@ -664,18 +664,22 @@ mod couch_rs_tests {
 
             // executing 'all' view querying with keys containing 1 key should result in 1 and 0 entries, respectively
             assert_eq!(
-                db.query_raw(view_name, view_name, Some(QueryParams::from_keys(vec![id.clone()])))
-                    .await
-                    .unwrap()
-                    .rows
-                    .len(),
+                db.query_raw(
+                    view_name,
+                    view_name,
+                    Some(QueryParams::from_keys(vec![id.clone().into()]))
+                )
+                .await
+                .unwrap()
+                .rows
+                .len(),
                 1
             );
             assert_eq!(
                 db.query_raw(
                     single_view_name,
                     single_view_name,
-                    Some(QueryParams::from_keys(vec![id])),
+                    Some(QueryParams::from_keys(vec![id.into()])),
                 )
                 .await
                 .unwrap()
@@ -740,7 +744,7 @@ mod couch_rs_tests {
 
             // executing 'all' view querying with a specific key should result in 1 and 0 entries, respectively
             let one_key = QueryParams {
-                key: Some(doc.get_id().into_owned()),
+                key: Some(doc.get_id().into()),
                 ..Default::default()
             };
 
