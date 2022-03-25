@@ -3,13 +3,15 @@ use crate::types::view::ViewCollection;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
+use super::document::DocumentId;
+
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct QueriesParams {
-    queries: Vec<QueryParams>,
+    queries: Vec<QueryParams<DocumentId>>,
 }
 
 impl QueriesParams {
-    pub fn new(params: Vec<QueryParams>) -> Self {
+    pub fn new(params: Vec<QueryParams<DocumentId>>) -> Self {
         QueriesParams { queries: params }
     }
 }
@@ -35,10 +37,10 @@ pub enum UpdateView {
 /// [views.html](https://docs.couchdb.org/en/stable/api/ddoc/views.html)
 /// ```
 /// use couch_rs::types::query::QueryParams;
-/// let _qp = QueryParams::default().group(true).conflicts(false).start_key("1");
+/// let _qp = QueryParams::default().group(true).conflicts(false).start_key("1".to_string());
 /// ```
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Default)]
-pub struct QueryParams {
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+pub struct QueryParams<K: Serialize + PartialEq + std::fmt::Debug + Clone> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub conflicts: Option<bool>,
 
@@ -46,7 +48,7 @@ pub struct QueryParams {
     pub descending: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub end_key: Option<String>,
+    pub end_key: Option<K>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end_key_doc_id: Option<String>,
@@ -70,10 +72,10 @@ pub struct QueryParams {
     pub inclusive_end: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub key: Option<String>,
+    pub key: Option<K>,
 
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub keys: Vec<String>,
+    pub keys: Vec<K>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<u64>,
@@ -94,7 +96,7 @@ pub struct QueryParams {
     pub stale: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub start_key: Option<String>,
+    pub start_key: Option<K>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub start_key_doc_id: Option<String>,
@@ -106,8 +108,37 @@ pub struct QueryParams {
     pub update_seq: Option<bool>,
 }
 
-impl QueryParams {
-    pub fn from_keys(keys: Vec<String>) -> Self {
+impl<K: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug + Clone> Default for QueryParams<K> {
+    fn default() -> Self {
+        Self {
+            conflicts: None,
+            descending: None,
+            end_key: None,
+            end_key_doc_id: None,
+            group: None,
+            group_level: None,
+            include_docs: None,
+            attachments: None,
+            att_encoding_info: None,
+            inclusive_end: None,
+            key: None,
+            keys: Vec::new(),
+            limit: None,
+            reduce: None,
+            skip: None,
+            sorted: None,
+            stable: None,
+            stale: None,
+            start_key: None,
+            start_key_doc_id: None,
+            update: None,
+            update_seq: None,
+        }
+    }
+}
+
+impl<K: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug + Clone> QueryParams<K> {
+    pub fn from_keys(keys: Vec<K>) -> Self {
         QueryParams {
             keys,
             ..Default::default()
@@ -124,8 +155,8 @@ impl QueryParams {
         self
     }
 
-    pub fn end_key(mut self, end_key: &str) -> Self {
-        self.end_key = Some(end_key.to_string());
+    pub fn end_key(mut self, end_key: K) -> Self {
+        self.end_key = Some(end_key);
         self
     }
 
@@ -159,12 +190,12 @@ impl QueryParams {
         self
     }
 
-    pub fn key(mut self, key: &str) -> Self {
-        self.key = Some(key.to_string());
+    pub fn key(mut self, key: K) -> Self {
+        self.key = Some(key);
         self
     }
 
-    pub fn keys(mut self, keys: Vec<String>) -> Self {
+    pub fn keys(mut self, keys: Vec<K>) -> Self {
         self.keys = keys;
         self
     }
@@ -194,8 +225,8 @@ impl QueryParams {
         self
     }
 
-    pub fn start_key(mut self, start_key: &str) -> Self {
-        self.start_key = Some(start_key.to_string());
+    pub fn start_key(mut self, start_key: K) -> Self {
+        self.start_key = Some(start_key);
         self
     }
 
@@ -224,7 +255,7 @@ mod tests {
         let qp = QueryParams::default()
             .group(true)
             .conflicts(false)
-            .start_key("1")
+            .start_key("1".to_string())
             .update(UpdateView::Lazy);
         assert_eq!(qp.group, Some(true));
         assert_eq!(qp.start_key, Some("1".to_string()));

@@ -314,7 +314,7 @@ impl Database {
     pub async fn get_bulk_params<T: TypedCouchDocument>(
         &self,
         ids: Vec<DocumentId>,
-        params: Option<QueryParams>,
+        params: Option<QueryParams<DocumentId>>,
     ) -> CouchResult<DocumentCollection<T>> {
         let mut options = params.unwrap_or_default();
 
@@ -497,7 +497,10 @@ impl Database {
         Ok(results.results)
     }
 
-    pub async fn get_all_params_raw(&self, params: Option<QueryParams>) -> CouchResult<DocumentCollection<Value>> {
+    pub async fn get_all_params_raw(
+        &self,
+        params: Option<QueryParams<DocumentId>>,
+    ) -> CouchResult<DocumentCollection<Value>> {
         self.get_all_params(params).await
     }
 
@@ -505,7 +508,7 @@ impl Database {
     /// Parameters description can be found here: [api-ddoc-view](https://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view)
     pub async fn get_all_params<T: TypedCouchDocument>(
         &self,
-        params: Option<QueryParams>,
+        params: Option<QueryParams<DocumentId>>,
     ) -> CouchResult<DocumentCollection<T>> {
         let mut options = params.unwrap_or_default();
 
@@ -882,7 +885,7 @@ impl Database {
         &self,
         design_name: &str,
         view_name: &str,
-        options: Option<QueryParams>,
+        options: Option<QueryParams<Value>>,
     ) -> CouchResult<ViewCollection<Value, Value, Value>> {
         self.query(design_name, view_name, options).await
     }
@@ -934,11 +937,15 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn query<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument>(
+    pub async fn query<
+        K: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug + Clone,
+        V: DeserializeOwned,
+        T: TypedCouchDocument,
+    >(
         &self,
         design_name: &str,
         view_name: &str,
-        mut options: Option<QueryParams>,
+        mut options: Option<QueryParams<K>>,
     ) -> CouchResult<ViewCollection<K, V, T>> {
         if options.is_none() {
             options = Some(QueryParams::default());
