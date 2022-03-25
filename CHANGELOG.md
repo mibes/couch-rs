@@ -5,7 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/mibes/couch-rs/compare/0.8.36...develop) - ReleaseDate
+## [Unreleased](https://github.com/mibes/couch-rs/compare/0.8.37...develop) - ReleaseDate
+
+## [0.8.37] - 2022-03-25
+
+### Changed
+
+- Allow non-string keys for views; contributed by marius851000
+- Updated tokio-util to 0.7
 
 ## [0.8.36] - 2022-02-09
 

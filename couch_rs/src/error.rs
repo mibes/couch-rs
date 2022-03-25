@@ -1,5 +1,4 @@
-use std::error;
-use std::fmt;
+use std::{error, fmt};
 
 // Define our error types. These may be customized for our error handling cases.
 // Now we will be able to write our own errors, defer to an underlying error

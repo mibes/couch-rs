@@ -1,19 +1,19 @@
-use crate::changes::ChangesStream;
-use crate::document::{DocumentCollection, TypedCouchDocument};
-use crate::error::{CouchError, CouchResult};
-use crate::types::design::DesignCreated;
-use crate::types::document::{DocumentCreatedResponse, DocumentId};
-use crate::types::find::{FindQuery, FindResult};
-use crate::types::index::{DatabaseIndexList, IndexFields};
-use crate::types::query::{QueriesCollection, QueriesParams, QueryParams};
-use crate::types::view::ViewCollection;
-use crate::{client::Client, types::document::DocumentCreatedResult};
 use crate::{
-    client::{is_accepted, is_ok},
-    types::document::DocumentCreatedDetails,
+    changes::ChangesStream,
+    client::{is_accepted, is_ok, Client},
+    document::{DocumentCollection, TypedCouchDocument},
+    error::{CouchError, CouchResult},
+    types::{
+        design::DesignCreated,
+        document::{DocumentCreatedDetails, DocumentCreatedResponse, DocumentCreatedResult, DocumentId},
+        find::{FindQuery, FindResult},
+        index::{DatabaseIndexList, IndexFields},
+        query::{QueriesCollection, QueriesParams, QueryParams},
+        view::ViewCollection,
+    },
 };
 use reqwest::StatusCode;
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, to_string, Value};
 use std::collections::HashMap;
 use tokio::sync::mpsc::Sender;
@@ -314,7 +314,7 @@ impl Database {
     pub async fn get_bulk_params<T: TypedCouchDocument>(
         &self,
         ids: Vec<DocumentId>,
-        params: Option<QueryParams>,
+        params: Option<QueryParams<DocumentId>>,
     ) -> CouchResult<DocumentCollection<T>> {
         let mut options = params.unwrap_or_default();
 
@@ -497,7 +497,10 @@ impl Database {
         Ok(results.results)
     }
 
-    pub async fn get_all_params_raw(&self, params: Option<QueryParams>) -> CouchResult<DocumentCollection<Value>> {
+    pub async fn get_all_params_raw(
+        &self,
+        params: Option<QueryParams<DocumentId>>,
+    ) -> CouchResult<DocumentCollection<Value>> {
         self.get_all_params(params).await
     }
 
@@ -505,7 +508,7 @@ impl Database {
     /// Parameters description can be found here: [api-ddoc-view](https://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view)
     pub async fn get_all_params<T: TypedCouchDocument>(
         &self,
-        params: Option<QueryParams>,
+        params: Option<QueryParams<DocumentId>>,
     ) -> CouchResult<DocumentCollection<T>> {
         let mut options = params.unwrap_or_default();
 
@@ -789,7 +792,7 @@ impl Database {
     /// will then insert all documents into the database.
     pub async fn bulk_upsert<T: TypedCouchDocument + Clone>(
         &self,
-        docs: &mut Vec<T>,
+        docs: &mut [T],
     ) -> CouchResult<Vec<DocumentCreatedResult>> {
         // First collect all docs that do not have a rev set.
         let mut docs_without_rev = vec![];
@@ -882,7 +885,7 @@ impl Database {
         &self,
         design_name: &str,
         view_name: &str,
-        options: Option<QueryParams>,
+        options: Option<QueryParams<Value>>,
     ) -> CouchResult<ViewCollection<Value, Value, Value>> {
         self.query(design_name, view_name, options).await
     }
@@ -934,11 +937,15 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn query<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument>(
+    pub async fn query<
+        K: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug + Clone,
+        V: DeserializeOwned,
+        T: TypedCouchDocument,
+    >(
         &self,
         design_name: &str,
         view_name: &str,
-        mut options: Option<QueryParams>,
+        mut options: Option<QueryParams<K>>,
     ) -> CouchResult<ViewCollection<K, V, T>> {
         if options.is_none() {
             options = Some(QueryParams::default());
