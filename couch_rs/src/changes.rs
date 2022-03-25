@@ -1,18 +1,20 @@
-use crate::client::Client;
+use crate::{
+    client::Client,
+    error::{CouchError, CouchResult},
+    types::changes::{ChangeEvent, Event},
+};
 use futures_core::{Future, Stream};
 use futures_util::{ready, FutureExt, StreamExt, TryStreamExt};
-use reqwest::StatusCode;
-use reqwest::{Method, Response};
-use std::collections::HashMap;
-use std::io;
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use reqwest::{Method, Response, StatusCode};
+use std::{
+    collections::HashMap,
+    io,
+    pin::Pin,
+    task::{Context, Poll},
+};
 use tokio::io::AsyncBufReadExt;
 use tokio_stream::wrappers::LinesStream;
 use tokio_util::io::StreamReader;
-
-use crate::error::{CouchError, CouchResult};
-use crate::types::changes::{ChangeEvent, Event};
 
 /// The max timeout value for longpoll/continous HTTP requests
 /// that CouchDB supports (see [1]).

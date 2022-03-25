@@ -1,9 +1,6 @@
-use crate::document::TypedCouchDocument;
-use crate::types::view::ViewCollection;
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
-
 use super::document::DocumentId;
+use crate::{document::TypedCouchDocument, types::view::ViewCollection};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct QueriesParams {

@@ -1,8 +1,9 @@
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
-use std::borrow::Cow;
-use std::ops::{Index, IndexMut};
+use std::{
+    borrow::Cow,
+    ops::{Index, IndexMut},
+};
 
 /// Trait to deal with typed CouchDB documents.
 pub trait TypedCouchDocument: DeserializeOwned + Serialize + Sized {

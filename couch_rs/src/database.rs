@@ -1,19 +1,19 @@
-use crate::changes::ChangesStream;
-use crate::document::{DocumentCollection, TypedCouchDocument};
-use crate::error::{CouchError, CouchResult};
-use crate::types::design::DesignCreated;
-use crate::types::document::{DocumentCreatedResponse, DocumentId};
-use crate::types::find::{FindQuery, FindResult};
-use crate::types::index::{DatabaseIndexList, IndexFields};
-use crate::types::query::{QueriesCollection, QueriesParams, QueryParams};
-use crate::types::view::ViewCollection;
-use crate::{client::Client, types::document::DocumentCreatedResult};
 use crate::{
-    client::{is_accepted, is_ok},
-    types::document::DocumentCreatedDetails,
+    changes::ChangesStream,
+    client::{is_accepted, is_ok, Client},
+    document::{DocumentCollection, TypedCouchDocument},
+    error::{CouchError, CouchResult},
+    types::{
+        design::DesignCreated,
+        document::{DocumentCreatedDetails, DocumentCreatedResponse, DocumentCreatedResult, DocumentId},
+        find::{FindQuery, FindResult},
+        index::{DatabaseIndexList, IndexFields},
+        query::{QueriesCollection, QueriesParams, QueryParams},
+        view::ViewCollection,
+    },
 };
 use reqwest::StatusCode;
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, to_string, Value};
 use std::collections::HashMap;
 use tokio::sync::mpsc::Sender;
@@ -792,7 +792,7 @@ impl Database {
     /// will then insert all documents into the database.
     pub async fn bulk_upsert<T: TypedCouchDocument + Clone>(
         &self,
-        docs: &mut Vec<T>,
+        docs: &mut [T],
     ) -> CouchResult<Vec<DocumentCreatedResult>> {
         // First collect all docs that do not have a rev set.
         let mut docs_without_rev = vec![];

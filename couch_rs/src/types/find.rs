@@ -1,8 +1,10 @@
 use crate::document::TypedCouchDocument;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
+use std::{
+    collections::HashMap,
+    fmt::{Display, Formatter},
+};
 
 /// Sort direction abstraction
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]

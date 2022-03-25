@@ -78,7 +78,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let find_all = FindQuery::find_all();
     let docs = db.find::<Value>(&find_all).await?;
     if let Some(row) = docs.rows.get(0) {
-        println!("First document: {}", row.to_string())
+        println!("First document: {}", row)
     }
 
     println!("All operations are done");

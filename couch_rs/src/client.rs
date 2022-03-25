@@ -1,13 +1,15 @@
-use crate::database::Database;
-use crate::error::{CouchError, CouchResult};
-use crate::types::system::{CouchResponse, CouchStatus, DbInfo};
+use crate::{
+    database::Database,
+    error::{CouchError, CouchResult},
+    types::system::{CouchResponse, CouchStatus, DbInfo},
+};
 use base64::write::EncoderWriter as Base64Encoder;
-use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, REFERER, USER_AGENT};
-use reqwest::{self, Method, StatusCode, Url};
-use reqwest::{header, RequestBuilder};
-use std::collections::HashMap;
-use std::io::Write;
-use std::time::Duration;
+use reqwest::{
+    self,
+    header::{self, HeaderMap, HeaderValue, CONTENT_TYPE, REFERER, USER_AGENT},
+    Method, RequestBuilder, StatusCode, Url,
+};
+use std::{collections::HashMap, io::Write, time::Duration};
 
 fn construct_json_headers(uri: Option<&str>) -> HeaderMap {
     let mut headers = HeaderMap::new();
