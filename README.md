@@ -3,6 +3,9 @@
 [![Crates.io](https://img.shields.io/crates/v/couch_rs.svg)](https://crates.io/crates/couch_rs)
 [![docs.rs](https://docs.rs/couch_rs/badge.svg)](https://docs.rs/couch_rs)
 ![Build](https://img.shields.io/github/workflow/status/mibes/couch-rs/Rust)
+![License](https://img.shields.io/crates/l/couch_rs.svg)
+[![dependency status](https://deps.rs/crate/couch_rs/0.8.37/status.svg)](https://deps.rs/crate/couch_rs/0.8.37)
+![Downloads](https://img.shields.io/crates/d/couch_rs.svg)
 
 ## Documentation
 
