@@ -182,6 +182,7 @@ impl Stream for ChangesStream {
     }
 }
 
+#[cfg(feature = "integration-tests")]
 #[cfg(test)]
 mod tests {
     use crate::client::Client;

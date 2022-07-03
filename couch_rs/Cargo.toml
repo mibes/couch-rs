@@ -9,7 +9,7 @@ documentation = "https://docs.rs/couch_rs"
 repository = "https://github.com/mibes/couch-rs"
 keywords = ["couchdb", "orm", "database", "nosql"]
 categories = ["database"]
-edition = "2018"
+edition = "2021"
 include = [
     "**/*.rs",
     "Cargo.toml"
@@ -38,6 +38,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 
 [features]
 default = ["derive", "native-tls"]
+integration-tests = []
 
 # Provide derive(CouchDocument) macros.
 derive = ["couch_rs_derive"]
@@ -50,3 +51,6 @@ rustls-tls = ["reqwest/rustls-tls"]
 rustls-tls-manual-roots = ["reqwest/rustls-tls-manual-roots"]
 rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots"]
 rustls-tls-native-roots = ["reqwest/rustls-tls-native-roots"]
+
+[lib]
+doctest = false
