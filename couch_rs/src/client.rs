@@ -144,8 +144,8 @@ impl Client {
         self.db_prefix = prefix;
         self
     }
-
-    /// List the databases in CouchDB
+ 
+    ///  the databases in CouchDB
     ///
     /// Usage:
     /// ```
@@ -230,6 +230,7 @@ impl Client {
         Ok(s.ok.unwrap_or(false))
     }
 
+    #[cfg(feature = "integration-tests")]
     /// Checks if a database exists
     ///
     /// Usage:
