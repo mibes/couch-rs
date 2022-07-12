@@ -9,7 +9,7 @@ documentation = "https://docs.rs/couch_rs"
 repository = "https://github.com/mibes/couch-rs"
 keywords = ["couchdb", "orm", "database", "nosql"]
 categories = ["database"]
-edition = "2021"
+edition = "2018"
 include = [
     "**/*.rs",
     "Cargo.toml"
