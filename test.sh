@@ -20,10 +20,10 @@ sleep 1
 # Do a quick check for any issues using rustls-tls
 cargo clippy --features rustls-tls
 echo "1/3 running unit tests ..."
-cargo test -- --test-threads=1 --nocapture
+cargo test -- --nocapture
 # most of doctests expect to connect to couchdb running in docker
 echo "2/3 running doctest ..."
-cargo test --doc -- --test-threads=1 --nocapture
+cargo test --doc -- --nocapture
 # integration-tests connect to couchdb running in docker
 echo "3/3 running integration tests ..."
 cargo test --features=integration-tests -- --test-threads=1 --nocapture
