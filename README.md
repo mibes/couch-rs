@@ -3,6 +3,9 @@
 [![Crates.io](https://img.shields.io/crates/v/couch_rs.svg)](https://crates.io/crates/couch_rs)
 [![docs.rs](https://docs.rs/couch_rs/badge.svg)](https://docs.rs/couch_rs)
 ![Build](https://img.shields.io/github/workflow/status/mibes/couch-rs/Rust)
+![License](https://img.shields.io/crates/l/couch_rs.svg)
+[![dependency status](https://deps.rs/crate/couch_rs/0.8.37/status.svg)](https://deps.rs/crate/couch_rs/0.8.37)
+![Downloads](https://img.shields.io/crates/d/couch_rs.svg)
 
 ## Documentation
 
@@ -22,7 +25,7 @@ couch_rs = "0.8"
 This crate is an interface to CouchDB HTTP REST API. Works with stable Rust.
 
 This library is a spin-off based on the excellent work done by Mathieu Amiot and others at Yellow Innovation on the Sofa
-library. The original project can be found at https://github.com/YellowInnovation/sofa
+library. The original project can be found at <https://github.com/YellowInnovation/sofa>
 
 The Sofa library lacked support for async I/O, and missed a few essential operations we needed in our projects. That's
 why I've decided to create a new project based on the original Sofa code.
@@ -32,7 +35,7 @@ serde and reqwest libraries.
 
 **NOT 1.0 YET, so expect changes**
 
-**Supports CouchDB 2.3.0 and up, including the newly released 3.0 version.**
+**Supports CouchDB 2.3.0 and up, used in production including 3.2.2 couchdb version.**
 
 Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/index.html) in detail to see what's
 possible.
@@ -80,7 +83,7 @@ docker run --rm -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password 
 ```
 
 And then
-`cargo test -- --test-threads=1`
+`cargo test --features=integration-tests -- --test-threads=1`
 
 Single-threading the tests is very important because we need to make sure that the basic features are working before
 actually testing features on dbs/documents.

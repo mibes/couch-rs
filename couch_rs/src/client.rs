@@ -4,6 +4,7 @@ use crate::{
     types::system::{CouchResponse, CouchStatus, DbInfo},
 };
 use base64::write::EncoderWriter as Base64Encoder;
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest::{
     self,
     header::{self, HeaderMap, HeaderValue, CONTENT_TYPE, REFERER, USER_AGENT},
@@ -173,7 +174,9 @@ impl Client {
     }
 
     fn build_dbname(&self, dbname: &str) -> String {
-        self.db_prefix.clone() + dbname
+        // percent encode the dbname to ensure special characters are not misinterpreted
+        let dbname = utf8_percent_encode(dbname, NON_ALPHANUMERIC).to_string();
+        format!("{}{}", self.db_prefix, dbname)
     }
 
     /// Connect to an existing database, or create a new one, when this one does not exist.
@@ -230,6 +233,7 @@ impl Client {
         Ok(s.ok.unwrap_or(false))
     }
 
+    #[cfg(feature = "integration-tests")]
     /// Checks if a database exists
     ///
     /// Usage:

@@ -1,6 +1,6 @@
 [package]
 name = "couch_rs"
-version = "0.8.37"
+version = "0.8.38"
 authors = ["Mathieu Amiot <mathieu.amiot@yellowinnovation.fr>", "mibes <mibes@mibesco.com>"]
 license = "MIT/Apache-2.0"
 description = "CouchDB library for Rust"
@@ -18,15 +18,16 @@ include = [
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-couch_rs_derive = { version = "0.8.37", optional = true, path = "../couch_rs_derive" }
+couch_rs_derive = { version = "0.8.38", optional = true, path = "../couch_rs_derive" }
 url = "2"
-tokio = { version = "1", features = ["rt-multi-thread"] }
+tokio = { version = "^1.14", features = ["rt-multi-thread"] }
 base64 = "0.13"
 tokio-util = {version = "0.7", features = ["io"]}
 bytes = "1"
 tokio-stream = { version = "0.1", features = ["io-util"] }
 futures-util = "0.3"
 futures-core = "0.3"
+percent-encoding = "2"
 
 [dependencies.reqwest]
 version = "0.11"
@@ -38,6 +39,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 
 [features]
 default = ["derive", "native-tls"]
+integration-tests = []
 
 # Provide derive(CouchDocument) macros.
 derive = ["couch_rs_derive"]
@@ -50,3 +52,6 @@ rustls-tls = ["reqwest/rustls-tls"]
 rustls-tls-manual-roots = ["reqwest/rustls-tls-manual-roots"]
 rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots"]
 rustls-tls-native-roots = ["reqwest/rustls-tls-native-roots"]
+
+[lib]
+doctest = false

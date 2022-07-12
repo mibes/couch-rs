@@ -200,6 +200,7 @@ mod changes;
 pub use client::Client;
 
 #[allow(unused_mut, unused_variables)]
+#[cfg(feature = "integration-tests")]
 #[cfg(test)]
 mod couch_rs_tests {
     use crate as couch_rs;
@@ -243,10 +244,19 @@ mod couch_rs_tests {
 
         #[tokio::test]
         async fn should_create_test_db_with_a_complex_name() {
+            // https://docs.couchdb.org/en/stable/api/database/common.html#put--db
+            // Name must begin with a lowercase letter (a-z)
+            // Lowercase characters (a-z)
+            // Digits (0-9)
+            // Any of the characters _, $, (, ), +, -, and /.
             let client = Client::new_local_test().unwrap();
-            let dbname = "some+database";
+            let dbname = "abcdefghijklmnopqrstuvwxyz+0123456789_$()-/";
             let dbw = client.db(dbname).await;
-            assert!(dbw.is_err())
+            assert!(dbw.is_ok());
+            assert!(client.exists(dbname).await.is_ok());
+            let info = client.get_info(dbname).await.expect("can not get db info");
+            assert_eq!(info.db_name, dbname);
+            let _ = client.destroy_db(dbname);
         }
 
         #[tokio::test]
