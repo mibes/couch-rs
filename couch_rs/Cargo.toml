@@ -27,6 +27,7 @@ bytes = "1"
 tokio-stream = { version = "0.1", features = ["io-util"] }
 futures-util = "0.3"
 futures-core = "0.3"
+percent-encoding = "2"
 
 [dependencies.reqwest]
 version = "0.11"
