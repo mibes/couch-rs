@@ -249,13 +249,13 @@ mod couch_rs_tests {
             // Lowercase characters (a-z)
             // Digits (0-9)
             // Any of the characters _, $, (, ), +, -, and /.
-            // TODO: currently this test fails, when database name contains +
             let client = Client::new_local_test().unwrap();
-            let dbname = "abcdefghijklmnopqrstuvwxyz0123456789_$()-/";
+            let dbname = "abcdefghijklmnopqrstuvwxyz+0123456789_$()-/";
             let dbw = client.db(dbname).await;
             assert!(dbw.is_ok());
             assert!(client.exists(dbname).await.is_ok());
-
+            let info = client.get_info(dbname).await.expect("can not get db info");
+            assert_eq!(info.db_name, dbname);
             let _ = client.destroy_db(dbname);
         }
 
