@@ -35,7 +35,7 @@ features = ["json", "gzip", "stream"]
 default-features = false
 
 [dev-dependencies]
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "^1.14", features = ["rt-multi-thread", "macros"] }
 
 [features]
 default = ["derive", "native-tls"]
