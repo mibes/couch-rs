@@ -144,8 +144,8 @@ impl Client {
         self.db_prefix = prefix;
         self
     }
- 
-    ///  the databases in CouchDB
+
+    /// List the databases in CouchDB
     ///
     /// Usage:
     /// ```

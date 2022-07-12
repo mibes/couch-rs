@@ -1,4 +1,4 @@
-// # CouchDB library for Rust
+//! # CouchDB library for Rust
 //!
 //! ## Description
 //!
