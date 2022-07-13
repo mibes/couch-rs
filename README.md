@@ -4,7 +4,7 @@
 [![docs.rs](https://docs.rs/couch_rs/badge.svg)](https://docs.rs/couch_rs)
 ![Build](https://img.shields.io/github/workflow/status/mibes/couch-rs/Rust)
 ![License](https://img.shields.io/crates/l/couch_rs.svg)
-[![dependency status](https://deps.rs/crate/couch_rs/0.8.37/status.svg)](https://deps.rs/crate/couch_rs/0.8.37)
+[![dependency status](https://deps.rs/crate/couch_rs/0.8.39/status.svg)](https://deps.rs/crate/couch_rs)
 ![Downloads](https://img.shields.io/crates/d/couch_rs.svg)
 
 ## Documentation
@@ -35,7 +35,7 @@ serde and reqwest libraries.
 
 **NOT 1.0 YET, so expect changes**
 
-**Supports CouchDB 2.3.0 and up, used in production including 3.2.2 couchdb version.**
+**Supports CouchDB 2.3.0 and up. Used in production with various CouchDB versions, including 3.2.2.**
 
 Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/index.html) in detail to see what's
 possible.
