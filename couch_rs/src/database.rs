@@ -872,11 +872,7 @@ impl Database {
             Ok(result)
         } else {
             let error_msg = result.error.unwrap_or_else(|| s!("unspecified error"));
-            Err(CouchError {
-                id: result.id,
-                status: response_status,
-                message: error_msg,
-            })
+            Err(CouchError::new_with_id(result.id, error_msg, response_status))
         }
     }
 
@@ -1070,11 +1066,11 @@ impl Database {
         // Let's create it then
         let result: DesignCreated = self.insert_index(name, spec).await?;
         match result.error {
-            Some(e) => Err(CouchError {
-                id: result.id,
-                status: reqwest::StatusCode::INTERNAL_SERVER_ERROR,
-                message: e,
-            }),
+            Some(e) => Err(CouchError::new_with_id(
+                result.id,
+                e,
+                reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+            )),
             // Created and alright
             None => Ok(true),
         }

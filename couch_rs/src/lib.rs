@@ -358,7 +358,7 @@ mod couch_rs_tests {
 
             let second_result = ndoc_result.next().unwrap();
             assert!(second_result.is_err());
-            assert_eq!(second_result.err().unwrap().status, StatusCode::CONFLICT);
+            assert_eq!(second_result.err().unwrap().status(), Some(StatusCode::CONFLICT));
 
             let _ = client.destroy_db(dbname);
         }
