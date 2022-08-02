@@ -1,4 +1,4 @@
-use std::{error, fmt, rc::Rc};
+use std::{error, fmt, sync::Arc};
 
 // Define our error types. These may be customized for our error handling cases.
 // Now we will be able to write our own errors, defer to an underlying error
@@ -31,7 +31,7 @@ pub struct ErrorMessage {
     upstream: Option<UpstreamError>,
 }
 
-type UpstreamError = Rc<dyn error::Error + 'static>;
+type UpstreamError = Arc<dyn error::Error + Send + Sync + 'static>;
 pub type CouchResult<T> = Result<T, CouchError>;
 
 impl CouchError {
@@ -106,9 +106,9 @@ impl error::Error for CouchError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         // Generic error, underlying cause isn't tracked.
         match self {
-            CouchError::OperationFailed(details) => details.upstream.as_deref(),
-            CouchError::InvalidJson(err) => err.upstream.as_deref(),
-            CouchError::MalformedUrl(message) => message.upstream.as_deref(),
+            CouchError::OperationFailed(details) => details.upstream.as_ref().map(|e| &*e as _),
+            CouchError::InvalidJson(err) => err.upstream.as_ref().map(|e| &*e as _),
+            CouchError::MalformedUrl(message) => message.upstream.as_ref().map(|e| &*e as _),
         }
     }
 }
@@ -119,7 +119,7 @@ impl std::convert::From<reqwest::Error> for CouchError {
             id: None,
             status: err.status().unwrap_or(reqwest::StatusCode::NOT_IMPLEMENTED),
             message: err.to_string(),
-            upstream: Some(Rc::new(err)),
+            upstream: Some(Arc::new(err)),
         })
     }
 }
@@ -128,7 +128,7 @@ impl std::convert::From<serde_json::Error> for CouchError {
     fn from(err: serde_json::Error) -> Self {
         CouchError::InvalidJson(ErrorMessage {
             message: err.to_string(),
-            upstream: Some(Rc::new(err)),
+            upstream: Some(Arc::new(err)),
         })
     }
 }
@@ -137,7 +137,7 @@ impl std::convert::From<url::ParseError> for CouchError {
     fn from(err: url::ParseError) -> Self {
         CouchError::MalformedUrl(ErrorMessage {
             message: err.to_string(),
-            upstream: Some(Rc::new(err)),
+            upstream: Some(Arc::new(err)),
         })
     }
 }
