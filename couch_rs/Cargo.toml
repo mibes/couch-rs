@@ -36,6 +36,7 @@ default-features = false
 
 [dev-dependencies]
 tokio = { version = "^1.14", features = ["rt-multi-thread", "macros"] }
+http = { version = "0.2" }
 
 [features]
 default = ["derive", "native-tls"]

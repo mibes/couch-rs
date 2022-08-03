@@ -1115,6 +1115,9 @@ impl Database {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::error::CouchError;
+    use http::response::Builder;
+    use reqwest::{Response, ResponseBuilderExt, Url};
 
     #[test]
     fn test_document_paths() {
@@ -1134,5 +1137,21 @@ mod tests {
         assert_eq!(p, "testdb/_design/design1/_update/update1/123");
         let p = db.create_compact_path("view1");
         assert_eq!(p, "testdb/_compact/view1");
+    }
+
+    #[tokio::test]
+    async fn test_json_error() {
+        let url = Url::parse("http://example.com").unwrap();
+        let response = Builder::new().status(200).url(url).body(r#"{"foo": "bar"}"#).unwrap();
+        let response = Response::from(response);
+
+        #[derive(serde::Deserialize)]
+        struct Baz {
+            _baz: String,
+        }
+
+        let x = response.couch_json::<Baz>().await;
+
+        assert!(matches!(x, Err(CouchError::InvalidJson(_))));
     }
 }
