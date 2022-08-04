@@ -1139,28 +1139,40 @@ mod tests {
         assert_eq!(p, "testdb/_compact/view1");
     }
 
-    #[tokio::test]
-    async fn test_json_error() {
+    fn build_json_response(body: &'static str) -> Response {
         let url = Url::parse("http://example.com").unwrap();
-        let response = Builder::new().status(200).url(url).body(r#"{"foo": "bar"}"#).unwrap();
-        let response = Response::from(response);
+        let response = Builder::new().status(200).url(url).body(body).unwrap();
+        Response::from(response)
+    }
 
-        #[derive(serde::Deserialize)]
-        struct Baz {
-            _baz: String,
-        }
-
-        let x = response.couch_json::<Baz>().await;
-
+    fn assert_json_error(x: CouchResult<Baz>, expected: &str) {
         let msg = if let Err(CouchError::InvalidJson(err)) = x {
             err.message
         } else {
             panic!("unexpected error type");
         };
+        assert_eq!(expected, msg);
+    }
 
-        assert_eq!(
+    #[derive(serde::Deserialize)]
+    struct Baz {
+        _baz: String,
+    }
+
+    #[tokio::test]
+    async fn test_unexpected_json_error() {
+        let response = build_json_response(r#"{"foo": "bar"}"#);
+        let x = response.couch_json::<Baz>().await;
+        assert_json_error(
+            x,
             "error decoding response body: missing field `_baz` at line 1 column 14",
-            msg
         );
+    }
+
+    #[tokio::test]
+    async fn test_invalid_json_error() {
+        let response = build_json_response("not even json");
+        let x = response.couch_json::<Baz>().await;
+        assert_json_error(x, "error decoding response body: expected ident at line 1 column 2");
     }
 }
