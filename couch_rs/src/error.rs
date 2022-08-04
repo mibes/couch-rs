@@ -28,7 +28,7 @@ pub struct ErrorDetails {
 pub struct ErrorMessage {
     /// Detailed error message
     pub message: String,
-    upstream: Option<UpstreamError>,
+    pub(crate) upstream: Option<UpstreamError>,
 }
 
 type UpstreamError = Arc<dyn error::Error + Send + Sync + 'static>;
