@@ -1152,6 +1152,15 @@ mod tests {
 
         let x = response.couch_json::<Baz>().await;
 
-        assert!(matches!(x, Err(CouchError::InvalidJson(_))));
+        let msg = if let Err(CouchError::InvalidJson(err)) = x {
+            err.message
+        } else {
+            panic!("unexpected error type");
+        };
+
+        assert_eq!(
+            "error decoding response body: missing field `_baz` at line 1 column 14",
+            msg
+        );
     }
 }
