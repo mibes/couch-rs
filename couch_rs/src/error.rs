@@ -1,35 +1,67 @@
-use std::{error, fmt};
+use std::{error, fmt, sync::Arc};
 
 // Define our error types. These may be customized for our error handling cases.
 // Now we will be able to write our own errors, defer to an underlying error
 // implementation, or do something in between.
 #[derive(Debug, Clone)]
-pub struct CouchError {
+pub enum CouchError {
+    /// A CouchDB operation failed, typically indicated by a specific HTTP error status that was returned.
+    OperationFailed(ErrorDetails),
+    /// Parsing of a JSON document failed.
+    InvalidJson(ErrorMessage),
+    /// The provided url is invalid.
+    MalformedUrl(ErrorMessage),
+}
+
+#[derive(Debug, Clone)]
+pub struct ErrorDetails {
     /// Some (bulk) transaction might return an id as part of the error
     pub id: Option<String>,
     /// HTTP Status Code
     pub status: reqwest::StatusCode,
     /// Detailed error message
     pub message: String,
+    upstream: Option<UpstreamError>,
 }
 
+#[derive(Debug, Clone)]
+pub struct ErrorMessage {
+    /// Detailed error message
+    pub message: String,
+    pub(crate) upstream: Option<UpstreamError>,
+}
+
+type UpstreamError = Arc<dyn error::Error + Send + Sync + 'static>;
 pub type CouchResult<T> = Result<T, CouchError>;
 
 impl CouchError {
     pub fn new(message: String, status: reqwest::StatusCode) -> CouchError {
-        CouchError {
+        CouchError::OperationFailed(ErrorDetails {
             id: None,
             message,
             status,
-        }
+            upstream: None,
+        })
     }
 
     pub fn new_with_id(id: Option<String>, message: String, status: reqwest::StatusCode) -> CouchError {
-        CouchError { id, status, message }
+        CouchError::OperationFailed(ErrorDetails {
+            id,
+            message,
+            status,
+            upstream: None,
+        })
     }
 
     pub fn is_not_found(&self) -> bool {
-        self.status == reqwest::StatusCode::NOT_FOUND
+        self.status() == Some(reqwest::StatusCode::NOT_FOUND)
+    }
+
+    pub fn status(&self) -> Option<reqwest::StatusCode> {
+        match self {
+            CouchError::OperationFailed(details) => Some(details.status),
+            _ => None,
+        }
     }
 }
 
@@ -55,10 +87,16 @@ impl<T> CouchResultExt<T> for CouchResult<T> {
 
 impl fmt::Display for CouchError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if let Some(id) = &self.id {
-            write!(f, "{} -> {}: {}", id, self.status, self.message)
-        } else {
-            write!(f, "{}: {}", self.status, self.message)
+        match self {
+            CouchError::OperationFailed(details) => {
+                if let Some(id) = &details.id {
+                    write!(f, "{} -> {}: {}", id, details.status, details.message)
+                } else {
+                    write!(f, "{}: {}", details.status, details.message)
+                }
+            }
+            CouchError::InvalidJson(err) => write!(f, "{}", err.message),
+            CouchError::MalformedUrl(err) => write!(f, "{}", err.message),
         }
     }
 }
@@ -67,36 +105,39 @@ impl fmt::Display for CouchError {
 impl error::Error for CouchError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         // Generic error, underlying cause isn't tracked.
-        None
+        match self {
+            CouchError::OperationFailed(details) => details.upstream.as_ref().map(|e| &**e as _),
+            CouchError::InvalidJson(err) => err.upstream.as_ref().map(|e| &**e as _),
+            CouchError::MalformedUrl(message) => message.upstream.as_ref().map(|e| &**e as _),
+        }
     }
 }
 
 impl std::convert::From<reqwest::Error> for CouchError {
     fn from(err: reqwest::Error) -> Self {
-        CouchError {
+        CouchError::OperationFailed(ErrorDetails {
             id: None,
             status: err.status().unwrap_or(reqwest::StatusCode::NOT_IMPLEMENTED),
             message: err.to_string(),
-        }
+            upstream: Some(Arc::new(err)),
+        })
     }
 }
 
 impl std::convert::From<serde_json::Error> for CouchError {
     fn from(err: serde_json::Error) -> Self {
-        CouchError {
-            id: None,
-            status: reqwest::StatusCode::NOT_IMPLEMENTED,
+        CouchError::InvalidJson(ErrorMessage {
             message: err.to_string(),
-        }
+            upstream: Some(Arc::new(err)),
+        })
     }
 }
 
 impl std::convert::From<url::ParseError> for CouchError {
     fn from(err: url::ParseError) -> Self {
-        CouchError {
-            id: None,
-            status: reqwest::StatusCode::NOT_IMPLEMENTED,
+        CouchError::MalformedUrl(ErrorMessage {
             message: err.to_string(),
-        }
+            upstream: Some(Arc::new(err)),
+        })
     }
 }

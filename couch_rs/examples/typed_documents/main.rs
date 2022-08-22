@@ -1,7 +1,6 @@
 use couch_rs::document::TypedCouchDocument;
 use couch_rs::types::document::DocumentId;
 use couch_rs::CouchDocument;
-use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
 const TEST_DB: &str = "test_db";
@@ -47,18 +46,15 @@ async fn main() {
             println!("Name: {} {}", e.first_name, e.last_name);
         }
         Err(e) => {
-            match e.status {
-                StatusCode::NOT_FOUND => {
-                    let mut doc = serde_json::to_value(td).unwrap();
-                    // create the document
-                    match db.create(&mut doc).await {
-                        Ok(r) => println!("Document was created with ID: {} and Rev: {}", r.id, r.rev),
-                        Err(err) => println!("error creating document {}: {:?}", doc, err),
-                    }
+            if e.is_not_found() {
+                let mut doc = serde_json::to_value(td).unwrap();
+                // create the document
+                match db.create(&mut doc).await {
+                    Ok(r) => println!("Document was created with ID: {} and Rev: {}", r.id, r.rev),
+                    Err(err) => println!("error creating document {}: {:?}", doc, err),
                 }
-                _ => {
-                    println!("Unexpected error: {:?}", e);
-                }
+            } else {
+                println!("Unexpected error: {:?}", e);
             }
         }
     }

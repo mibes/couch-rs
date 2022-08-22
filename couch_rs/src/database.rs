@@ -2,7 +2,7 @@ use crate::{
     changes::ChangesStream,
     client::{is_accepted, is_ok, Client},
     document::{DocumentCollection, TypedCouchDocument},
-    error::{CouchError, CouchResult},
+    error::{CouchError, CouchResult, ErrorMessage},
     types::{
         design::DesignCreated,
         document::{DocumentCreatedDetails, DocumentCreatedResponse, DocumentCreatedResult, DocumentId},
@@ -12,11 +12,35 @@ use crate::{
         view::ViewCollection,
     },
 };
+use futures_core::Future;
 use reqwest::StatusCode;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, to_string, Value};
-use std::collections::HashMap;
+use std::{collections::HashMap, pin::Pin, sync::Arc};
 use tokio::sync::mpsc::Sender;
+
+trait CouchJsonExt {
+    fn couch_json<T: DeserializeOwned>(self) -> Pin<Box<dyn Future<Output = Result<T, CouchError>> + Send>>;
+}
+
+impl CouchJsonExt for reqwest::Response {
+    fn couch_json<T: DeserializeOwned>(self) -> Pin<Box<dyn Future<Output = Result<T, CouchError>> + Send>> {
+        let fut = async move {
+            let x = self.json();
+
+            match x.await {
+                Ok(x) => Ok(x),
+                Err(e) if e.is_decode() => Err(CouchError::InvalidJson(ErrorMessage {
+                    message: e.to_string(),
+                    upstream: Some(Arc::new(e)),
+                })),
+                Err(e) => Err(e.into()),
+            }
+        };
+
+        Box::pin(fut)
+    }
+}
 
 /// Database operations on a CouchDB Database
 /// (sometimes called Collection in other NoSQL flavors such as MongoDB).
@@ -182,7 +206,7 @@ impl Database {
             .send()
             .await?
             .error_for_status()?
-            .json()
+            .couch_json()
             .await
             .map_err(CouchError::from)
     }
@@ -328,7 +352,7 @@ impl Database {
             .await?
             .error_for_status()?;
 
-        Ok(DocumentCollection::new(response.json().await?))
+        Ok(DocumentCollection::new(response.couch_json().await?))
     }
 
     /// Gets all the documents in database
@@ -523,7 +547,7 @@ impl Database {
             .await?
             .error_for_status()?;
 
-        Ok(DocumentCollection::new(response.json().await?))
+        Ok(DocumentCollection::new(response.couch_json().await?))
     }
 
     /// Finds a document in the database through a Mango query as raw Values.
@@ -588,7 +612,7 @@ impl Database {
         let path = self.create_raw_path("_find");
         let response = self._client.post(&path, js!(query)).send().await?;
         let status = response.status();
-        let data: FindResult<T> = response.json().await?;
+        let data: FindResult<T> = response.couch_json().await?;
 
         if let Some(doc_val) = data.docs {
             let documents: Vec<T> = doc_val
@@ -872,11 +896,7 @@ impl Database {
             Ok(result)
         } else {
             let error_msg = result.error.unwrap_or_else(|| s!("unspecified error"));
-            Err(CouchError {
-                id: result.id,
-                status: response_status,
-                message: error_msg,
-            })
+            Err(CouchError::new_with_id(result.id, error_msg, response_status))
         }
     }
 
@@ -1070,11 +1090,11 @@ impl Database {
         // Let's create it then
         let result: DesignCreated = self.insert_index(name, spec).await?;
         match result.error {
-            Some(e) => Err(CouchError {
-                id: result.id,
-                status: reqwest::StatusCode::INTERNAL_SERVER_ERROR,
-                message: e,
-            }),
+            Some(e) => Err(CouchError::new_with_id(
+                result.id,
+                e,
+                reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+            )),
             // Created and alright
             None => Ok(true),
         }
@@ -1095,6 +1115,9 @@ impl Database {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::error::CouchError;
+    use http::response::Builder;
+    use reqwest::{Response, ResponseBuilderExt, Url};
 
     #[test]
     fn test_document_paths() {
@@ -1114,5 +1137,42 @@ mod tests {
         assert_eq!(p, "testdb/_design/design1/_update/update1/123");
         let p = db.create_compact_path("view1");
         assert_eq!(p, "testdb/_compact/view1");
+    }
+
+    fn build_json_response(body: &'static str) -> Response {
+        let url = Url::parse("http://example.com").unwrap();
+        let response = Builder::new().status(200).url(url).body(body).unwrap();
+        Response::from(response)
+    }
+
+    fn assert_json_error(x: CouchResult<Baz>, expected: &str) {
+        let msg = if let Err(CouchError::InvalidJson(err)) = x {
+            err.message
+        } else {
+            panic!("unexpected error type");
+        };
+        assert_eq!(expected, msg);
+    }
+
+    #[derive(serde::Deserialize)]
+    struct Baz {
+        _baz: String,
+    }
+
+    #[tokio::test]
+    async fn test_unexpected_json_error() {
+        let response = build_json_response(r#"{"foo": "bar"}"#);
+        let x = response.couch_json::<Baz>().await;
+        assert_json_error(
+            x,
+            "error decoding response body: missing field `_baz` at line 1 column 14",
+        );
+    }
+
+    #[tokio::test]
+    async fn test_invalid_json_error() {
+        let response = build_json_response("not even json");
+        let x = response.couch_json::<Baz>().await;
+        assert_json_error(x, "error decoding response body: expected ident at line 1 column 2");
     }
 }
