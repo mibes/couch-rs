@@ -32,7 +32,7 @@ impl Default for EnsureDbsExist {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ClusterSetup {
     ClusterDisabled,

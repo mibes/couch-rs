@@ -377,6 +377,7 @@ mod couch_rs_tests {
     mod database_tests {
         use crate::document::{DocumentCollection, TypedCouchDocument};
         use crate::error::CouchResultExt;
+        use crate::management::ClusterSetup;
         use crate::management::EnsureDbsExist;
         use crate::types;
         use crate::types::find::FindQuery;
@@ -1093,7 +1094,7 @@ mod couch_rs_tests {
                 .cluster_setup(EnsureDbsExist::default())
                 .await
                 .expect("unable to retrieve cluster setup status");
-            dbg!(cluster_setup);
+            assert_eq!(cluster_setup, ClusterSetup::ClusterEnabled);
         }
     }
 }

@@ -293,7 +293,13 @@ impl Client {
     /// Returns cluster_setup information about the cluster.
     /// See [_cluster_setup](https://docs.couchdb.org/en/latest/api/server/common.html?#cluster-setup) for more details.
     pub async fn cluster_setup(&self, request: EnsureDbsExist) -> CouchResult<ClusterSetup> {
-        let response = self.get("/_cluster_setup", None).query(&request).send().await?;
+        let ensure_dbs_array = serde_json::to_value(&request.ensure_dbs_exist)?;
+        let ensure_dbs_arrays = serde_json::to_string(&ensure_dbs_array)?;
+        let response = self
+            .get("/_cluster_setup", None)
+            .query(&[("ensure_dbs_exist", &ensure_dbs_arrays)])
+            .send()
+            .await?;
         let response: ClusterSetupGetResponse = response.json().await?;
         Ok(response.state)
     }
