@@ -189,6 +189,8 @@ pub mod database;
 pub mod document;
 /// Error wrappers for the HTTP status codes returned by CouchDB.
 pub mod error;
+/// Data types to support CouchDB management operations
+pub mod management;
 /// Trait that provides methods that can be used to switch between abstract Document and
 /// concrete Model implementors (such as your custom data models)
 pub mod model;
@@ -375,6 +377,8 @@ mod couch_rs_tests {
     mod database_tests {
         use crate::document::{DocumentCollection, TypedCouchDocument};
         use crate::error::CouchResultExt;
+        use crate::management::ClusterSetup;
+        use crate::management::EnsureDbsExist;
         use crate::types;
         use crate::types::find::FindQuery;
         use crate::types::query::{QueriesParams, QueryParams};
@@ -1071,6 +1075,26 @@ mod couch_rs_tests {
                 );
             }
             teardown(client, "should_bulk_upsert_docs").await;
+        }
+
+        #[tokio::test]
+        async fn should_retrieve_membership() {
+            let client = Client::new_local_test().unwrap();
+            let membership = client
+                .membership()
+                .await
+                .expect("unable to retrieve cluster membership");
+            dbg!(membership);
+        }
+
+        #[tokio::test]
+        async fn should_retrieve_cluster_setup_status() {
+            let client = Client::new_local_test().unwrap();
+            let cluster_setup = client
+                .cluster_setup(EnsureDbsExist::default())
+                .await
+                .expect("unable to retrieve cluster setup status");
+            assert_eq!(cluster_setup, ClusterSetup::ClusterEnabled);
         }
     }
 }
