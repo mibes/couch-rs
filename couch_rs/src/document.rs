@@ -71,7 +71,7 @@ impl<T: TypedCouchDocument> Default for DocumentCollection<T> {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(bound(deserialize = "T: TypedCouchDocument"))]
 pub struct AllDocsResponse<T: TypedCouchDocument> {
     pub total_rows: Option<u32>,

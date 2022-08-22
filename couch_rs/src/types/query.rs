@@ -13,7 +13,7 @@ impl QueriesParams {
     }
 }
 
-#[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Default, Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(bound(deserialize = "T: TypedCouchDocument"))]
 pub struct QueriesCollection<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument> {
     pub results: Vec<ViewCollection<K, V, T>>,
