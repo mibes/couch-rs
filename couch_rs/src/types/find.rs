@@ -45,7 +45,7 @@ pub enum IndexSpec {
 
 /// Find query abstraction
 /// Parameters here [/db/_find](https://docs.couchdb.org/en/latest/api/database/find.html)
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct FindQuery {
     pub selector: Value,
 
@@ -84,7 +84,7 @@ pub struct FindQuery {
 }
 
 /// Find result abstraction
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(bound(deserialize = "T: TypedCouchDocument"))]
 pub struct FindResult<T: TypedCouchDocument> {
     pub docs: Option<Vec<T>>,
@@ -97,7 +97,7 @@ pub struct FindResult<T: TypedCouchDocument> {
 //todo: include status on structs
 
 /// Explain result abstraction
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct ExplainResult {
     pub dbname: String,
     pub index: IndexSpec,
