@@ -106,9 +106,9 @@ impl error::Error for CouchError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         // Generic error, underlying cause isn't tracked.
         match self {
-            CouchError::OperationFailed(details) => details.upstream.as_ref().map(|e| &*e as _),
-            CouchError::InvalidJson(err) => err.upstream.as_ref().map(|e| &*e as _),
-            CouchError::MalformedUrl(message) => message.upstream.as_ref().map(|e| &*e as _),
+            CouchError::OperationFailed(details) => details.upstream.as_ref().map(|e| &**e as _),
+            CouchError::InvalidJson(err) => err.upstream.as_ref().map(|e| &**e as _),
+            CouchError::MalformedUrl(message) => message.upstream.as_ref().map(|e| &**e as _),
         }
     }
 }
