@@ -52,7 +52,7 @@ impl TypedCouchDocument for Value {
 /// Memory-optimized, iterable document collection, mostly returned in calls
 /// that involve multiple documents results Can target a specific index through
 /// implementation of `Index` and `IndexMut`
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct DocumentCollection<T: TypedCouchDocument> {
     pub offset: Option<u32>,
     pub rows: Vec<T>,
@@ -71,7 +71,7 @@ impl<T: TypedCouchDocument> Default for DocumentCollection<T> {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(bound(deserialize = "T: TypedCouchDocument"))]
 pub struct AllDocsResponse<T: TypedCouchDocument> {
     pub total_rows: Option<u32>,
@@ -79,7 +79,7 @@ pub struct AllDocsResponse<T: TypedCouchDocument> {
     pub rows: Vec<DocResponse<T>>,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(bound(deserialize = "T: TypedCouchDocument"))]
 pub struct DocResponse<T: TypedCouchDocument> {
     pub id: Option<String>,
@@ -89,7 +89,7 @@ pub struct DocResponse<T: TypedCouchDocument> {
     pub doc: Option<T>,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct DocResponseValue {
     pub rev: String,
 }

@@ -26,7 +26,7 @@ pub struct Index {
 }
 
 /// Database index list abstraction
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct DatabaseIndexList {
     pub total_rows: u32,
     pub indexes: Vec<Index>,
