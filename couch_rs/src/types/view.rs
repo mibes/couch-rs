@@ -3,7 +3,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-#[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Default, Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(bound(deserialize = "T: TypedCouchDocument"))]
 pub struct ViewCollection<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument> {
     pub offset: Option<u32>,
@@ -13,7 +13,7 @@ pub struct ViewCollection<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouc
 
 pub type RawViewCollection<K, V> = ViewCollection<K, V, Value>;
 
-#[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Default, Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(bound(deserialize = "T: TypedCouchDocument"))]
 pub struct ViewItem<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument> {
     pub key: K,

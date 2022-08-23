@@ -2,7 +2,7 @@ use super::document::DocumentId;
 use crate::{document::TypedCouchDocument, types::view::ViewCollection};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct QueriesParams {
     queries: Vec<QueryParams<DocumentId>>,
 }
@@ -13,7 +13,7 @@ impl QueriesParams {
     }
 }
 
-#[derive(Default, Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Default, Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(bound(deserialize = "T: TypedCouchDocument"))]
 pub struct QueriesCollection<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocument> {
     pub results: Vec<ViewCollection<K, V, T>>,
@@ -36,7 +36,7 @@ pub enum UpdateView {
 /// use couch_rs::types::query::QueryParams;
 /// let _qp = QueryParams::default().group(true).conflicts(false).start_key("1".to_string());
 /// ```
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct QueryParams<K: Serialize + PartialEq + std::fmt::Debug + Clone> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub conflicts: Option<bool>,

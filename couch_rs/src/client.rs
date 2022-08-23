@@ -1,6 +1,7 @@
 use crate::{
     database::Database,
     error::{CouchError, CouchResult},
+    management::{ClusterSetup, ClusterSetupGetResponse, EnsureDbsExist, Membership},
     types::system::{CouchResponse, CouchStatus, DbInfo},
 };
 use base64::write::EncoderWriter as Base64Encoder;
@@ -279,6 +280,28 @@ impl Client {
 
         let status = response.json().await?;
         Ok(status)
+    }
+
+    /// Returns membership information about the cluster.
+    /// See [_membership](https://docs.couchdb.org/en/latest/api/server/common.html?#membership) for more details.
+    pub async fn membership(&self) -> CouchResult<Membership> {
+        let response = self.get("/_membership", None).send().await?;
+        let membership = response.json().await?;
+        Ok(membership)
+    }
+
+    /// Returns cluster_setup information about the cluster.
+    /// See [_cluster_setup](https://docs.couchdb.org/en/latest/api/server/common.html?#cluster-setup) for more details.
+    pub async fn cluster_setup(&self, request: EnsureDbsExist) -> CouchResult<ClusterSetup> {
+        let ensure_dbs_array = serde_json::to_value(&request.ensure_dbs_exist)?;
+        let ensure_dbs_arrays = serde_json::to_string(&ensure_dbs_array)?;
+        let response = self
+            .get("/_cluster_setup", None)
+            .query(&[("ensure_dbs_exist", &ensure_dbs_arrays)])
+            .send()
+            .await?;
+        let response: ClusterSetupGetResponse = response.json().await?;
+        Ok(response.state)
     }
 
     pub fn req(&self, method: Method, path: &str, opts: Option<&HashMap<String, String>>) -> RequestBuilder {
