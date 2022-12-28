@@ -21,8 +21,14 @@ pub struct Index {
     pub ddoc: Option<DocumentId>,
     pub name: String,
     #[serde(rename = "type")]
-    pub index_type: String,
+    pub index_type: IndexType,
     pub def: IndexFields,
+}
+
+#[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
+pub enum IndexType {
+    Json,
+    Text,
 }
 
 /// Database index list abstraction
