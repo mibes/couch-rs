@@ -32,6 +32,8 @@ pub enum IndexType {
     Json,
     #[serde(rename = "text")]
     Text,
+    #[serde(rename = "special")]
+    Special, // reserved for primary index
 }
 
 impl fmt::Display for IndexType {
@@ -40,6 +42,7 @@ impl fmt::Display for IndexType {
         match self {
             IndexType::Json => write!(f, "json"),
             IndexType::Text => write!(f, "text"),
+            IndexType::Special => write!(f, "special"),
         }
     }
 }
