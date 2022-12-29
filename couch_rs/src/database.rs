@@ -7,7 +7,7 @@ use crate::{
         design::DesignCreated,
         document::{DocumentCreatedDetails, DocumentCreatedResponse, DocumentCreatedResult, DocumentId},
         find::{FindQuery, FindResult},
-        index::{DatabaseIndexList, IndexFields},
+        index::{DatabaseIndexList, DeleteIndexResponse, IndexFields},
         query::{QueriesCollection, QueriesParams, QueryParams},
         view::ViewCollection,
     },
@@ -1071,6 +1071,23 @@ impl Database {
             .json()
             .await
             .map_err(CouchError::from)
+    }
+
+    /// Deletes a db index. Returns true if successful, false otherwise.
+    pub async fn delete_index(&self, ddoc: DocumentId, name: String) -> CouchResult<bool> {
+
+        let uri = format!("_index/{}/json/{}", ddoc, name);
+
+        match self._client
+            .delete(&self.create_raw_path(&uri), None)
+            .send()
+            .await?
+            .json::<DeleteIndexResponse>()
+            .await
+            .map_err(CouchError::from) {
+            Ok(d) => Ok(d.ok),
+            Err(e) => Err(e)
+        }
     }
 
     /// Method to ensure an index is created on the database with the following
