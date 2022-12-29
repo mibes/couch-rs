@@ -1016,7 +1016,7 @@ impl Database {
     ///
     /// #[tokio::main]
     /// async fn main() -> CouchResult<()> {
-    /// let client = couch_rs::Client::new_local_test()?;
+    ///     let client = couch_rs::Client::new_local_test()?;
     ///     let db = client.db(TEST_DB).await?;
     ///
     ///     // first we need to get the document, because we need both the _id and _rev in order
