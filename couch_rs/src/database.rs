@@ -1037,10 +1037,18 @@ impl Database {
     }
 
     /// Inserts an index on a database, using the `_index` endpoint. 
+    /// 
     /// Arguments to this function include name, index specification, index type, and the
     /// design document to which the index will be written. See [CouchDB docs](https://docs.couchdb.org/en/latest/api/database/find.html#db-index) 
     /// for more explanation on parameters for indices. The index_type and design doc 
     /// fields are optional. 
+    /// 
+    /// Indexes do not have unique names, so no index can be "edited". If insert_index is called 
+    /// where there is an existing index with the same name but a different definition, then 
+    /// a new index is created and the [DesignCreated] return value's result field will be "exists".
+    /// If insert_index is called where there is an existing index with
+    /// both the same name and same definition, no new index is created, and the [DesignCreated]
+    /// return value's result field will be "created".
     /// Usage: 
     /// ```rust 
     /// use couch_rs::error::CouchResult;
@@ -1064,7 +1072,7 @@ impl Database {
     ///     match db.insert_index(index_name, index_def, None, None).await {
     ///         Ok(doc_created) => match doc_created.result {
     ///             // Expected value of 'r' is 'created' if the index did not previously exist or 
-    ///             // exists otherwise.
+    ///             // "exists" otherwise.
     ///             Some(r) => println!("Index {} {}", index_name, r),  
     ///             // This shold not happen!
     ///             None => println!("Index {} validated", index_name), 
@@ -1092,9 +1100,8 @@ impl Database {
         let body = base_body.as_object_mut().unwrap();
         // add index type if it is not None
         match index_type {
-            Some(t) => match t {
-                IndexType::Json => {body.insert("type".to_string(), Value::String("json".to_string()));}
-                IndexType::Text => {body.insert("type".to_string(), Value::String("text".to_string()));}
+            Some(t) => {
+                body.insert("type".to_string(), Value::String(t.to_string()));
             },
             None => ()
         }
@@ -1136,7 +1143,8 @@ impl Database {
     }
 
     /// Validate that the indexes defined in the argument are in place on the database. For 
-    /// any indexes that do not exist, they are created.
+    /// any indexes that do not exist, they are created. Indexes names are not unique, so 
+    /// any index that does not exactly match all parameters of its definition 
     pub async fn ensure_index(&self, indexes: Vec<Index>) -> CouchResult<()> {
         let db_indexes = self.read_indexes().await?;
 
@@ -1146,9 +1154,12 @@ impl Database {
 
             // We look for our index
             for i in index_map.clone().into_iter() {
-                if i == index {
-                    // Found? Ok let's return
-                    continue
+                // compare on name and definition; compare type only if not None;
+                // do not compare design doc name
+                if i.name == index.name && i.def == index.def {
+                    if index.index_type.is_none() || index.index_type == i.index_type {
+                        continue
+                    }
                 }
             }
 
@@ -1156,7 +1167,7 @@ impl Database {
             let result: DesignCreated = self.insert_index(
                 &index.name, 
                 index.def, 
-                Some(index.index_type),
+                index.index_type,
                 index.ddoc,
             ).await?;
             match result.error {
