@@ -7,7 +7,7 @@ use crate::{
         design::DesignCreated,
         document::{DocumentCreatedDetails, DocumentCreatedResponse, DocumentCreatedResult, DocumentId},
         find::{FindQuery, FindResult},
-        index::{DatabaseIndexList, IndexFields, IndexType},
+        index::{DatabaseIndexList, Index, IndexFields, IndexType},
         query::{QueriesCollection, QueriesParams, QueryParams},
         view::ViewCollection,
     },
@@ -1037,10 +1037,10 @@ impl Database {
     }
 
     /// Inserts an index on a database, using the `_index` endpoint. 
-    /// Arguments to this function include name, index specification, index type and the
+    /// Arguments to this function include name, index specification, index type, and the
     /// design document to which the index will be written. See [CouchDB docs](https://docs.couchdb.org/en/latest/api/database/find.html#db-index) 
-    /// for more explanation on design documents for indices. The index_type and ddoc fields
-    /// are optional, but defaults to "json" on the CouchDB server side. 
+    /// for more explanation on parameters for indices. The index_type and design doc 
+    /// fields are optional. 
     /// Usage: 
     /// ```rust 
     /// use couch_rs::error::CouchResult;
@@ -1060,7 +1060,7 @@ impl Database {
     ///         }
     ///     };
     /// 
-    ///     match db.insert_index(index_name, index_def, None, None).await {
+    ///     match db.insert_index(index_name, index_def, None, None, None).await {
     ///         Ok(doc_created) => match doc_created.result {
     ///             // Expected value of 'r' is 'created' if the index did not previously exist or 
     ///             // exists otherwise.
@@ -1079,15 +1079,14 @@ impl Database {
     pub async fn insert_index(
         &self, 
         name: &str, 
-        spec: IndexFields, 
+        def: IndexFields, 
         index_type: Option<IndexType>,
-        ddoc: Option<DocumentId>,
+        ddoc: Option<DocumentId>
     ) -> CouchResult<DesignCreated> {
-
 
         let mut base_body = json!({
             "name": name,
-            "index": spec
+            "index": def
         });
         let body = base_body.as_object_mut().unwrap();
         // add index type if it is not None
@@ -1135,29 +1134,44 @@ impl Database {
             .map_err(CouchError::from)
     }
 
-    /// Method to ensure the defined iindex exists
-    pub async fn ensure_index(&self, name: &str, spec: IndexFields) -> CouchResult<bool> {
+    /// Validate that the indexes defined in the argument are in place on the database. For 
+    /// any indexes that do not exist, they are created.
+    pub async fn ensure_index(&self, indexes: Vec<Index>) -> CouchResult<()> {
         let db_indexes = self.read_indexes().await?;
 
-        // We look for our index
-        for i in db_indexes.indexes.into_iter() {
-            if i.name == name {
-                // Found? Ok let's return
-                return Ok(false);
-            }
-        }
+        let index_map = db_indexes.indexes;
 
-        // Let's create it then
-        let result: DesignCreated = self.insert_index(name, spec, None, None).await?;
-        match result.error {
-            Some(e) => Err(CouchError::new_with_id(
-                result.id,
-                e,
-                reqwest::StatusCode::INTERNAL_SERVER_ERROR,
-            )),
-            // Created and alright
-            None => Ok(true),
-        }
+        for index in indexes {
+
+            // We look for our index
+            for i in index_map.clone().into_iter() {
+                if i.name == index.name {
+                    // Found? Ok let's return
+                    continue
+                }
+            }
+
+            // Let's create it then
+            let result: DesignCreated = self.insert_index(
+                &index.name, 
+                index.def, 
+                Some(index.index_type),
+                index.ddoc,
+            ).await?;
+            match result.error {
+                Some(e) => {
+                    return Err(CouchError::new_with_id(
+                    result.id,
+                    e,
+                    reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+                ))},
+                // Created and alright
+                None => (),
+            };
+        };
+
+        Ok(())
+
     }
 
     /// A streaming handler for the CouchDB `_changes` endpoint.
