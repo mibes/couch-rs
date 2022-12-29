@@ -7,7 +7,7 @@ use crate::{
         design::DesignCreated,
         document::{DocumentCreatedDetails, DocumentCreatedResponse, DocumentCreatedResult, DocumentId},
         find::{FindQuery, FindResult},
-        index::{DatabaseIndexList, Index, IndexFields, IndexType},
+        index::{DatabaseIndexList, IndexFields, IndexType},
         query::{QueriesCollection, QueriesParams, QueryParams},
         view::ViewCollection,
     },
