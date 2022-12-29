@@ -1053,14 +1053,15 @@ impl Database {
     ///     let client = couch_rs::Client::new_local_test()?;
     ///     let db = client.db(TEST_DB).await?;
     /// 
-    ///     let index_name = "email";
+    ///     let index_name = "name";
     ///     let index_def = IndexFields {
     ///         fields: vec!{
-    ///             SortSpec::Simple("email".to_string())
+    ///             SortSpec::Simple("lastname".to_string()),
+    ///             SortSpec::Simple("firstname".to_string()),
     ///         }
     ///     };
     /// 
-    ///     match db.insert_index(index_name, index_def, None, None, None).await {
+    ///     match db.insert_index(index_name, index_def, None, None).await {
     ///         Ok(doc_created) => match doc_created.result {
     ///             // Expected value of 'r' is 'created' if the index did not previously exist or 
     ///             // exists otherwise.
@@ -1145,7 +1146,7 @@ impl Database {
 
             // We look for our index
             for i in index_map.clone().into_iter() {
-                if i.name == index.name {
+                if i == index {
                     // Found? Ok let's return
                     continue
                 }
