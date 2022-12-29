@@ -1142,50 +1142,6 @@ impl Database {
             .map_err(CouchError::from)
     }
 
-    /// Validate that the indexes defined in the argument are in place on the database. For 
-    /// any indexes that do not exist, they are created. Indexes names are not unique, so 
-    /// any index that does not exactly match all parameters of its definition 
-    pub async fn ensure_index(&self, indexes: Vec<Index>) -> CouchResult<()> {
-        let db_indexes = self.read_indexes().await?;
-
-        let index_map = db_indexes.indexes;
-
-        for index in indexes {
-
-            // We look for our index
-            for i in index_map.clone().into_iter() {
-                // compare on name and definition; compare type only if not None;
-                // do not compare design doc name
-                if i.name == index.name && i.def == index.def {
-                    if index.index_type.is_none() || index.index_type == i.index_type {
-                        continue
-                    }
-                }
-            }
-
-            // Let's create it then
-            let result: DesignCreated = self.insert_index(
-                &index.name, 
-                index.def, 
-                index.index_type,
-                index.ddoc,
-            ).await?;
-            match result.error {
-                Some(e) => {
-                    return Err(CouchError::new_with_id(
-                    result.id,
-                    e,
-                    reqwest::StatusCode::INTERNAL_SERVER_ERROR,
-                ))},
-                // Created and alright
-                None => (),
-            };
-        };
-
-        Ok(())
-
-    }
-
     /// A streaming handler for the CouchDB `_changes` endpoint.
     ///
     /// See the [CouchDB docs](https://docs.couchdb.org/en/stable/api/database/changes.html)
