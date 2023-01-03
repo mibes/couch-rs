@@ -7,7 +7,7 @@ use crate::{
         design::DesignCreated,
         document::{DocumentCreatedDetails, DocumentCreatedResponse, DocumentCreatedResult, DocumentId},
         find::{FindQuery, FindResult},
-        index::{DatabaseIndexList, DeleteIndexResponse, IndexFields},
+        index::{DatabaseIndexList, DeleteIndexResponse, IndexFields, IndexType},
         query::{QueriesCollection, QueriesParams, QueryParams},
         view::ViewCollection,
     },
@@ -1036,17 +1036,86 @@ impl Database {
         is_ok(request).await
     }
 
-    /// Inserts an index in a naive way, if it already exists, will throw an
-    /// `Err`
-    pub async fn insert_index(&self, name: &str, spec: IndexFields) -> CouchResult<DesignCreated> {
+    /// Inserts an index on a database, using the `_index` endpoint. 
+    /// 
+    /// Arguments to this function include name, index specification, index type, and the
+    /// design document to which the index will be written. See [CouchDB docs](https://docs.couchdb.org/en/latest/api/database/find.html#db-index) 
+    /// for more explanation on parameters for indices. The index_type and design doc 
+    /// fields are optional. 
+    /// 
+    /// Indexes do not have unique names, so no index can be "edited". If insert_index is called 
+    /// where there is an existing index with the same name but a different definition, then 
+    /// a new index is created and the [DesignCreated] return value's result field will be "exists".
+    /// If insert_index is called where there is an existing index with
+    /// both the same name and same definition, no new index is created, and the [DesignCreated]
+    /// return value's result field will be "created".
+    /// Usage: 
+    /// ```rust 
+    /// use couch_rs::error::CouchResult;
+    /// use couch_rs::types::{find::SortSpec, index::{Index, IndexFields}};
+    /// 
+    /// const TEST_DB: &str = "test_db";
+    /// 
+    /// #[tokio::main]
+    /// async fn main() -> CouchResult<()> {
+    ///     let client = couch_rs::Client::new_local_test()?;
+    ///     let db = client.db(TEST_DB).await?;
+    /// 
+    ///     let index_name = "name";
+    ///     let index_def = IndexFields {
+    ///         fields: vec!{
+    ///             SortSpec::Simple("lastname".to_string()),
+    ///             SortSpec::Simple("firstname".to_string()),
+    ///         }
+    ///     };
+    /// 
+    ///     match db.insert_index(index_name, index_def, None, None).await {
+    ///         Ok(doc_created) => match doc_created.result {
+    ///             // Expected value of 'r' is 'created' if the index did not previously exist or 
+    ///             // "exists" otherwise.
+    ///             Some(r) => println!("Index {} {}", index_name, r),  
+    ///             // This shold not happen!
+    ///             None => println!("Index {} validated", index_name), 
+    ///         },
+    ///         Err(e) => {
+    ///             println!("Unable to validate index {}: {}", index_name, e);
+    ///         }
+    ///     };
+    /// 
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn insert_index(
+        &self, 
+        name: &str, 
+        def: IndexFields, 
+        index_type: Option<IndexType>,
+        ddoc: Option<DocumentId>
+    ) -> CouchResult<DesignCreated> {
+
+        let mut base_body = json!({
+            "name": name,
+            "index": def
+        });
+        let body = base_body.as_object_mut().unwrap();
+        // add index type if it is not None
+        match index_type {
+            Some(t) => {
+                body.insert("type".to_string(), Value::String(t.to_string()));
+            },
+            None => ()
+        }
+        // add ddoc if it is not None
+        match ddoc {
+            Some(d) => {body.insert("ddoc".to_string(), Value::String(d));}
+            None => ()
+        }
+
         let response = self
             ._client
             .post(
                 &self.create_raw_path("_index"),
-                js!(json!({
-                    "name": name,
-                    "index": spec
-                })),
+                js!(Value::Object(body.clone())),
             )
             .send()
             .await?;
@@ -1094,6 +1163,8 @@ impl Database {
     /// spec. Returns `true` when we created a new one, or `false` when the
     /// index was already existing.
     pub async fn ensure_index(&self, name: &str, spec: IndexFields) -> CouchResult<bool> {
+        // TODO: add deprecation notice
+        
         let db_indexes = self.read_indexes().await?;
 
         // We look for our index

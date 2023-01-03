@@ -1,4 +1,5 @@
 use super::*;
+use std::fmt;
 use document::DocumentId;
 use find::SortSpec;
 use serde::{Deserialize, Serialize};
@@ -21,8 +22,29 @@ pub struct Index {
     pub ddoc: Option<DocumentId>,
     pub name: String,
     #[serde(rename = "type")]
-    pub index_type: String,
+    pub index_type: Option<IndexType>,
     pub def: IndexFields,
+}
+
+#[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
+pub enum IndexType {
+    #[serde(rename = "json")]
+    Json,
+    #[serde(rename = "text")]
+    Text,
+    #[serde(rename = "special")]
+    Special, // reserved for primary index
+}
+
+impl fmt::Display for IndexType {
+
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            IndexType::Json => write!(f, "json"),
+            IndexType::Text => write!(f, "text"),
+            IndexType::Special => write!(f, "special"),
+        }
+    }
 }
 
 /// Database index list abstraction
