@@ -7,7 +7,7 @@ use crate::{
         design::DesignCreated,
         document::{DocumentCreatedDetails, DocumentCreatedResponse, DocumentCreatedResult, DocumentId},
         find::{FindQuery, FindResult},
-        index::{DatabaseIndexList, IndexFields, IndexType},
+        index::{DatabaseIndexList, DeleteIndexResponse, IndexFields, IndexType},
         query::{QueriesCollection, QueriesParams, QueryParams},
         view::ViewCollection,
     },
@@ -1016,7 +1016,7 @@ impl Database {
     ///
     /// #[tokio::main]
     /// async fn main() -> CouchResult<()> {
-    /// let client = couch_rs::Client::new_local_test()?;
+    ///     let client = couch_rs::Client::new_local_test()?;
     ///     let db = client.db(TEST_DB).await?;
     ///
     ///     // first we need to get the document, because we need both the _id and _rev in order
@@ -1140,6 +1140,52 @@ impl Database {
             .json()
             .await
             .map_err(CouchError::from)
+    }
+
+    /// Deletes a db index. Returns true if successful, false otherwise.
+    pub async fn delete_index(&self, ddoc: DocumentId, name: String) -> CouchResult<bool> {
+
+        let uri = format!("_index/{}/json/{}", ddoc, name);
+
+        match self._client
+            .delete(&self.create_raw_path(&uri), None)
+            .send()
+            .await?
+            .json::<DeleteIndexResponse>()
+            .await
+            .map_err(CouchError::from) {
+            Ok(d) => Ok(d.ok),
+            Err(e) => Err(e)
+        }
+    }
+
+    /// Method to ensure an index is created on the database with the following
+    /// spec. Returns `true` when we created a new one, or `false` when the
+    /// index was already existing.
+    pub async fn ensure_index(&self, name: &str, spec: IndexFields) -> CouchResult<bool> {
+        // TODO: add deprecation notice
+        
+        let db_indexes = self.read_indexes().await?;
+
+        // We look for our index
+        for i in db_indexes.indexes.into_iter() {
+            if i.name == name {
+                // Found? Ok let's return
+                return Ok(false);
+            }
+        }
+
+        // Let's create it then
+        let result: DesignCreated = self.insert_index(name, spec).await?;
+        match result.error {
+            Some(e) => Err(CouchError::new_with_id(
+                result.id,
+                e,
+                reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+            )),
+            // Created and alright
+            None => Ok(true),
+        }
     }
 
     /// A streaming handler for the CouchDB `_changes` endpoint.
