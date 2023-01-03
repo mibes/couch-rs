@@ -1096,20 +1096,16 @@ impl Database {
             "name": name,
             "index": def
         });
-        let body = base_body.as_object_mut().unwrap();
+        let body = base_body.as_object_mut().expect("failed to get object for index body");
+
         // add index type if it is not None
-        match index_type {
-            Some(t) => {
-                body.insert("type".to_string(), Value::String(t.to_string()));
-            }
-            None => (),
+        if let Some(t) = index_type {
+            body.insert("type".to_string(), Value::String(t.to_string()));
         }
+
         // add ddoc if it is not None
-        match ddoc {
-            Some(d) => {
-                body.insert("ddoc".to_string(), Value::String(d));
-            }
-            None => (),
+        if let Some(d) = ddoc {
+            body.insert("ddoc".to_string(), Value::String(d));
         }
 
         let response = self
