@@ -105,16 +105,7 @@ impl<T: TypedCouchDocument> DocumentCollection<T> {
                     None
                 } else {
                     // Remove _design documents
-                    if let Some(doc) = d.doc {
-                        if doc.get_id().starts_with('_') {
-                            None
-                        } else {
-                            Some(doc)
-                        }
-                    } else {
-                        // no documents retrieved
-                        None
-                    }
+                    d.doc.filter(|doc| !doc.get_id().starts_with('_'))
                 }
             })
             .collect();

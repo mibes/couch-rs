@@ -530,7 +530,7 @@ mod couch_rs_tests {
 
             let spec = types::index::IndexFields::new(vec![types::find::SortSpec::Simple(s!("thing"))]);
 
-            let res = db.insert_index("thing-index", spec).await;
+            let res = db.insert_index("thing-index", spec, None, None).await;
 
             assert!(res.is_ok());
 
