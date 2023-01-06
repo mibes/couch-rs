@@ -53,3 +53,8 @@ pub struct DatabaseIndexList {
     pub total_rows: u32,
     pub indexes: Vec<Index>,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DeleteIndexResponse {
+    pub ok: bool
+}
