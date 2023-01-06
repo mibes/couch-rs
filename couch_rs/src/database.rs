@@ -1157,29 +1157,19 @@ impl Database {
     /// Method to ensure an index is created on the database with the following
     /// spec. Returns `true` when we created a new one, or `false` when the
     /// index was already existing.
-    #[deprecated(since = "0.9.1", note = "please use `insert_index` instead")]
+    /// #[deprecated(since="0.9.1", note="please use `insert_index` instead")]
     pub async fn ensure_index(&self, name: &str, spec: IndexFields) -> CouchResult<bool> {
-        let db_indexes = self.read_indexes().await?;
 
-        // We look for our index
-        for i in db_indexes.indexes.into_iter() {
-            if i.name == name {
-                // Found? Ok let's return
-                return Ok(false);
-            }
-        }
-
-        // Let's create it then
         let result: DesignCreated = self.insert_index(name, spec, None, None).await?;
-        match result.error {
-            Some(e) => Err(CouchError::new_with_id(
+        let r = match result.result {
+            Some(r) => r,
+            None => return Err(CouchError::new_with_id(
                 result.id,
-                e,
+                "DesignCreated did not return 'result' field as expected".to_string(),
                 reqwest::StatusCode::INTERNAL_SERVER_ERROR,
             )),
-            // Created and alright
-            None => Ok(true),
-        }
+        };
+        if r == "created" {Ok(true)} else {Ok(false)}
     }
 
     /// A streaming handler for the CouchDB `_changes` endpoint.
