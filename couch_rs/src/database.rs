@@ -1159,17 +1159,23 @@ impl Database {
     /// index was already existing.
     /// #[deprecated(since="0.9.1", note="please use `insert_index` instead")]
     pub async fn ensure_index(&self, name: &str, spec: IndexFields) -> CouchResult<bool> {
-
         let result: DesignCreated = self.insert_index(name, spec, None, None).await?;
         let r = match result.result {
             Some(r) => r,
-            None => return Err(CouchError::new_with_id(
-                result.id,
-                "DesignCreated did not return 'result' field as expected".to_string(),
-                reqwest::StatusCode::INTERNAL_SERVER_ERROR,
-            )),
+            None => {
+                return Err(CouchError::new_with_id(
+                    result.id,
+                    "DesignCreated did not return 'result' field as expected".to_string(),
+                    reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+                ))
+            }
         };
-        if r == "created" {Ok(true)} else {Ok(false)}
+
+        if r == "created" {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     /// A streaming handler for the CouchDB `_changes` endpoint.

@@ -1,8 +1,8 @@
 use super::*;
-use std::fmt;
 use document::DocumentId;
 use find::SortSpec;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 /// Index fields abstraction
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
@@ -37,7 +37,6 @@ pub enum IndexType {
 }
 
 impl fmt::Display for IndexType {
-
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             IndexType::Json => write!(f, "json"),
@@ -56,5 +55,5 @@ pub struct DatabaseIndexList {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DeleteIndexResponse {
-    pub ok: bool
+    pub ok: bool,
 }
