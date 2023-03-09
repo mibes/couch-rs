@@ -4,7 +4,7 @@ use crate::{
     management::{ClusterSetup, ClusterSetupGetResponse, EnsureDbsExist, Membership},
     types::system::{CouchResponse, CouchStatus, DbInfo},
 };
-use base64::write::EncoderWriter as Base64Encoder;
+use base64::{engine::general_purpose};
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest::{
     self,
@@ -106,7 +106,7 @@ impl Client {
         if let Some(username) = username {
             let mut header_value = b"Basic ".to_vec();
             {
-                let mut encoder = Base64Encoder::from(&mut header_value, &base64::engine::DEFAULT_ENGINE);
+                let mut encoder = base64::write::EncoderWriter::new(&mut header_value, &general_purpose::STANDARD);
                 // The unwraps here are fine because Vec::write* is infallible.
                 write!(encoder, "{}:", username).unwrap();
                 if let Some(password) = password {
