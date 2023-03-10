@@ -1,7 +1,10 @@
 [package]
 name = "couch_rs"
-version = "0.9.0"
-authors = ["Mathieu Amiot <mathieu.amiot@yellowinnovation.fr>", "mibes <mibes@mibesco.com>"]
+version = "0.9.1"
+authors = [
+    "Mathieu Amiot <mathieu.amiot@yellowinnovation.fr>",
+    "mibes <mibes@mibesco.com>",
+]
 license = "MIT/Apache-2.0"
 description = "CouchDB library for Rust"
 readme = "README.md"
@@ -10,19 +13,16 @@ repository = "https://github.com/mibes/couch-rs"
 keywords = ["couchdb", "orm", "database", "nosql"]
 categories = ["database"]
 edition = "2018"
-include = [
-    "**/*.rs",
-    "Cargo.toml"
-]
+include = ["**/*.rs", "Cargo.toml"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-couch_rs_derive = { version = "0.9.0", optional = true, path = "../couch_rs_derive" }
+couch_rs_derive = { version = "0.9.1", optional = true, path = "../couch_rs_derive" }
 url = "2"
 tokio = { version = "^1.14", features = ["rt-multi-thread"] }
-base64 = "0.20"
-tokio-util = {version = "0.7", features = ["io"]}
+base64 = "0.21"
+tokio-util = { version = "0.7", features = ["io"] }
 bytes = "1"
 tokio-stream = { version = "0.1", features = ["io-util"] }
 futures-util = "0.3"
