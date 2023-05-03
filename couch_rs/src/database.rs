@@ -1157,7 +1157,7 @@ impl Database {
     /// Method to ensure an index is created on the database with the following
     /// spec. Returns `true` when we created a new one, or `false` when the
     /// index was already existing.
-    /// #[deprecated(since="0.9.1", note="please use `insert_index` instead")]
+    #[deprecated(since="0.9.1", note="please use `insert_index` instead")]
     pub async fn ensure_index(&self, name: &str, spec: IndexFields) -> CouchResult<bool> {
         let result: DesignCreated = self.insert_index(name, spec, None, None).await?;
         let r = match result.result {
