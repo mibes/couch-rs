@@ -210,6 +210,7 @@ mod couch_rs_tests {
     use couch_rs::types::document::DocumentId;
     use couch_rs::CouchDocument;
     use serde::{Deserialize, Serialize};
+    use std::borrow::Cow;
 
     #[derive(Serialize, Deserialize, CouchDocument, Default, Debug)]
     pub struct TestDoc {
@@ -221,9 +222,41 @@ mod couch_rs_tests {
         pub last_name: String,
     }
 
+    #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+    struct TestDocImplementing {
+        my_id: String,
+        _rev: String,
+        first_name: String,
+        last_name: String,
+    }
+    impl TypedCouchDocument for TestDocImplementing {
+        fn get_id(&self) -> Cow<str> {
+            Cow::Borrowed(&self.my_id)
+        }
+
+        fn get_rev(&self) -> Cow<str> {
+            Cow::Borrowed(&self._rev)
+        }
+
+        fn set_rev(&mut self, rev: &str) {
+            self._rev = rev.to_string();
+        }
+
+        fn set_id(&mut self, id: &str) {
+            self.my_id = id.to_string();
+        }
+
+        fn merge_ids(&mut self, other: &Self) {
+            self.my_id = other.my_id.clone();
+        }
+    }
+
     mod client_tests {
         use crate::client::Client;
         use crate::couch_rs_tests::TestDoc;
+        use crate::couch_rs_tests::TestDocImplementing;
+        use crate::document::TypedCouchDocument;
+        use crate::error::CouchError;
         use reqwest::StatusCode;
         use serde_json::json;
 
@@ -331,6 +364,129 @@ mod couch_rs_tests {
 
             client
                 .destroy_db("should_create_a_typed_document")
+                .await
+                .expect("can not destroy db");
+        }
+
+        #[tokio::test]
+        async fn should_keep_id_creating_a_typed_document_deriving() {
+            let client = Client::new_local_test().unwrap();
+            let dbw = client.db("should_keep_id_creating_a_typed_document").await;
+            assert!(dbw.is_ok());
+            let db = dbw.unwrap();
+            const UNIQUE_ID: &str = "unique_id";
+            let mut my_doc = TestDoc {
+                _id: UNIQUE_ID.to_string(),
+                _rev: "".to_string(),
+                first_name: "John".to_string(),
+                last_name: "Doe".to_string(),
+            };
+
+            let ndoc_result = db.create(&mut my_doc).await;
+
+            assert!(ndoc_result.is_ok());
+
+            let details = ndoc_result.unwrap();
+            assert_eq!(details.rev, my_doc._rev);
+            assert!(!my_doc._id.is_empty());
+            assert!(my_doc._rev.starts_with("1-"));
+
+            let document: TestDoc = db.get(UNIQUE_ID).await.expect("can not get doc");
+
+            client
+                .destroy_db("should_keep_id_creating_a_typed_document")
+                .await
+                .expect("can not destroy db");
+        }
+
+        #[tokio::test]
+        async fn should_keep_id_creating_a_typed_document_implementing() {
+            create_read_remove_with_rev("").await;
+        }
+
+        #[tokio::test]
+        async fn should_ignore_rev_creating_a_typed_document_implementing() {
+            create_read_remove_with_rev("something").await;
+        }
+
+        async fn create_read_remove_with_rev(rev: &str) {
+            let client = Client::new_local_test().unwrap();
+            let dbw = client.db("create_read_remove_with_rev").await;
+            assert!(dbw.is_ok());
+            let db = dbw.unwrap();
+            const UNIQUE_ID: &str = "unique_id";
+
+            let mut my_doc = TestDocImplementing {
+                my_id: UNIQUE_ID.to_string(),
+                _rev: rev.to_string(),
+                first_name: "John".to_string(),
+                last_name: "Doe".to_string(),
+            };
+
+            let details = db
+                .create(&mut my_doc)
+                .await
+                .unwrap_or_else(|err| panic!("can not create doc with rev '{}': {}", rev, err));
+
+            assert_eq!(details.rev, my_doc._rev);
+            assert_eq!(my_doc.my_id, UNIQUE_ID);
+            assert!(
+                !my_doc.get_rev().is_empty(),
+                "Found empty _rev for document {:?}",
+                my_doc
+            );
+
+            let document: TestDocImplementing = db.get(UNIQUE_ID).await.expect("can not get doc");
+            assert!(db.remove(&document).await, "can not remove doc with rev {}", rev);
+
+            client
+                .destroy_db("create_read_remove_with_rev")
+                .await
+                .expect("can not destroy db");
+        }
+
+        #[tokio::test]
+        async fn should_keep_id_bulk_creating_a_typed_document_implementing() {
+            let client = Client::new_local_test().unwrap();
+            let dbw = client
+                .db("should_keep_id_bulk_creating_a_typed_document_implementing")
+                .await;
+            assert!(dbw.is_ok());
+            let db = dbw.unwrap();
+            const UNIQUE_ID: &str = "unique_id";
+            let mut my_doc = TestDocImplementing {
+                my_id: UNIQUE_ID.to_string(),
+                _rev: String::default(),
+                first_name: "John".to_string(),
+                last_name: "Doe".to_string(),
+            };
+
+            let mut docs = vec![my_doc];
+            let results = db
+                .bulk_docs(&mut docs)
+                .await
+                .unwrap_or_else(|err| panic!("can not create doc: {}", err));
+            let my_doc = docs.into_iter().next().expect("no doc found");
+            let details = results
+                .into_iter()
+                .collect::<Result<Vec<_>, CouchError>>()
+                .expect("operation failed")
+                .into_iter()
+                .next()
+                .expect("no result found");
+            assert_eq!(details.rev, my_doc._rev);
+            assert_eq!(my_doc.my_id, UNIQUE_ID);
+            assert!(
+                !my_doc.get_rev().is_empty(),
+                "Found empty _rev for document {:?}",
+                my_doc
+            );
+
+            let document: TestDocImplementing = db.get(UNIQUE_ID).await.expect("can not get doc");
+            assert!(db.remove(&document).await, "can not remove doc");
+
+            client
+                .destroy_db("should_keep_id_bulk_creating_a_typed_document_implementing")
                 .await
                 .expect("can not destroy db");
         }
@@ -1067,7 +1223,14 @@ mod couch_rs_tests {
             let res = db.bulk_upsert(&mut docs).await.expect("should upsert documents");
 
             for i in 0..count {
-                assert!(res[i].as_ref().unwrap().rev == docs[i].get_rev());
+                assert_eq!(
+                    res[i].as_ref().unwrap().rev,
+                    docs[i].get_rev(),
+                    "Received rev for item {}: '{}' does not match document rev: '{}'",
+                    i,
+                    res[i].as_ref().unwrap().rev,
+                    docs[i].get_rev()
+                );
             }
             let ids: Vec<String> = (0..count).map(|idx| format!("bd_{}", idx)).collect();
             let docs = db.get_bulk::<Value>(ids).await.expect("should get documents");

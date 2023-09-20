@@ -16,7 +16,7 @@ use futures_core::Future;
 use reqwest::StatusCode;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, to_string, Value};
-use std::{collections::HashMap, pin::Pin, sync::Arc};
+use std::{collections::HashMap, fmt::Debug, pin::Pin, sync::Arc};
 use tokio::sync::mpsc::Sender;
 
 trait CouchJsonExt {
@@ -257,7 +257,11 @@ impl Database {
         &self,
         raw_docs: &mut [T],
     ) -> CouchResult<Vec<DocumentCreatedResult>> {
-        let body = format!(r#"{{"docs":{} }}"#, to_string(raw_docs)?);
+        let upsert_values: Vec<_> = raw_docs
+            .iter()
+            .map(|doc| to_upsert_value(doc))
+            .collect::<CouchResult<_>>()?;
+        let body = format!(r#"{{"docs":{} }}"#, to_string(&upsert_values)?);
         let response = self
             ._client
             .post(&self.create_raw_path("_bulk_docs"), body)
@@ -736,7 +740,8 @@ impl Database {
     /// }
     /// ```
     pub async fn create<T: TypedCouchDocument>(&self, doc: &mut T) -> DocumentCreatedResult {
-        let response = self._client.post(&self.name, to_string(&doc)?).send().await?;
+        let value = to_create_value(doc)?;
+        let response = self._client.post(&self.name, to_string(&value)?).send().await?;
 
         let status = response.status();
         let data: DocumentCreatedResponse = response.json().await?;
@@ -842,7 +847,7 @@ impl Database {
             };
 
             if let Some(docs) = docs.get_mut(*doc_idx) {
-                docs.set_rev(&rev)
+                docs.set_rev(&rev);
             } else {
                 // todo: do we need a warning here?
             }
@@ -1157,7 +1162,7 @@ impl Database {
     /// Method to ensure an index is created on the database with the following
     /// spec. Returns `true` when we created a new one, or `false` when the
     /// index was already existing.
-    #[deprecated(since="0.9.1", note="please use `insert_index` instead")]
+    #[deprecated(since = "0.9.1", note = "please use `insert_index` instead")]
     pub async fn ensure_index(&self, name: &str, spec: IndexFields) -> CouchResult<bool> {
         let result: DesignCreated = self.insert_index(name, spec, None, None).await?;
         let r = match result.result {
@@ -1187,6 +1192,44 @@ impl Database {
     /// mode.
     pub fn changes(&self, last_seq: Option<serde_json::Value>) -> ChangesStream {
         ChangesStream::new(self._client.clone(), self.name.clone(), last_seq)
+    }
+}
+
+fn to_create_value(doc: &impl TypedCouchDocument) -> CouchResult<serde_json::Map<String, Value>> {
+    let mut value = get_value_map(doc)?;
+    set_id(doc, &mut value);
+    value.remove("_rev");
+    Ok(value)
+}
+
+fn to_upsert_value(doc: &impl TypedCouchDocument) -> CouchResult<serde_json::Map<String, Value>> {
+    let mut value = get_value_map(doc)?;
+    set_id(doc, &mut value);
+    if doc.get_rev().is_empty() {
+        value.remove("_rev");
+    }
+    Ok(value)
+}
+
+fn get_value_map(doc: &impl TypedCouchDocument) -> CouchResult<serde_json::Map<String, Value>> {
+    let value = serde_json::to_value(doc)?;
+    let value = if let serde_json::Value::Object(value) = value {
+        value
+    } else {
+        return Err(CouchError::new(
+            s!("invalid document type, expected something that deserializes as json object"),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        ));
+    };
+    Ok(value)
+}
+
+fn set_id(doc: &impl TypedCouchDocument, value: &mut serde_json::Map<String, Value>) {
+    let id = doc.get_id().to_string();
+    if id.is_empty() {
+        value.remove("_id");
+    } else {
+        value.insert("_id".to_string(), json!(id));
     }
 }
 
