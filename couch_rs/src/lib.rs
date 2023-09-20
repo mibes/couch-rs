@@ -241,7 +241,10 @@ mod couch_rs_tests {
             let dbw = client.db("should_create_test_db").await;
             assert!(dbw.is_ok());
 
-            let _ = client.destroy_db("should_create_test_db");
+            client
+                .destroy_db("should_create_test_db")
+                .await
+                .expect("can not destroy db");
         }
 
         #[tokio::test]
@@ -258,7 +261,7 @@ mod couch_rs_tests {
             assert!(client.exists(dbname).await.is_ok());
             let info = client.get_info(dbname).await.expect("can not get db info");
             assert_eq!(info.db_name, dbname);
-            let _ = client.destroy_db(dbname);
+            client.destroy_db(dbname).await.expect("can not destroy db");
         }
 
         #[tokio::test]
@@ -270,7 +273,7 @@ mod couch_rs_tests {
             assert!(client.exists(dbname).await.is_ok());
             let info = client.get_info(dbname).await.expect("can not get db info");
             assert_eq!(info.db_name, dbname);
-            let _ = client.destroy_db(dbname);
+            client.destroy_db(dbname).await.expect("can not destroy db");
         }
 
         #[tokio::test]
@@ -298,7 +301,10 @@ mod couch_rs_tests {
             let details = ndoc_result.unwrap();
             assert_eq!(details.rev, doc.get("_rev").unwrap().as_str().unwrap());
 
-            let _ = client.destroy_db("should_create_a_document");
+            client
+                .destroy_db("should_create_a_document")
+                .await
+                .expect("can not destroy db");
         }
 
         #[tokio::test]
@@ -323,7 +329,10 @@ mod couch_rs_tests {
             assert!(!my_doc._id.is_empty());
             assert!(my_doc._rev.starts_with("1-"));
 
-            let _ = client.destroy_db("should_create_a_typed_document");
+            client
+                .destroy_db("should_create_a_typed_document")
+                .await
+                .expect("can not destroy db");
         }
 
         #[tokio::test]
@@ -362,13 +371,13 @@ mod couch_rs_tests {
             assert!(second_result.is_err());
             assert_eq!(second_result.err().unwrap().status(), Some(StatusCode::CONFLICT));
 
-            let _ = client.destroy_db(dbname);
+            client.destroy_db(dbname).await.expect("can not destroy db");
         }
 
         #[tokio::test]
         async fn should_destroy_the_db() {
             let client = Client::new_local_test().unwrap();
-            let _ = client.db("should_destroy_the_db").await;
+            client.db("should_destroy_the_db").await.expect("can not create db");
 
             assert!(client.destroy_db("should_destroy_the_db").await.unwrap());
         }
@@ -556,15 +565,15 @@ mod couch_rs_tests {
         }
 
         #[tokio::test]
-        async fn should_ensure_index_in_db() {
-            let (client, db, _) = setup("should_ensure_index_in_db").await;
+        async fn should_insert_index_in_db() {
+            let (client, db, _) = setup("should_insert_index_in_db").await;
 
             let spec = types::index::IndexFields::new(vec![types::find::SortSpec::Simple(s!("thing"))]);
 
-            let res = db.ensure_index("thing-index", spec).await;
+            let res = db.insert_index("thing-index", spec, None, None).await;
             assert!(res.is_ok());
 
-            teardown(client, "should_ensure_index_in_db").await;
+            teardown(client, "should_insert_index_in_db").await;
         }
 
         #[tokio::test]
