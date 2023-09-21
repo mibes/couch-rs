@@ -5,7 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/mibes/couch-rs/compare/0.9.2...develop) - ReleaseDate
+## [Unreleased](https://github.com/mibes/couch-rs/compare/0.9.3...develop) - ReleaseDate
+
+## [0.9.3] - 2023-09-21
+
+- Fixes for structs implementing TypedCouchDocument where _id was not read using TypedCouchDocument::get_id()
 
 ## [0.9.2] - 2023-03-10
 
@@ -20,6 +24,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add `delete_index` operation; contributed by kingledion
 
 ### Changed
+
 - Update the arguments to `insert_index` to match the `types::index::Index struct`, to make it more compatible with the `get_indexes` method; contributed by kingledion
 - DEPRECATED: `ensure_index`
 
@@ -76,7 +81,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - 2021 edition
 - Clippy suggestions fixed
 - BUG FIX: client.exists() returns true too often; contributed by wrazik & horacimacias
-
 
 ## [0.8.32] - 2021-09-08
 
