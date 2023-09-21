@@ -1,7 +1,7 @@
 use crate::{
     changes::ChangesStream,
     client::{is_accepted, is_ok, Client},
-    document::{DocumentCollection, TypedCouchDocument},
+    document::{DocumentCollection, TypedCouchDocument, ID_FIELD, REV_FIELD},
     error::{CouchError, CouchResult, ErrorMessage},
     types::{
         design::DesignCreated,
@@ -15,7 +15,7 @@ use crate::{
 use futures_core::Future;
 use reqwest::StatusCode;
 use serde::{de::DeserializeOwned, Serialize};
-use serde_json::{json, to_string, Value};
+use serde_json::{from_value, json, to_string, Value};
 use std::{collections::HashMap, fmt::Debug, pin::Pin, sync::Arc};
 use tokio::sync::mpsc::Sender;
 
@@ -201,14 +201,21 @@ impl Database {
     /// }
     ///```
     pub async fn get<T: TypedCouchDocument>(&self, id: &str) -> CouchResult<T> {
-        self._client
+        let value: serde_json::Value = self
+            ._client
             .get(&self.create_document_path(id), None)
             .send()
             .await?
             .error_for_status()?
             .couch_json()
             .await
-            .map_err(CouchError::from)
+            .map_err(CouchError::from)?;
+        let id = get_mandatory_string_value(ID_FIELD, &value)?;
+        let rev = get_mandatory_string_value(REV_FIELD, &value)?;
+        let mut document: T = from_value(value)?;
+        document.set_id(&id);
+        document.set_rev(&rev);
+        Ok(document)
     }
 
     /// Gets documents in bulk with provided IDs list
@@ -1195,19 +1202,29 @@ impl Database {
     }
 }
 
+fn get_mandatory_string_value(key: &str, value: &Value) -> CouchResult<String> {
+    let id = if let Some(serde_json::Value::String(id)) = value.get(key) {
+        id.to_owned()
+    } else {
+        return Err(CouchError::new(
+            format!("No {key} found in returned data: {value:?}"),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        ));
+    };
+    Ok(id)
+}
+
 fn to_create_value(doc: &impl TypedCouchDocument) -> CouchResult<serde_json::Map<String, Value>> {
     let mut value = get_value_map(doc)?;
-    set_id(doc, &mut value);
-    value.remove("_rev");
+    set_if_not_empty(ID_FIELD, doc.get_id().to_string(), &mut value);
+    value.remove(REV_FIELD);
     Ok(value)
 }
 
 fn to_upsert_value(doc: &impl TypedCouchDocument) -> CouchResult<serde_json::Map<String, Value>> {
     let mut value = get_value_map(doc)?;
-    set_id(doc, &mut value);
-    if doc.get_rev().is_empty() {
-        value.remove("_rev");
-    }
+    set_if_not_empty(ID_FIELD, doc.get_id().to_string(), &mut value);
+    set_if_not_empty(REV_FIELD, doc.get_rev().to_string(), &mut value);
     Ok(value)
 }
 
@@ -1224,12 +1241,11 @@ fn get_value_map(doc: &impl TypedCouchDocument) -> CouchResult<serde_json::Map<S
     Ok(value)
 }
 
-fn set_id(doc: &impl TypedCouchDocument, value: &mut serde_json::Map<String, Value>) {
-    let id = doc.get_id().to_string();
-    if id.is_empty() {
-        value.remove("_id");
+fn set_if_not_empty(field_name: &str, field_value: String, value: &mut serde_json::Map<String, Value>) {
+    if field_value.is_empty() {
+        value.remove(field_name);
     } else {
-        value.insert("_id".to_string(), json!(id));
+        value.insert(field_name.to_string(), json!(field_value));
     }
 }
 

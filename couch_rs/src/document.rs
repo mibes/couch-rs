@@ -5,7 +5,13 @@ use std::{
     ops::{Index, IndexMut},
 };
 
+pub const ID_FIELD: &str = "_id";
+pub const REV_FIELD: &str = "_rev";
+
 /// Trait to deal with typed CouchDB documents.
+/// For types implementing this trait, the _id and _rev fields on the json data sent/received to/from couchdb are automatically handled by this crate, using get_id and get_rev to get the values (before sending data to couchdb) and set_id and set_rev to set them (after receiving data from couchdb).
+/// *Note*, when reading documents from couchdb directly, if whichever field name is used to store the revision is different from "_rev" (e.g. "my_rev"), the value will always be "the last value of _rev" as updating "_rev is handled by couchdb, not this crate. This should be transparent to users of this crate
+/// because set_rev will be called before returning the document to the user, so the user will always see the correct value.
 pub trait TypedCouchDocument: DeserializeOwned + Serialize + Sized {
     /// get the _id field
     fn get_id(&self) -> Cow<str>;
@@ -22,24 +28,24 @@ pub trait TypedCouchDocument: DeserializeOwned + Serialize + Sized {
 /// Allows dealing with _id and _rev fields in untyped (Value) documents
 impl TypedCouchDocument for Value {
     fn get_id(&self) -> Cow<str> {
-        let id: String = json_extr!(self["_id"]);
+        let id: String = json_extr!(self[ID_FIELD]);
         Cow::from(id)
     }
 
     fn get_rev(&self) -> Cow<str> {
-        let rev: String = json_extr!(self["_rev"]);
+        let rev: String = json_extr!(self[REV_FIELD]);
         Cow::from(rev)
     }
 
     fn set_rev(&mut self, rev: &str) {
         if let Some(o) = self.as_object_mut() {
-            o.insert("_rev".to_string(), Value::from(rev));
+            o.insert(REV_FIELD.to_string(), Value::from(rev));
         }
     }
 
     fn set_id(&mut self, id: &str) {
         if let Some(o) = self.as_object_mut() {
-            o.insert("_id".to_string(), Value::from(id));
+            o.insert(ID_FIELD.to_string(), Value::from(id));
         }
     }
 
