@@ -4,7 +4,7 @@ use crate::{
     management::{ClusterSetup, ClusterSetupGetResponse, EnsureDbsExist, Membership},
     types::system::{CouchResponse, CouchStatus, DbInfo},
 };
-use base64::{engine::general_purpose};
+use base64::engine::general_purpose;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest::{
     self,
