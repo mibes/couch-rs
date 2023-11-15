@@ -22,3 +22,5 @@ test_db.json
 *.tgz
 
 # End of https://www.gitignore.io/api/rust
+
+vendor/
