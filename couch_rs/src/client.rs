@@ -95,6 +95,9 @@ impl Client {
     /// new_with_timeout creates a new Couch client. The URI has to be in this format: http://hostname:5984,
     /// The timeout is applied from when the request starts connecting until the response body has finished.
     /// Timeout is in seconds.
+    ///
+    /// # Panics
+    /// Panics when the AUTHORIZATION header can not be set on the request.
     pub fn new_with_timeout(
         uri: &str,
         username: Option<&str>,

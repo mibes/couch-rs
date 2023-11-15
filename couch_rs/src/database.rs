@@ -1097,6 +1097,9 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
+    ///
+    /// # Panics
+    /// When the internal json! macro fails to create a json object. Not expected to happen.
     pub async fn insert_index(
         &self,
         name: &str,
@@ -1215,15 +1218,15 @@ fn get_mandatory_string_value(key: &str, value: &Value) -> CouchResult<String> {
 
 fn to_create_value(doc: &impl TypedCouchDocument) -> CouchResult<serde_json::Map<String, Value>> {
     let mut value = get_value_map(doc)?;
-    set_if_not_empty(ID_FIELD, doc.get_id().to_string(), &mut value);
+    set_if_not_empty(ID_FIELD, doc.get_id().as_ref(), &mut value);
     value.remove(REV_FIELD);
     Ok(value)
 }
 
 fn to_upsert_value(doc: &impl TypedCouchDocument) -> CouchResult<serde_json::Map<String, Value>> {
     let mut value = get_value_map(doc)?;
-    set_if_not_empty(ID_FIELD, doc.get_id().to_string(), &mut value);
-    set_if_not_empty(REV_FIELD, doc.get_rev().to_string(), &mut value);
+    set_if_not_empty(ID_FIELD, doc.get_id().as_ref(), &mut value);
+    set_if_not_empty(REV_FIELD, doc.get_rev().as_ref(), &mut value);
     Ok(value)
 }
 
@@ -1240,7 +1243,7 @@ fn get_value_map(doc: &impl TypedCouchDocument) -> CouchResult<serde_json::Map<S
     Ok(value)
 }
 
-fn set_if_not_empty(field_name: &str, field_value: String, value: &mut serde_json::Map<String, Value>) {
+fn set_if_not_empty(field_name: &str, field_value: &str, value: &mut serde_json::Map<String, Value>) {
     if field_value.is_empty() {
         value.remove(field_name);
     } else {
