@@ -320,7 +320,7 @@ mod tests {
         assert_eq!(selector, r#"{"thing":true}"#);
         assert_eq!(query.limit, Some(1));
         assert_eq!(query.sort.len(), 1);
-        let first_sort = query.sort.get(0).unwrap();
+        let first_sort = query.sort.first().unwrap();
         if let SortSpec::Complex(spec) = first_sort {
             assert!(spec.contains_key("thing"));
             let direction = spec.get("thing").unwrap();

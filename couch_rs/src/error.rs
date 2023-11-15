@@ -11,6 +11,8 @@ pub enum CouchError {
     InvalidJson(ErrorMessage),
     /// The provided url is invalid.
     MalformedUrl(ErrorMessage),
+    /// A design document could not be created.
+    CreateDesignFailed(ErrorMessage),
 }
 
 #[derive(Debug, Clone)]
@@ -95,8 +97,9 @@ impl fmt::Display for CouchError {
                     write!(f, "{}: {}", details.status, details.message)
                 }
             }
-            CouchError::InvalidJson(err) => write!(f, "{}", err.message),
-            CouchError::MalformedUrl(err) => write!(f, "{}", err.message),
+            CouchError::InvalidJson(err) | CouchError::MalformedUrl(err) | CouchError::CreateDesignFailed(err) => {
+                write!(f, "{}", err.message)
+            }
         }
     }
 }
@@ -107,8 +110,9 @@ impl error::Error for CouchError {
         // Generic error, underlying cause isn't tracked.
         match self {
             CouchError::OperationFailed(details) => details.upstream.as_ref().map(|e| &**e as _),
-            CouchError::InvalidJson(err) => err.upstream.as_ref().map(|e| &**e as _),
-            CouchError::MalformedUrl(message) => message.upstream.as_ref().map(|e| &**e as _),
+            CouchError::InvalidJson(err) | CouchError::MalformedUrl(err) | CouchError::CreateDesignFailed(err) => {
+                err.upstream.as_ref().map(|e| &**e as _)
+            }
         }
     }
 }

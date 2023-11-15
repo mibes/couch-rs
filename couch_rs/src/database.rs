@@ -1129,8 +1129,7 @@ impl Database {
         let status = response.status();
         let data: DesignCreated = response.json().await?;
 
-        if data.error.is_some() {
-            let err = data.error.unwrap_or_else(|| s!("unspecified error"));
+        if let Some(err) = data.error {
             Err(CouchError::new(err, status))
         } else {
             Ok(data)
