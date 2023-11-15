@@ -4,7 +4,7 @@
 [![docs.rs](https://docs.rs/couch_rs/badge.svg)](https://docs.rs/couch_rs)
 ![Build](https://img.shields.io/github/workflow/status/mibes/couch-rs/Rust)
 ![License](https://img.shields.io/crates/l/couch_rs.svg)
-[![dependency status](https://deps.rs/crate/couch_rs/0.9.3/status.svg)](https://deps.rs/crate/couch_rs)
+[![dependency status](https://deps.rs/crate/couch_rs/0.9.4/status.svg)](https://deps.rs/crate/couch_rs)
 ![Downloads](https://img.shields.io/crates/d/couch_rs.svg)
 
 ## Documentation
