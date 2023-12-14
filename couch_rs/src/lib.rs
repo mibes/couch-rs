@@ -185,6 +185,10 @@ mod macros {
 mod client;
 /// Database operations on a CouchDB Database.
 pub mod database;
+
+/// Typed Database operations on a CouchDB Database.
+pub mod typed;
+
 /// Document model to support CouchDB document operations.
 pub mod document;
 /// Error wrappers for the HTTP status codes returned by CouchDB.
