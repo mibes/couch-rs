@@ -826,10 +826,7 @@ impl Database {
     ///
     /// This will first fetch the latest rev for each document that does not have a rev set. It
     /// will then insert all documents into the database.
-    pub async fn bulk_upsert<T: TypedCouchDocument + Clone>(
-        &self,
-        docs: &mut [T],
-    ) -> CouchResult<Vec<DocumentCreatedResult>> {
+    pub async fn bulk_upsert<T: TypedCouchDocument>(&self, docs: &mut [T]) -> CouchResult<Vec<DocumentCreatedResult>> {
         // First collect all docs that do not have a rev set.
         let mut docs_without_rev = vec![];
         for (i, doc) in docs.iter().enumerate() {
