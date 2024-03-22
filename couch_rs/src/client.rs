@@ -7,7 +7,6 @@ use crate::{
 use base64::engine::general_purpose;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest::{
-    self,
     header::{self, HeaderMap, HeaderValue, CONTENT_TYPE, REFERER, USER_AGENT},
     Method, RequestBuilder, StatusCode, Url,
 };

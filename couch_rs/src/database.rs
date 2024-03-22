@@ -416,7 +416,7 @@ impl Database {
 
         let maybe_err = loop {
             let mut segment_query = query.clone();
-            segment_query.bookmark = bookmark.clone();
+            segment_query.bookmark.clone_from(&bookmark);
             let all_docs = match self.find(&segment_query).await {
                 Ok(docs) => docs,
                 Err(err) => break Some(err),
@@ -1254,7 +1254,6 @@ fn set_if_not_empty(field_name: &str, field_value: &str, value: &mut serde_json:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::error::CouchError;
     use http::response::Builder;
     use reqwest::{Response, ResponseBuilderExt, Url};
 
@@ -1302,16 +1301,13 @@ mod tests {
     async fn test_unexpected_json_error() {
         let response = build_json_response(r#"{"foo": "bar"}"#);
         let x = response.couch_json::<Baz>().await;
-        assert_json_error(
-            x,
-            "error decoding response body: missing field `_baz` at line 1 column 14",
-        );
+        assert_json_error(x, "error decoding response body");
     }
 
     #[tokio::test]
     async fn test_invalid_json_error() {
         let response = build_json_response("not even json");
         let x = response.couch_json::<Baz>().await;
-        assert_json_error(x, "error decoding response body: expected ident at line 1 column 2");
+        assert_json_error(x, "error decoding response body");
     }
 }

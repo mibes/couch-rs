@@ -1,2 +1,3 @@
 [workspace]
 members = ["couch_rs", "couch_rs_derive"]
+resolver = "2"
