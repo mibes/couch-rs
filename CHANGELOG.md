@@ -5,11 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/mibes/couch-rs/compare/0.9.4...develop) - ReleaseDate
+## [Unreleased](https://github.com/mibes/couch-rs/compare/0.10.0...develop) - ReleaseDate
+
+## [0.10.0] - 2024-03-22
+
+### Changed
+
+- Updated to Rust 2021 edition
+- Updated to reqwest 0.12; which is now using hyper v1
 
 ## [0.9.4] - 2023-11-15
 
 ### Added
+
 - Include a status() on DesignCreated to make it easier to switch from ensure_index() to insert_index()
 
 ## [0.9.3] - 2023-09-21
@@ -30,7 +38,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 
-- Update the arguments to `insert_index` to match the `types::index::Index struct`, to make it more compatible with the `get_indexes` method; contributed by kingledion
+- Update the arguments to `insert_index` to match the `types::index::Index struct`, to make it more compatible with
+  the `get_indexes` method; contributed by kingledion
 - DEPRECATED: `ensure_index`
 
 ## [0.9.0] - 2022-08-23
@@ -173,11 +182,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - WARNING: big changes ahead!
 - Most of the find/get operations now take a typed `TypedCouchDocument`.
-  - To use the generic `Value`, either use a `.._raw` function, or type the query with `::<Value>`
-  - Value now holds the raw CouchDocument, including `_id` and `_rev` fields.
-  - See the examples and the tests for more details
+    - To use the generic `Value`, either use a `.._raw` function, or type the query with `::<Value>`
+    - Value now holds the raw CouchDocument, including `_id` and `_rev` fields.
+    - See the examples and the tests for more details
 - `TypedCouchDocument` traits can be derived using `CouchDocument`
-  - `Value` implements `TypedCouchDocument` traits
+    - `Value` implements `TypedCouchDocument` traits
 
 ## [0.8.18] - 2020-09-29
 
