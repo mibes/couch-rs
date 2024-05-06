@@ -116,6 +116,9 @@ pub use couch_rs_derive::*;
 
 pub use std::borrow::Cow;
 
+// Re-export the http crate which is used in `CouchError`.
+pub use http;
+
 /// Macros that the crate exports to facilitate most of the
 /// doc-to-json-to-string-related tasks
 #[allow(unused_macros)]
