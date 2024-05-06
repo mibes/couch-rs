@@ -8,6 +8,7 @@ pub struct QueriesParams {
 }
 
 impl QueriesParams {
+    #[must_use]
     pub fn new(params: Vec<QueryParams<DocumentId>>) -> Self {
         QueriesParams { queries: params }
     }
@@ -135,6 +136,7 @@ impl<K: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug + Clone> Defa
 }
 
 impl<K: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug + Clone> QueryParams<K> {
+    #[must_use]
     pub fn from_keys(keys: Vec<K>) -> Self {
         QueryParams {
             keys,
@@ -142,101 +144,121 @@ impl<K: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug + Clone> Quer
         }
     }
 
+    #[must_use]
     pub fn conflicts(mut self, conflicts: bool) -> Self {
         self.conflicts = Some(conflicts);
         self
     }
 
+    #[must_use]
     pub fn descending(mut self, descending: bool) -> Self {
         self.descending = Some(descending);
         self
     }
 
+    #[must_use]
     pub fn end_key(mut self, end_key: K) -> Self {
         self.end_key = Some(end_key);
         self
     }
 
+    #[must_use]
     pub fn group(mut self, group: bool) -> Self {
         self.group = Some(group);
         self
     }
 
+    #[must_use]
     pub fn group_level(mut self, group_level: u32) -> Self {
         self.group_level = Some(group_level);
         self
     }
 
+    #[must_use]
     pub fn include_docs(mut self, include_docs: bool) -> Self {
         self.include_docs = Some(include_docs);
         self
     }
 
+    #[must_use]
     pub fn attachments(mut self, attachments: bool) -> Self {
         self.attachments = Some(attachments);
         self
     }
 
+    #[must_use]
     pub fn att_encoding_info(mut self, att_encoding_info: bool) -> Self {
         self.att_encoding_info = Some(att_encoding_info);
         self
     }
 
+    #[must_use]
     pub fn inclusive_end(mut self, inclusive_end: bool) -> Self {
         self.inclusive_end = Some(inclusive_end);
         self
     }
 
+    #[must_use]
     pub fn key(mut self, key: K) -> Self {
         self.key = Some(key);
         self
     }
 
+    #[must_use]
     pub fn keys(mut self, keys: Vec<K>) -> Self {
         self.keys = keys;
         self
     }
 
+    #[must_use]
     pub fn limit(mut self, limit: u64) -> Self {
         self.limit = Some(limit);
         self
     }
 
+    #[must_use]
     pub fn reduce(mut self, reduce: bool) -> Self {
         self.reduce = Some(reduce);
         self
     }
 
+    #[must_use]
     pub fn skip(mut self, skip: u64) -> Self {
         self.skip = Some(skip);
         self
     }
 
+    #[must_use]
     pub fn sorted(mut self, sorted: bool) -> Self {
         self.sorted = Some(sorted);
         self
     }
 
+    #[must_use]
     pub fn stable(mut self, stable: bool) -> Self {
         self.stable = Some(stable);
         self
     }
 
+    #[must_use]
     pub fn start_key(mut self, start_key: K) -> Self {
         self.start_key = Some(start_key);
         self
     }
 
+    #[must_use]
     pub fn start_key_doc_id(mut self, start_key_doc_id: &str) -> Self {
         self.start_key_doc_id = Some(start_key_doc_id.to_string());
         self
     }
 
+    #[must_use]
     pub fn update(mut self, update: UpdateView) -> Self {
         self.update = Some(update);
         self
     }
 
+    #[must_use]
     pub fn update_seq(mut self, update_seq: bool) -> Self {
         self.update_seq = Some(update_seq);
         self
@@ -257,6 +279,6 @@ mod tests {
         assert_eq!(qp.group, Some(true));
         assert_eq!(qp.start_key, Some("1".to_string()));
         let str_val = serde_json::to_string(&qp).expect("can not convert to string");
-        assert!(str_val.contains(r#""update":"lazy""#))
+        assert!(str_val.contains(r#""update":"lazy""#));
     }
 }

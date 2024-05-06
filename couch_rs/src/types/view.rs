@@ -23,14 +23,14 @@ pub struct ViewItem<K: DeserializeOwned, V: DeserializeOwned, T: TypedCouchDocum
     pub doc: Option<T>,
 }
 
-/// CouchViews can be used to create one of more views in a particular design document.
+/// `CouchViews` can be used to create one of more views in a particular design document.
 #[derive(Serialize)]
 pub struct CouchViews {
     views: HashMap<String, CouchFunc>,
     language: String,
 }
 
-/// Constructs a CouchDB View Function. See
+/// Constructs a `CouchDB` View Function. See
 /// [defining-a-view](https://docs.couchdb.org/en/stable/ddocs/views/nosql.html#defining-a-view) for
 /// details.
 ///
@@ -54,6 +54,7 @@ pub struct CouchUpdate {
 }
 
 impl CouchViews {
+    #[must_use]
     pub fn new(view_name: &str, func: CouchFunc) -> Self {
         let mut couch_views = CouchViews::default();
         couch_views.add(view_name, func);
@@ -75,10 +76,11 @@ impl Default for CouchViews {
 }
 
 impl CouchFunc {
+    #[must_use]
     pub fn new(map: &str, reduce: Option<&str>) -> Self {
         CouchFunc {
             map: map.to_string(),
-            reduce: reduce.map(|r| r.to_string()),
+            reduce: reduce.map(std::string::ToString::to_string),
         }
     }
 }
@@ -96,6 +98,7 @@ impl From<CouchFunc> for serde_json::Value {
 }
 
 impl CouchUpdate {
+    #[must_use]
     pub fn new(func_name: &str, func: &str) -> Self {
         let mut update = CouchUpdate {
             updates: HashMap::new(),

@@ -7,14 +7,14 @@ const TEST_DB: &str = "test_db";
 
 #[derive(Serialize, Deserialize, CouchDocument, Default, Debug)]
 pub struct TestDoc {
-    /// _ids are are the only unique enforced value within CouchDB so you might as well make use of this.
-    /// CouchDB stores its documents in a B+ tree. Each additional or updated document is stored as
+    /// _ids are are the only unique enforced value within `CouchDB` so you might as well make use of this.
+    /// `CouchDB` stores its documents in a B+ tree. Each additional or updated document is stored as
     /// a leaf node, and may require re-writing intermediary and parent nodes. You may be able to take
     /// advantage of sequencing your own ids more effectively than the automatically generated ids if
     /// you can arrange them to be sequential yourself. (https://docs.couchdb.org/en/stable/best-practices/documents.html)
     #[serde(skip_serializing_if = "String::is_empty")]
     pub _id: DocumentId,
-    /// Document Revision, provided by CouchDB, helps negotiating conflicts
+    /// Document Revision, provided by `CouchDB`, helps negotiating conflicts
     #[serde(skip_serializing_if = "String::is_empty")]
     pub _rev: String,
     pub first_name: String,
@@ -34,7 +34,7 @@ async fn main() {
 
     let td = TestDoc {
         _id: "1234".to_string(),
-        _rev: "".to_string(),
+        _rev: String::new(),
         first_name: "John".to_string(),
         last_name: "Doe".to_string(),
     };
@@ -51,13 +51,13 @@ async fn main() {
                 // create the document
                 match db.create(&mut doc).await {
                     Ok(r) => println!("Document was created with ID: {} and Rev: {}", r.id, r.rev),
-                    Err(err) => println!("error creating document {}: {:?}", doc, err),
+                    Err(err) => println!("error creating document {doc}: {err:?}"),
                 }
             } else {
-                println!("Unexpected error: {:?}", e);
+                println!("Unexpected error: {e:?}");
             }
         }
     }
 
-    println!("All operations are done")
+    println!("All operations are done");
 }

@@ -5,7 +5,7 @@ use std::{error, fmt, sync::Arc};
 // implementation, or do something in between.
 #[derive(Debug, Clone)]
 pub enum CouchError {
-    /// A CouchDB operation failed, typically indicated by a specific HTTP error status that was returned.
+    /// A `CouchDB` operation failed, typically indicated by a specific HTTP error status that was returned.
     OperationFailed(ErrorDetails),
     /// Parsing of a JSON document failed.
     InvalidJson(ErrorMessage),
@@ -37,6 +37,7 @@ type UpstreamError = Arc<dyn error::Error + Send + Sync + 'static>;
 pub type CouchResult<T> = Result<T, CouchError>;
 
 impl CouchError {
+    #[must_use]
     pub fn new(message: String, status: http::StatusCode) -> CouchError {
         CouchError::OperationFailed(ErrorDetails {
             id: None,
@@ -46,6 +47,7 @@ impl CouchError {
         })
     }
 
+    #[must_use]
     pub fn new_with_id(id: Option<String>, message: String, status: http::StatusCode) -> CouchError {
         CouchError::OperationFailed(ErrorDetails {
             id,
@@ -55,10 +57,12 @@ impl CouchError {
         })
     }
 
+    #[must_use]
     pub fn is_not_found(&self) -> bool {
         self.status() == Some(http::StatusCode::NOT_FOUND)
     }
 
+    #[must_use]
     pub fn status(&self) -> Option<http::StatusCode> {
         match self {
             CouchError::OperationFailed(details) => Some(details.status),

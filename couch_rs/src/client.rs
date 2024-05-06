@@ -47,7 +47,7 @@ pub(crate) async fn is_ok(request: RequestBuilder) -> bool {
     }
 }
 
-/// Client handles the URI manipulation logic and the HTTP calls to the CouchDB REST API.
+/// Client handles the URI manipulation logic and the HTTP calls to the `CouchDB` REST API.
 /// It is also responsible for the creation/access/destruction of databases.
 #[derive(Debug, Clone)]
 pub struct Client {
@@ -71,14 +71,14 @@ impl Client {
         Client::new_with_timeout(uri, Some(username), Some(password), Some(DEFAULT_TIME_OUT))
     }
 
-    /// new_no_auth creates a new Couch client with a default timeout of 10 seconds. *Without authentication*.
+    /// `new_no_auth` creates a new Couch client with a default timeout of 10 seconds. *Without authentication*.
     /// The timeout is applied from when the request starts connecting until the response body has finished.
     /// The URI has to be in this format: http://hostname:5984, for example: http://192.168.64.5:5984
     pub fn new_no_auth(uri: &str) -> CouchResult<Client> {
         Client::new_with_timeout(uri, None, None, Some(DEFAULT_TIME_OUT))
     }
 
-    /// new_local_test creates a new Couch client *for testing purposes* with a default timeout of 10 seconds.
+    /// `new_local_test` creates a new Couch client *for testing purposes* with a default timeout of 10 seconds.
     /// The timeout is applied from when the request starts connecting until the response body has finished.
     /// The URI that will be used is: http://hostname:5984, with a username of "admin" and a password
     /// of "password". Use this only for testing!!!
@@ -91,7 +91,7 @@ impl Client {
         )
     }
 
-    /// new_with_timeout creates a new Couch client. The URI has to be in this format: http://hostname:5984,
+    /// `new_with_timeout` creates a new Couch client. The URI has to be in this format: http://hostname:5984,
     /// The timeout is applied from when the request starts connecting until the response body has finished.
     /// Timeout is in seconds.
     ///
@@ -110,9 +110,9 @@ impl Client {
             {
                 let mut encoder = base64::write::EncoderWriter::new(&mut header_value, &general_purpose::STANDARD);
                 // The unwraps here are fine because Vec::write* is infallible.
-                write!(encoder, "{}:", username).unwrap();
+                write!(encoder, "{username}:").unwrap();
                 if let Some(password) = password {
-                    write!(encoder, "{}", password).unwrap();
+                    write!(encoder, "{password}").unwrap();
                 }
             }
 
@@ -149,7 +149,7 @@ impl Client {
         self
     }
 
-    /// List the databases in CouchDB
+    /// List the databases in `CouchDB`
     ///
     /// Usage:
     /// ```
@@ -292,7 +292,7 @@ impl Client {
         Ok(membership)
     }
 
-    /// Returns cluster_setup information about the cluster.
+    /// Returns `cluster_setup` information about the cluster.
     /// See [_cluster_setup](https://docs.couchdb.org/en/latest/api/server/common.html?#cluster-setup) for more details.
     pub async fn cluster_setup(&self, request: EnsureDbsExist) -> CouchResult<ClusterSetup> {
         let ensure_dbs_array = serde_json::to_value(&request.ensure_dbs_exist)?;

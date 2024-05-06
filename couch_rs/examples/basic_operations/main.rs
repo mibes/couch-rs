@@ -1,7 +1,7 @@
 /// This example demonstrates some basic Couch operations: connecting, listing databases and
 /// inserting some documents in bulk.
 ///
-/// The easiest way to get this example to work, is to connect it to a running CouchDB Docker
+/// The easiest way to get this example to work, is to connect it to a running `CouchDB` Docker
 /// container:
 ///
 /// ```
@@ -17,12 +17,12 @@ use std::error::Error;
 
 const TEST_DB: &str = "test_db";
 
-/// test_docs generates a bunch of documents that can be used in the _bulk_docs operation.
+/// `test_docs` generates a bunch of documents that can be used in the _`bulk_docs` operation.
 fn test_docs(amount: i32) -> Vec<Value> {
     let mut result: Vec<Value> = vec![];
 
     for _i in 0..amount {
-        result.push(json!({"name": "Marcel"}))
+        result.push(json!({"name": "Marcel"}));
     }
 
     result
@@ -44,14 +44,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut db_initialized: bool = false;
     println!("Existing databases:");
     for db in dbs {
-        println!("Couch DB {}", db);
+        println!("Couch DB {db}");
         if db == TEST_DB {
             db_initialized = true;
         }
     }
 
     if !db_initialized {
-        println!("{} not found", TEST_DB);
+        println!("{TEST_DB} not found");
         return Ok(());
     }
 
@@ -66,11 +66,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
             for r in resp {
                 match r {
                     Ok(details) => println!("Id: {}", details.id),
-                    Err(err) => println!("Error: {:?}", err),
+                    Err(err) => println!("Error: {err:?}"),
                 }
             }
         }
-        Err(err) => println!("Oops: unable to create documents {:?}: {:?}", test_docs, err),
+        Err(err) => println!("Oops: unable to create documents {test_docs:?}: {err:?}"),
     }
 
     println!("--- Finding ---");
@@ -78,7 +78,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let find_all = FindQuery::find_all();
     let docs = db.find::<Value>(&find_all).await?;
     if let Some(row) = docs.rows.first() {
-        println!("First document: {}", row)
+        println!("First document: {row}");
     }
 
     println!("All operations are done");
