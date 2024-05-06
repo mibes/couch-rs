@@ -17,7 +17,7 @@ Include this dependency in the Cargo.toml file:
 
 ```toml
 [dependencies]
-couch_rs = "0.9"
+couch_rs = "0.10"
 ```
 
 ## Description
@@ -35,7 +35,7 @@ serde and reqwest libraries.
 
 **NOT 1.0 YET, so expect changes**
 
-**Supports CouchDB 2.3.0 and up. Used in production with various CouchDB versions, including 3.2.2.**
+**Supports CouchDB 2.3.0 and up. Used in production with various CouchDB versions, including 3.3.3**
 
 Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/index.html) in detail to see what's
 possible.
