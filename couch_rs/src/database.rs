@@ -20,10 +20,32 @@ use std::{collections::HashMap, fmt::Debug, pin::Pin, sync::Arc};
 use tokio::sync::mpsc::Sender;
 
 trait CouchJsonExt {
+    #[cfg(target_arch = "wasm32")]
+    fn couch_json<T: DeserializeOwned>(self) -> Pin<Box<dyn Future<Output = Result<T, CouchError>>>>;
+    #[cfg(not(target_arch = "wasm32"))]
     fn couch_json<T: DeserializeOwned>(self) -> Pin<Box<dyn Future<Output = Result<T, CouchError>> + Send>>;
 }
 
 impl CouchJsonExt for reqwest::Response {
+    #[cfg(target_arch = "wasm32")]
+    fn couch_json<T: DeserializeOwned>(self) -> Pin<Box<dyn Future<Output = Result<T, CouchError>>>> {
+        let fut = async move {
+            let x = self.json();
+
+            match x.await {
+                Ok(x) => Ok(x),
+                Err(e) if e.is_decode() => Err(CouchError::InvalidJson(ErrorMessage {
+                    message: e.to_string(),
+                    upstream: Some(Arc::new(e)),
+                })),
+                Err(e) => Err(e.into()),
+            }
+        };
+
+        Box::pin(fut)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     fn couch_json<T: DeserializeOwned>(self) -> Pin<Box<dyn Future<Output = Result<T, CouchError>> + Send>> {
         let fut = async move {
             let x = self.json();
