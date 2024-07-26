@@ -120,14 +120,19 @@ impl Client {
             headers.insert(header::AUTHORIZATION, auth_header);
         }
 
-        let mut client_builder = reqwest::Client::builder().default_headers(headers).gzip(true);
-        if let Some(t) = timeout {
-            client_builder = client_builder.timeout(Duration::new(t, 0));
+        let mut client_builder = reqwest::Client::builder().default_headers(headers);
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            client_builder = client_builder.gzip(true);
+
+            if let Some(t) = timeout {
+                client_builder = client_builder.timeout(Duration::new(t, 0));
+            }
         }
-        let client = client_builder.build()?;
 
         Ok(Client {
-            _client: client,
+            _client: client_builder.build()?,
             uri: parse_server(uri)?,
             _gzip: true,
             _timeout: timeout,
