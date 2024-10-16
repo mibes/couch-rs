@@ -46,14 +46,14 @@ impl CouchJsonExt for reqwest::Response {
 /// (sometimes called Collection in other `NoSQL` flavors such as `MongoDB`).
 #[derive(Debug, Clone)]
 pub struct Database {
-    _client: Client,
+    client: Client,
     name: String,
 }
 
 impl Database {
     #[must_use]
     pub fn new(name: String, client: Client) -> Database {
-        Database { _client: client, name }
+        Database { client, name }
     }
 
     // convenience function to retrieve the name of the database
@@ -102,7 +102,7 @@ impl Database {
         let mut path: String = self.name.clone();
         path.push_str("/_compact");
 
-        let request = self._client.post(&path, String::new());
+        let request = self.client.post(&path, String::new());
         is_accepted(request).await
     }
 
@@ -111,13 +111,13 @@ impl Database {
         let mut path: String = self.name.clone();
         path.push_str("/_view_cleanup");
 
-        let request = self._client.post(&path, String::new());
+        let request = self.client.post(&path, String::new());
         is_accepted(request).await
     }
 
     /// Starts the compaction of a given index
     pub async fn compact_index(&self, index: &str) -> bool {
-        let request = self._client.post(&self.create_compact_path(index), String::new());
+        let request = self.client.post(&self.create_compact_path(index), String::new());
         is_accepted(request).await
     }
 
@@ -143,7 +143,7 @@ impl Database {
     /// }
     /// ```
     pub async fn exists(&self, id: &str) -> bool {
-        let request = self._client.head(&self.create_document_path(id), None);
+        let request = self.client.head(&self.create_document_path(id), None);
         is_ok(request).await
     }
 
@@ -203,8 +203,8 @@ impl Database {
     /// }
     ///```
     pub async fn get<T: TypedCouchDocument>(&self, id: &str) -> CouchResult<T> {
-        let value: serde_json::Value = self
-            ._client
+        let value: Value = self
+            .client
             .get(&self.create_document_path(id), None)
             .send()
             .await?
@@ -272,7 +272,7 @@ impl Database {
             .collect::<CouchResult<_>>()?;
         let body = format!(r#"{{"docs":{} }}"#, to_string(&upsert_values)?);
         let response = self
-            ._client
+            .client
             .post(&self.create_raw_path("_bulk_docs"), body)
             .send()
             .await?;
@@ -359,7 +359,7 @@ impl Database {
         options.keys = ids;
 
         let response = self
-            ._client
+            .client
             .post(&self.create_raw_path("_all_docs"), to_string(&options)?)
             .send()
             .await?
@@ -410,11 +410,11 @@ impl Database {
         batch_size: u64,
         max_results: u64,
     ) -> CouchResult<u64> {
-        let mut bookmark = Option::None;
+        let mut bookmark = None;
         let limit = if batch_size > 0 { batch_size } else { 1000 };
 
         let mut results: u64 = 0;
-        query.limit = Option::Some(limit);
+        query.limit = Some(limit);
 
         let maybe_err = loop {
             let mut segment_query = query.clone();
@@ -524,7 +524,7 @@ impl Database {
         // we use POST here, because this allows for a larger set of keys to be provided, compared
         // to a GET call. It provides the same functionality
         let response = self
-            ._client
+            .client
             .post(view_path, js!(&queries))
             .send()
             .await?
@@ -554,7 +554,7 @@ impl Database {
         // we use POST here, because this allows for a larger set of keys to be provided, compared
         // to a GET call. It provides the same functionality
         let response = self
-            ._client
+            .client
             .post(&self.create_raw_path("_all_docs"), js!(&options))
             .send()
             .await?
@@ -623,7 +623,7 @@ impl Database {
     /// ```
     pub async fn find<T: TypedCouchDocument>(&self, query: &FindQuery) -> CouchResult<DocumentCollection<T>> {
         let path = self.create_raw_path("_find");
-        let response = self._client.post(&path, js!(query)).send().await?;
+        let response = self.client.post(&path, js!(query)).send().await?;
         let status = response.status();
         let data: FindResult<T> = response.couch_json().await?;
 
@@ -637,7 +637,7 @@ impl Database {
                 })
                 .collect();
 
-            let mut bookmark = Option::None;
+            let mut bookmark = None;
             let returned_bookmark = data.bookmark.unwrap_or_default();
 
             if returned_bookmark != "nil" && !returned_bookmark.is_empty() {
@@ -707,7 +707,7 @@ impl Database {
     pub async fn save<T: TypedCouchDocument>(&self, doc: &mut T) -> DocumentCreatedResult {
         let id = doc.get_id().to_string();
         let body = to_string(&doc)?;
-        let response = self._client.put(&self.create_document_path(&id), body).send().await?;
+        let response = self.client.put(&self.create_document_path(&id), body).send().await?;
         let status = response.status();
         let data: DocumentCreatedResponse = response.json().await?;
 
@@ -750,7 +750,7 @@ impl Database {
     /// ```
     pub async fn create<T: TypedCouchDocument>(&self, doc: &mut T) -> DocumentCreatedResult {
         let value = to_create_value(doc)?;
-        let response = self._client.post(&self.name, to_string(&value)?).send().await?;
+        let response = self.client.post(&self.name, to_string(&value)?).send().await?;
 
         let status = response.status();
         let data: DocumentCreatedResponse = response.json().await?;
@@ -888,14 +888,10 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn create_view<T: Into<serde_json::Value>>(
-        &self,
-        design_name: &str,
-        views: T,
-    ) -> CouchResult<DesignCreated> {
+    pub async fn create_view<T: Into<Value>>(&self, design_name: &str, views: T) -> CouchResult<DesignCreated> {
         let doc: Value = views.into();
         let response = self
-            ._client
+            .client
             .put(&self.create_design_path(design_name), to_string(&doc)?)
             .send()
             .await?;
@@ -969,7 +965,7 @@ impl Database {
     /// }
     /// ```
     pub async fn query<
-        K: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug + Clone,
+        K: Serialize + DeserializeOwned + PartialEq + Debug + Clone,
         V: DeserializeOwned,
         T: TypedCouchDocument,
     >(
@@ -982,7 +978,7 @@ impl Database {
             options = Some(QueryParams::default());
         }
 
-        self._client
+        self.client
             .post(&self.create_query_view_path(design_name, view_name), js!(&options))
             .send()
             .await?
@@ -1005,7 +1001,7 @@ impl Database {
             None => String::default(),
         };
 
-        self._client
+        self.client
             .put(&self.create_execute_update_path(design_id, name, document_id), body)
             .send()
             .await?
@@ -1043,7 +1039,7 @@ impl Database {
         let mut h = HashMap::new();
         h.insert(s!("rev"), doc.get_rev().into_owned());
 
-        let request = self._client.delete(&self.create_document_path(&doc.get_id()), Some(&h));
+        let request = self.client.delete(&self.create_document_path(&doc.get_id()), Some(&h));
         is_ok(request).await
     }
 
@@ -1123,7 +1119,7 @@ impl Database {
         }
 
         let response = self
-            ._client
+            .client
             .post(&self.create_raw_path("_index"), js!(Value::Object(body.clone())))
             .send()
             .await?;
@@ -1140,7 +1136,7 @@ impl Database {
 
     /// Reads the database's indexes and returns them
     pub async fn read_indexes(&self) -> CouchResult<DatabaseIndexList> {
-        self._client
+        self.client
             .get(&self.create_raw_path("_index"), None)
             .send()
             .await?
@@ -1154,7 +1150,7 @@ impl Database {
         let uri = format!("_index/{ddoc}/json/{name}");
 
         match self
-            ._client
+            .client
             .delete(&self.create_raw_path(&uri), None)
             .send()
             .await?
@@ -1177,7 +1173,7 @@ impl Database {
             return Err(CouchError::new_with_id(
                 result.id,
                 "DesignCreated did not return 'result' field as expected".to_string(),
-                reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
             ));
         };
 
@@ -1196,13 +1192,13 @@ impl Database {
     /// It can return all changes from a `seq` string, and can optionally run in infinite (live)
     /// mode.
     #[must_use]
-    pub fn changes(&self, last_seq: Option<serde_json::Value>) -> ChangesStream {
-        ChangesStream::new(self._client.clone(), self.name.clone(), last_seq)
+    pub fn changes(&self, last_seq: Option<Value>) -> ChangesStream {
+        ChangesStream::new(self.client.clone(), self.name.clone(), last_seq)
     }
 }
 
 fn get_mandatory_string_value(key: &str, value: &Value) -> CouchResult<String> {
-    let id = if let Some(serde_json::Value::String(id)) = value.get(key) {
+    let id = if let Some(Value::String(id)) = value.get(key) {
         id.to_owned()
     } else {
         return Err(CouchError::new(
@@ -1229,7 +1225,7 @@ fn to_upsert_value(doc: &impl TypedCouchDocument) -> CouchResult<serde_json::Map
 
 fn get_value_map(doc: &impl TypedCouchDocument) -> CouchResult<serde_json::Map<String, Value>> {
     let value = serde_json::to_value(doc)?;
-    let serde_json::Value::Object(value) = value else {
+    let Value::Object(value) = value else {
         return Err(CouchError::new(
             s!("invalid document type, expected something that deserializes as json object"),
             StatusCode::INTERNAL_SERVER_ERROR,

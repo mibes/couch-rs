@@ -1,7 +1,7 @@
 use crate::document::TypedCouchDocument;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
+use std::{collections::HashMap, string::ToString};
 
 #[derive(Default, Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(bound(deserialize = "T: TypedCouchDocument"))]
@@ -80,18 +80,18 @@ impl CouchFunc {
     pub fn new(map: &str, reduce: Option<&str>) -> Self {
         CouchFunc {
             map: map.to_string(),
-            reduce: reduce.map(std::string::ToString::to_string),
+            reduce: reduce.map(ToString::to_string),
         }
     }
 }
 
-impl From<CouchViews> for serde_json::Value {
+impl From<CouchViews> for Value {
     fn from(v: CouchViews) -> Self {
         serde_json::to_value(v).unwrap()
     }
 }
 
-impl From<CouchFunc> for serde_json::Value {
+impl From<CouchFunc> for Value {
     fn from(f: CouchFunc) -> Self {
         serde_json::to_value(f).unwrap()
     }
@@ -112,7 +112,7 @@ impl CouchUpdate {
     }
 }
 
-impl From<CouchUpdate> for serde_json::Value {
+impl From<CouchUpdate> for Value {
     fn from(u: CouchUpdate) -> Self {
         serde_json::to_value(u).unwrap()
     }
