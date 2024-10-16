@@ -1,6 +1,6 @@
 [package]
 name = "couch_rs"
-version = "0.9.4"
+version = "0.10.1"
 authors = [
     "Mathieu Amiot <mathieu.amiot@yellowinnovation.fr>",
     "mibes <mibes@mibesco.com>",
@@ -12,31 +12,31 @@ documentation = "https://docs.rs/couch_rs"
 repository = "https://github.com/mibes/couch-rs"
 keywords = ["couchdb", "orm", "database", "nosql"]
 categories = ["database"]
-edition = "2018"
+edition = "2021"
 include = ["**/*.rs", "Cargo.toml"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-couch_rs_derive = { version = "0.9.4", optional = true, path = "../couch_rs_derive" }
+couch_rs_derive = { version = "0.10.1", optional = true, path = "../couch_rs_derive" }
 url = "2"
 tokio = { version = "^1.32", features = ["rt-multi-thread"] }
-base64 = "0.21"
+base64 = "0.22"
 tokio-util = { version = "0.7", features = ["io"] }
 bytes = "1"
 tokio-stream = { version = "0.1", features = ["io-util"] }
 futures-util = "0.3"
 futures-core = "0.3"
 percent-encoding = "2"
+http = "1.1"
 
 [dependencies.reqwest]
-version = "0.11"
+version = "0.12"
 features = ["json", "gzip", "stream"]
 default-features = false
 
 [dev-dependencies]
 tokio = { version = "^1.32", features = ["rt-multi-thread", "macros"] }
-http = { version = "0.2" }
 
 [features]
 default = ["derive", "native-tls"]

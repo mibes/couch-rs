@@ -24,3 +24,4 @@ test_db.json
 # End of https://www.gitignore.io/api/rust
 
 vendor/
+.DS_Store

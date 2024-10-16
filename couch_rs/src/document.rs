@@ -8,10 +8,10 @@ use std::{
 pub const ID_FIELD: &str = "_id";
 pub const REV_FIELD: &str = "_rev";
 
-/// Trait to deal with typed CouchDB documents.
-/// For types implementing this trait, the _id and _rev fields on the json data sent/received to/from couchdb are automatically handled by this crate, using get_id and get_rev to get the values (before sending data to couchdb) and set_id and set_rev to set them (after receiving data from couchdb).
-/// *Note*, when reading documents from couchdb directly, if whichever field name is used to store the revision is different from "_rev" (e.g. "my_rev"), the value will always be "the last value of _rev" as updating "_rev is handled by couchdb, not this crate. This should be transparent to users of this crate
-/// because set_rev will be called before returning the document to the user, so the user will always see the correct value.
+/// Trait to deal with typed `CouchDB` documents.
+/// For types implementing this trait, the _id and _rev fields on the json data sent/received to/from couchdb are automatically handled by this crate, using `get_id` and `get_rev` to get the values (before sending data to couchdb) and `set_id` and `set_rev` to set them (after receiving data from couchdb).
+/// *Note*, when reading documents from couchdb directly, if whichever field name is used to store the revision is different from "_rev" (e.g. "`my_rev`"), the value will always be "the last value of _rev" as updating "_rev is handled by couchdb, not this crate. This should be transparent to users of this crate
+/// because `set_rev` will be called before returning the document to the user, so the user will always see the correct value.
 pub trait TypedCouchDocument: DeserializeOwned + Serialize + Sized {
     /// get the _id field
     fn get_id(&self) -> Cow<str>;
@@ -101,6 +101,11 @@ pub struct DocResponseValue {
 }
 
 impl<T: TypedCouchDocument> DocumentCollection<T> {
+    /// Create a new document collection from an `AllDocsResponse`
+    ///
+    /// # Panics
+    /// Panics if the `total_rows` field is greater than `u32::MAX`
+    #[must_use]
     pub fn new(doc: AllDocsResponse<T>) -> DocumentCollection<T> {
         let rows = doc.rows;
         let items: Vec<T> = rows
@@ -118,14 +123,19 @@ impl<T: TypedCouchDocument> DocumentCollection<T> {
 
         DocumentCollection {
             offset: doc.offset,
-            total_rows: items.len() as u32,
+            total_rows: u32::try_from(items.len()).expect("total_rows > u32::MAX is not supported"),
             rows: items,
             bookmark: Option::None,
         }
     }
 
+    /// Create a new document collection from a `Vec` of documents
+    ///
+    /// # Panics
+    /// Panics if the `total_rows` field is greater than `u32::MAX`
+    #[must_use]
     pub fn new_from_documents(docs: Vec<T>, bookmark: Option<String>) -> DocumentCollection<T> {
-        let len = docs.len() as u32;
+        let len = u32::try_from(docs.len()).expect("total_rows > u32::MAX is not supported");
         DocumentCollection {
             offset: Some(0),
             total_rows: len,
@@ -134,8 +144,13 @@ impl<T: TypedCouchDocument> DocumentCollection<T> {
         }
     }
 
+    /// Create a new document collection from a `Vec` of `Value` documents
+    ///
+    /// # Panics
+    /// Panics if the `total_rows` field is greater than `u32::MAX`
+    #[must_use]
     pub fn new_from_values(docs: Vec<Value>, bookmark: Option<String>) -> DocumentCollection<T> {
-        let len = docs.len() as u32;
+        let len = u32::try_from(docs.len()).expect("total_rows > u32::MAX is not supported");
 
         DocumentCollection {
             offset: Some(0),
@@ -149,6 +164,7 @@ impl<T: TypedCouchDocument> DocumentCollection<T> {
     }
 
     /// Returns raw JSON data from documents
+    #[must_use]
     pub fn get_data(&self) -> &Vec<T> {
         &self.rows
     }

@@ -1,8 +1,8 @@
-//! # CouchDB library for Rust
+//! # `CouchDB` library for Rust
 //!
 //! ## Description
 //!
-//! This crate is an interface to CouchDB HTTP REST API. Works with stable Rust.
+//! This crate is an interface to `CouchDB` HTTP REST API. Works with stable Rust.
 //!
 //! This library is a spin-off based on the excellent work done by Mathieu Amiot and others at Yellow Innovation on the
 //! Sofa library. The original project can be found at https://github.com/YellowInnovation/sofa
@@ -15,7 +15,7 @@
 //!
 //! **NOT 1.0 YET, so expect changes**
 //!
-//! **Supports CouchDB 2.3.0 and up, including the newly released 3.0 version.**
+//! **Supports `CouchDB` 2.3.0 and up, including the newly released 3.0 version.**
 //!
 //! Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/index.html) in detail to see what's possible.
 //!
@@ -28,9 +28,9 @@
 //!
 //! ## Running tests
 //!
-//! Make sure that you have an instance of CouchDB 2.0+ running, either via the supplied `docker-compose.yml` file or by yourself. It must be listening on the default port.
+//! Make sure that you have an instance of `CouchDB` 2.0+ running, either via the supplied `docker-compose.yml` file or by yourself. It must be listening on the default port.
 //! Since Couch 3.0 the "Admin Party" mode is no longer supported. This means you need to provide a username and password during launch.
-//! The tests and examples assume an "admin" CouchDB user with a "password" CouchDB password. Docker run command:
+//! The tests and examples assume an "admin" `CouchDB` user with a "password" `CouchDB` password. Docker run command:
 //!
 //! ```shell script
 //! docker run --rm -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PW=password couchdb:3
@@ -116,6 +116,9 @@ pub use couch_rs_derive::*;
 
 pub use std::borrow::Cow;
 
+// Re-export the http crate which is used in `CouchError`.
+pub use http;
+
 /// Macros that the crate exports to facilitate most of the
 /// doc-to-json-to-string-related tasks
 #[allow(unused_macros)]
@@ -137,15 +140,15 @@ mod macros {
         };
     }
 
-    /// Automatic call to serde_json::to_string() function, with prior
-    /// Document::get_data() call to get documents' inner data
+    /// Automatic call to `serde_json::to_string()` function, with prior
+    /// `Document::get_data()` call to get documents' inner data
     macro_rules! dtj {
         ($e:expr) => {
             js!(&$e.get_data())
         };
     }
 
-    /// Automatic call to serde_json::to_string() function
+    /// Automatic call to `serde_json::to_string()` function
     macro_rules! js {
         ($e:expr) => {
             serde_json::to_string(&$e).unwrap()
@@ -183,22 +186,22 @@ mod macros {
 }
 
 mod client;
-/// Database operations on a CouchDB Database.
+/// Database operations on a `CouchDB` Database.
 pub mod database;
 
-/// Typed Database operations on a CouchDB Database.
+/// Typed Database operations on a `CouchDB`` Database.
 pub mod typed;
 
-/// Document model to support CouchDB document operations.
+/// Document model to support `CouchDB` document operations.
 pub mod document;
-/// Error wrappers for the HTTP status codes returned by CouchDB.
+/// Error wrappers for the HTTP status codes returned by `CouchDB`.
 pub mod error;
-/// Data types to support CouchDB management operations
+/// Data types to support `CouchDB` management operations
 pub mod management;
 /// Trait that provides methods that can be used to switch between abstract Document and
 /// concrete Model implementors (such as your custom data models)
 pub mod model;
-/// Data types to support CouchDB operations.
+/// Data types to support `CouchDB` operations.
 pub mod types;
 
 mod changes;

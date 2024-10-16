@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-/// Membership state of a CouchDB cluster.
+/// Membership state of a `CouchDB` cluster.
 /// See [_membership](https://docs.couchdb.org/en/latest/api/server/common.html?#membership) for more details.
 #[derive(Deserialize, Debug)]
 pub struct Membership {
@@ -8,7 +8,7 @@ pub struct Membership {
     pub all_nodes: Vec<String>,
 }
 
-/// Cluster setup state of a CouchDB cluster.
+/// Cluster setup state of a `CouchDB` cluster.
 /// See [_cluster_setup](https://docs.couchdb.org/en/latest/api/server/common.html?#cluster-setup) for more details.
 #[derive(Deserialize, Debug)]
 pub struct ClusterSetupGetResponse {
@@ -21,6 +21,7 @@ pub struct EnsureDbsExist {
 }
 
 impl EnsureDbsExist {
+    #[must_use]
     pub fn with_dbs(ensure_dbs_exist: Vec<String>) -> Self {
         Self { ensure_dbs_exist }
     }

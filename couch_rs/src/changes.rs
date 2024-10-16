@@ -17,14 +17,14 @@ use tokio_stream::wrappers::LinesStream;
 use tokio_util::io::StreamReader;
 
 /// The max timeout value for longpoll/continous HTTP requests
-/// that CouchDB supports (see [1]).
+/// that `CouchDB` supports (see [1]).
 ///
 /// [1]: https://docs.couchdb.org/en/stable/api/database/changes.html
 const COUCH_MAX_TIMEOUT: usize = 60000;
 
 /// The stream for the `_changes` endpoint.
 ///
-/// This is returned from [Database::changes].
+/// This is returned from [`Database::changes`].
 pub struct ChangesStream {
     last_seq: Option<serde_json::Value>,
     client: Client,
@@ -78,9 +78,10 @@ impl ChangesStream {
     /// the stream will return all changes until now and then close.
     pub fn set_infinite(&mut self, infinite: bool) {
         self.infinite = infinite;
-        let timeout = match infinite {
-            true => COUCH_MAX_TIMEOUT.to_string(),
-            false => 0.to_string(),
+        let timeout = if infinite {
+            COUCH_MAX_TIMEOUT.to_string()
+        } else {
+            0.to_string()
         };
         self.params.insert("timeout".to_string(), timeout);
     }
@@ -97,7 +98,7 @@ impl ChangesStream {
 }
 
 async fn get_changes(client: Client, database: String, params: HashMap<String, String>) -> CouchResult<Response> {
-    let path = format!("{}/_changes", database);
+    let path = format!("{database}/_changes");
     let res = client.req(Method::GET, &path, Some(&params)).send().await?;
     Ok(res)
 }
@@ -117,22 +118,21 @@ impl Stream for ChangesStream {
                 }
                 ChangesStreamState::Requesting(ref mut fut) => match ready!(fut.poll_unpin(cx)) {
                     Err(err) => return Poll::Ready(Some(Err(err))),
-                    Ok(res) => match res.status().is_success() {
-                        true => {
+                    Ok(res) => {
+                        if res.status().is_success() {
                             let stream = res
                                 .bytes_stream()
                                 .map_err(|err| io::Error::new(io::ErrorKind::Other, err));
                             let reader = StreamReader::new(stream);
                             let lines = Box::pin(LinesStream::new(reader.lines()));
                             ChangesStreamState::Reading(lines)
-                        }
-                        false => {
+                        } else {
                             return Poll::Ready(Some(Err(CouchError::new(
                                 res.status().canonical_reason().unwrap().to_string(),
                                 res.status(),
-                            ))))
+                            ))));
                         }
-                    },
+                    }
                 },
                 ChangesStreamState::Reading(ref mut lines) => {
                     let line = ready!(lines.poll_next_unpin(cx));
@@ -152,7 +152,7 @@ impl Stream for ChangesStream {
                                 }
                                 _ => {
                                     return Poll::Ready(Some(Err(CouchError::new(
-                                        format!("{}", err),
+                                        format!("{err}"),
                                         StatusCode::from_u16(500).unwrap(),
                                     ))));
                                 }

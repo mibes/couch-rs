@@ -22,7 +22,7 @@ async fn main() {
         let db = client.db(TEST_DB).await.unwrap();
 
         if let Err(err) = db.get_all_batched(tx, 0, 0).await {
-            println!("error during batch read: {:?}", err);
+            println!("error during batch read: {err:?}");
         }
     });
 

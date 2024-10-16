@@ -29,10 +29,10 @@ async fn main() -> CouchResult<()> {
     let result: RawViewCollection<String, bool> = db.query("test_design", "funny_guys", None).await?;
 
     println!("Funny guys:");
-    for item in result.rows.into_iter() {
+    for item in result.rows {
         let id = item.key;
         let is_funny = item.value;
-        println!("{} is funny: {}", id, is_funny);
+        println!("{id} is funny: {is_funny}");
     }
     Ok(())
 }

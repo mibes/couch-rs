@@ -5,7 +5,7 @@ use std::{error, fmt, sync::Arc};
 // implementation, or do something in between.
 #[derive(Debug, Clone)]
 pub enum CouchError {
-    /// A CouchDB operation failed, typically indicated by a specific HTTP error status that was returned.
+    /// A `CouchDB` operation failed, typically indicated by a specific HTTP error status that was returned.
     OperationFailed(ErrorDetails),
     /// Parsing of a JSON document failed.
     InvalidJson(ErrorMessage),
@@ -20,7 +20,7 @@ pub struct ErrorDetails {
     /// Some (bulk) transaction might return an id as part of the error
     pub id: Option<String>,
     /// HTTP Status Code
-    pub status: reqwest::StatusCode,
+    pub status: http::StatusCode,
     /// Detailed error message
     pub message: String,
     upstream: Option<UpstreamError>,
@@ -37,7 +37,8 @@ type UpstreamError = Arc<dyn error::Error + Send + Sync + 'static>;
 pub type CouchResult<T> = Result<T, CouchError>;
 
 impl CouchError {
-    pub fn new(message: String, status: reqwest::StatusCode) -> CouchError {
+    #[must_use]
+    pub fn new(message: String, status: http::StatusCode) -> CouchError {
         CouchError::OperationFailed(ErrorDetails {
             id: None,
             message,
@@ -46,7 +47,8 @@ impl CouchError {
         })
     }
 
-    pub fn new_with_id(id: Option<String>, message: String, status: reqwest::StatusCode) -> CouchError {
+    #[must_use]
+    pub fn new_with_id(id: Option<String>, message: String, status: http::StatusCode) -> CouchError {
         CouchError::OperationFailed(ErrorDetails {
             id,
             message,
@@ -55,11 +57,13 @@ impl CouchError {
         })
     }
 
+    #[must_use]
     pub fn is_not_found(&self) -> bool {
-        self.status() == Some(reqwest::StatusCode::NOT_FOUND)
+        self.status() == Some(http::StatusCode::NOT_FOUND)
     }
 
-    pub fn status(&self) -> Option<reqwest::StatusCode> {
+    #[must_use]
+    pub fn status(&self) -> Option<http::StatusCode> {
         match self {
             CouchError::OperationFailed(details) => Some(details.status),
             _ => None,
@@ -121,7 +125,7 @@ impl std::convert::From<reqwest::Error> for CouchError {
     fn from(err: reqwest::Error) -> Self {
         CouchError::OperationFailed(ErrorDetails {
             id: None,
-            status: err.status().unwrap_or(reqwest::StatusCode::NOT_IMPLEMENTED),
+            status: err.status().unwrap_or(http::StatusCode::NOT_IMPLEMENTED),
             message: err.to_string(),
             upstream: Some(Arc::new(err)),
         })

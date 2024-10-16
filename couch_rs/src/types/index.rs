@@ -1,4 +1,4 @@
-use super::*;
+use super::{document, find};
 use document::DocumentId;
 use find::SortSpec;
 use serde::{Deserialize, Serialize};
@@ -11,6 +11,7 @@ pub struct IndexFields {
 }
 
 impl IndexFields {
+    #[must_use]
     pub fn new(fields: Vec<SortSpec>) -> IndexFields {
         IndexFields { fields }
     }

@@ -42,8 +42,8 @@ impl CouchJsonExt for reqwest::Response {
     }
 }
 
-/// Database operations on a CouchDB Database
-/// (sometimes called Collection in other NoSQL flavors such as MongoDB).
+/// Database operations on a `CouchDB` Database
+/// (sometimes called Collection in other `NoSQL` flavors such as `MongoDB`).
 #[derive(Debug, Clone)]
 pub struct Database {
     _client: Client,
@@ -51,11 +51,13 @@ pub struct Database {
 }
 
 impl Database {
+    #[must_use]
     pub fn new(name: String, client: Client) -> Database {
         Database { _client: client, name }
     }
 
     // convenience function to retrieve the name of the database
+    #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -100,7 +102,7 @@ impl Database {
         let mut path: String = self.name.clone();
         path.push_str("/_compact");
 
-        let request = self._client.post(&path, "".into());
+        let request = self._client.post(&path, String::new());
         is_accepted(request).await
     }
 
@@ -109,13 +111,13 @@ impl Database {
         let mut path: String = self.name.clone();
         path.push_str("/_view_cleanup");
 
-        let request = self._client.post(&path, "".into());
+        let request = self._client.post(&path, String::new());
         is_accepted(request).await
     }
 
     /// Starts the compaction of a given index
     pub async fn compact_index(&self, index: &str) -> bool {
-        let request = self._client.post(&self.create_compact_path(index), "".into());
+        let request = self._client.post(&self.create_compact_path(index), String::new());
         is_accepted(request).await
     }
 
@@ -145,7 +147,7 @@ impl Database {
         is_ok(request).await
     }
 
-    /// Convenience wrapper around get::<Value>(id)
+    /// Convenience wrapper around `get::`<Value>(id)
     pub async fn get_raw(&self, id: &str) -> CouchResult<Value> {
         self.get(id).await
     }
@@ -228,13 +230,13 @@ impl Database {
         self.get_bulk_params(ids, None).await
     }
 
-    /// Each time a document is stored or updated in CouchDB, the internal B-tree is updated.
+    /// Each time a document is stored or updated in `CouchDB`, the internal B-tree is updated.
     /// Bulk insertion provides efficiency gains in both storage space, and time,
     /// by consolidating many of the updates to intermediate B-tree nodes.
     ///
-    /// See the documentation on how to use bulk_docs here: [db-bulk-docs](https://docs.couchdb.org/en/stable/api/database/bulk-api.html#db-bulk-docs)
+    /// See the documentation on how to use `bulk_docs` here: [db-bulk-docs](https://docs.couchdb.org/en/stable/api/database/bulk-api.html#db-bulk-docs)
     ///
-    /// raw_docs is a vector of documents with or without an ID
+    /// `raw_docs` is a vector of documents with or without an ID
     ///
     /// This endpoint can also be used to delete a set of documents by including "_deleted": true, in the document to be deleted.
     /// When deleting or updating, both _id and _rev are mandatory.
@@ -378,12 +380,12 @@ impl Database {
 
     /// Gets all documents in the database, using bookmarks to iterate through all the documents.
     /// Results are returned through an mpcs channel for async processing. Use this for very large
-    /// databases only. Batch size can be requested. A value of 0, means the default batch_size of
-    /// 1000 is used. max_results of 0 means all documents will be returned. A given max_results is
-    /// always rounded *up* to the nearest multiplication of batch_size.
-    /// This operation is identical to find_batched(FindQuery::find_all(), tx, batch_size, max_results)
+    /// databases only. Batch size can be requested. A value of 0, means the default `batch_size` of
+    /// 1000 is used. `max_results` of 0 means all documents will be returned. A given `max_results` is
+    /// always rounded *up* to the nearest multiplication of `batch_size`.
+    /// This operation is identical to `find_batched(FindQuery::find_all()`, tx, `batch_size`, `max_results`)
     ///
-    /// Check out the async_batch_read example for usage details
+    /// Check out the `async_batch_read` example for usage details
     pub async fn get_all_batched<T: TypedCouchDocument>(
         &self,
         tx: Sender<DocumentCollection<T>>,
@@ -396,11 +398,11 @@ impl Database {
 
     /// Finds documents in the database, using bookmarks to iterate through all the documents.
     /// Results are returned through an mpcs channel for async processing. Use this for very large
-    /// databases only. Batch size can be requested. A value of 0, means the default batch_size of
-    /// 1000 is used. max_results of 0 means all documents will be returned. A given max_results is
-    /// always rounded *up* to the nearest multiplication of batch_size.
+    /// databases only. Batch size can be requested. A value of 0, means the default `batch_size` of
+    /// 1000 is used. `max_results` of 0 means all documents will be returned. A given `max_results` is
+    /// always rounded *up* to the nearest multiplication of `batch_size`.
     ///
-    /// Check out the async_batch_read example for usage details
+    /// Check out the `async_batch_read` example for usage details
     pub async fn find_batched<T: TypedCouchDocument>(
         &self,
         mut query: FindQuery,
@@ -416,7 +418,7 @@ impl Database {
 
         let maybe_err = loop {
             let mut segment_query = query.clone();
-            segment_query.bookmark = bookmark.clone();
+            segment_query.bookmark.clone_from(&bookmark);
             let all_docs = match self.find(&segment_query).await {
                 Ok(docs) => docs,
                 Err(err) => break Some(err),
@@ -434,7 +436,7 @@ impl Database {
                 break None;
             }
 
-            results += all_docs.total_rows as u64;
+            results += u64::from(all_docs.total_rows);
 
             if let Err(_err) = tx.send(all_docs).await {
                 break None;
@@ -453,7 +455,7 @@ impl Database {
     }
 
     /// Executes multiple specified built-in view queries of all documents in this database.
-    /// This enables you to request multiple queries in a single request, in place of multiple POST /{db}/_all_docs requests.
+    /// This enables you to request multiple queries in a single request, in place of multiple POST /{db}/_`all_docs` requests.
     /// [More information](https://docs.couchdb.org/en/stable/api/database/bulk-api.html#sending-multiple-queries-to-a-database)
     /// Parameters description can be found [here](https://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view)
     ///
@@ -562,7 +564,7 @@ impl Database {
     }
 
     /// Finds a document in the database through a Mango query as raw Values.
-    /// Convenience function for find::<Value>(query)
+    /// Convenience function for `find::`<Value>(query)
     ///
     /// Usage:
     /// ```
@@ -651,8 +653,8 @@ impl Database {
         }
     }
 
-    /// Saves a document to CouchDB. When the provided document includes both an `_id` and a `_rev`
-    /// CouchDB will attempt to update the document. When only an `_id` is provided, the `save`
+    /// Saves a document to `CouchDB`. When the provided document includes both an `_id` and a `_rev`
+    /// `CouchDB` will attempt to update the document. When only an `_id` is provided, the `save`
     /// method behaves like `create` and will attempt to create the document.
     ///
     /// Usage:
@@ -921,9 +923,9 @@ impl Database {
 
     /// Executes a query against a view.
     /// Make sure the types you use for K, V and T represent the structures the query will return.
-    /// For example, if a query can return a `null` value, but the type used for query() is <K:String, V:String, T:TypedCouchDocument>
+    /// For example, if a query can return a `null` value, but the type used for `query()` is <K:String, V:String, T:TypedCouchDocument>
     /// the couchdb query will succeed but deserialising the overall result will fail ('null' cannot be deserialized to String).
-    /// In such case, you can use serde::Value since it can hold both 'null' and String.
+    /// In such case, you can use `serde::Value` since it can hold both 'null' and String.
     ///
     /// Usage:
     /// ```
@@ -1049,14 +1051,14 @@ impl Database {
     ///
     /// Arguments to this function include name, index specification, index type, and the
     /// design document to which the index will be written. See [CouchDB docs](https://docs.couchdb.org/en/latest/api/database/find.html#db-index)
-    /// for more explanation on parameters for indices. The index_type and design doc
+    /// for more explanation on parameters for indices. The `index_type` and design doc
     /// fields are optional.
     ///
-    /// Indexes do not have unique names, so no index can be "edited". If insert_index is called
+    /// Indexes do not have unique names, so no index can be "edited". If `insert_index` is called
     /// where there is an existing index with the same name but a different definition, then
-    /// a new index is created and the [DesignCreated] return value's result field will be "exists".
-    /// If insert_index is called where there is an existing index with
-    /// both the same name and same definition, no new index is created, and the [DesignCreated]
+    /// a new index is created and the [`DesignCreated`] return value's result field will be "exists".
+    /// If `insert_index` is called where there is an existing index with
+    /// both the same name and same definition, no new index is created, and the [`DesignCreated`]
     /// return value's result field will be "created".
     /// Usage:
     /// ```rust
@@ -1149,7 +1151,7 @@ impl Database {
 
     /// Deletes a db index. Returns true if successful, false otherwise.
     pub async fn delete_index(&self, ddoc: DocumentId, name: String) -> CouchResult<bool> {
-        let uri = format!("_index/{}/json/{}", ddoc, name);
+        let uri = format!("_index/{ddoc}/json/{name}");
 
         match self
             ._client
@@ -1171,15 +1173,12 @@ impl Database {
     #[deprecated(since = "0.9.1", note = "please use `insert_index` instead")]
     pub async fn ensure_index(&self, name: &str, spec: IndexFields) -> CouchResult<bool> {
         let result: DesignCreated = self.insert_index(name, spec, None, None).await?;
-        let r = match result.result {
-            Some(r) => r,
-            None => {
-                return Err(CouchError::new_with_id(
-                    result.id,
-                    "DesignCreated did not return 'result' field as expected".to_string(),
-                    reqwest::StatusCode::INTERNAL_SERVER_ERROR,
-                ))
-            }
+        let Some(r) = result.result else {
+            return Err(CouchError::new_with_id(
+                result.id,
+                "DesignCreated did not return 'result' field as expected".to_string(),
+                reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+            ));
         };
 
         if r == "created" {
@@ -1189,13 +1188,14 @@ impl Database {
         }
     }
 
-    /// A streaming handler for the CouchDB `_changes` endpoint.
+    /// A streaming handler for the `CouchDB` `_changes` endpoint.
     ///
     /// See the [CouchDB docs](https://docs.couchdb.org/en/stable/api/database/changes.html)
     /// for details on the semantics.
     ///
     /// It can return all changes from a `seq` string, and can optionally run in infinite (live)
     /// mode.
+    #[must_use]
     pub fn changes(&self, last_seq: Option<serde_json::Value>) -> ChangesStream {
         ChangesStream::new(self._client.clone(), self.name.clone(), last_seq)
     }
@@ -1229,9 +1229,7 @@ fn to_upsert_value(doc: &impl TypedCouchDocument) -> CouchResult<serde_json::Map
 
 fn get_value_map(doc: &impl TypedCouchDocument) -> CouchResult<serde_json::Map<String, Value>> {
     let value = serde_json::to_value(doc)?;
-    let value = if let serde_json::Value::Object(value) = value {
-        value
-    } else {
+    let serde_json::Value::Object(value) = value else {
         return Err(CouchError::new(
             s!("invalid document type, expected something that deserializes as json object"),
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -1251,7 +1249,6 @@ fn set_if_not_empty(field_name: &str, field_value: &str, value: &mut serde_json:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::error::CouchError;
     use http::response::Builder;
     use reqwest::{Response, ResponseBuilderExt, Url};
 
@@ -1299,16 +1296,13 @@ mod tests {
     async fn test_unexpected_json_error() {
         let response = build_json_response(r#"{"foo": "bar"}"#);
         let x = response.couch_json::<Baz>().await;
-        assert_json_error(
-            x,
-            "error decoding response body: missing field `_baz` at line 1 column 14",
-        );
+        assert_json_error(x, "error decoding response body");
     }
 
     #[tokio::test]
     async fn test_invalid_json_error() {
         let response = build_json_response("not even json");
         let x = response.couch_json::<Baz>().await;
-        assert_json_error(x, "error decoding response body: expected ident at line 1 column 2");
+        assert_json_error(x, "error decoding response body");
     }
 }

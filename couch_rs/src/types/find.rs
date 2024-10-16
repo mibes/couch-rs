@@ -134,6 +134,7 @@ impl Default for SelectAll {
 }
 
 impl SelectAll {
+    #[must_use]
     pub fn as_value(&self) -> Value {
         self.into()
     }
@@ -165,12 +166,14 @@ macro_rules! find_all_selector {
 /// let _query = FindQuery::find_all().skip(10).limit(10);
 /// ```
 impl FindQuery {
+    #[must_use]
     pub fn new_from_value(query: Value) -> Self {
         query.into()
     }
 
     // Create a new FindQuery from a valid selector. The selector syntax is documented here:
     // https://docs.couchdb.org/en/latest/api/database/find.html#find-selectors
+    #[must_use]
     pub fn new(selector: Value) -> Self {
         FindQuery {
             selector,
@@ -188,64 +191,77 @@ impl FindQuery {
         }
     }
 
+    #[must_use]
     pub fn find_all() -> Self {
         Self::new(SelectAll::default().as_value())
     }
 
+    #[must_use]
     pub fn as_value(&self) -> Value {
         self.into()
     }
 
+    #[must_use]
     pub fn limit(mut self, limit: u64) -> Self {
         self.limit = Some(limit);
         self
     }
 
+    #[must_use]
     pub fn skip(mut self, skip: u64) -> Self {
         self.skip = Some(skip);
         self
     }
 
+    #[must_use]
     pub fn sort(mut self, sort: Vec<SortSpec>) -> Self {
         self.sort = sort;
         self
     }
 
+    #[must_use]
     pub fn fields(mut self, fields: Vec<String>) -> Self {
         self.fields = Some(fields);
         self
     }
 
+    #[must_use]
     pub fn use_index(mut self, use_index: IndexSpec) -> Self {
         self.use_index = Some(use_index);
         self
     }
 
+    #[must_use]
     pub fn r(mut self, r: i32) -> Self {
         self.r = Some(r);
         self
     }
 
+    #[must_use]
     pub fn bookmark(mut self, bookmark: &str) -> Self {
         self.bookmark = Some(bookmark.to_string());
         self
     }
 
+    #[must_use]
     pub fn update(mut self, update: bool) -> Self {
         self.update = Some(update);
         self
     }
 
+    #[must_use]
     pub fn stable(mut self, stable: bool) -> Self {
         self.stable = Some(stable);
         self
     }
 
+    #[must_use]
     pub fn stale(mut self, stale: &str) -> Self {
         self.stale = Some(stale.to_string());
         self
     }
 
+    #[must_use]
     pub fn execution_stats(mut self, execution_stats: bool) -> Self {
         self.execution_stats = Some(execution_stats);
         self
@@ -295,13 +311,13 @@ mod tests {
         assert_eq!(
             r#"{"limit":10,"selector":{"_id":{"$ne":null}},"skip":20,"sort":[{"first_name":"desc"}]}"#,
             json
-        )
+        );
     }
 
     #[test]
     fn test_default_select_all() {
         let selector = FindQuery::find_all().as_value().to_string();
-        assert_eq!(selector, r#"{"selector":{"_id":{"$ne":null}}}"#)
+        assert_eq!(selector, r#"{"selector":{"_id":{"$ne":null}}}"#);
     }
 
     #[test]

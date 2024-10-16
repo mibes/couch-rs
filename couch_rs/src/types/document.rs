@@ -2,10 +2,10 @@ use crate::error::{CouchError, CouchResult};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
-/// String that represents a Document ID in CouchDB
+/// String that represents a Document ID in `CouchDB`
 pub type DocumentId = String;
 
-/// DocumentRef<T> is an abstraction over populated/unpopulated data fields
+/// `DocumentRef`<T> is an abstraction over populated/unpopulated data fields
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(untagged)]
 pub enum DocumentRef<T> {
