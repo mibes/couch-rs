@@ -103,6 +103,9 @@
 //! See the `database` module for additional usage examples. Or have a look at the `examples` in the
 //! GitHub repositiory.
 //!
+//! The `typed` module provides a typed wrapper around `Database` where all operations are performed on a specific generic type.
+//! This is useful when you want to work with a specific type of document for all operations on a database insteance as the compiler
+//! will flag any errors at compile time if different types are mixed using the same database instance.
 
 // Re-export #[derive(CouchDocument)].
 #[cfg(feature = "couch_rs_derive")]
@@ -189,7 +192,7 @@ mod client;
 /// Database operations on a `CouchDB` Database.
 pub mod database;
 
-/// Typed Database operations on a `CouchDB`` Database.
+/// Typed Database operations on a `CouchDB` Database.
 pub mod typed;
 
 /// Document model to support `CouchDB` document operations.
