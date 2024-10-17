@@ -10,12 +10,12 @@
 //! The Sofa library lacked support for async I/O, and missed a few essential operations we needed in our projects. That's
 //! why I've decided to create a new project based on the original Sofa code.
 //!
-//! The rust-rs library has been updated to the Rust 2018 edition standards, uses async I/O, and compiles against the latest serde and
+//! The rust-rs library has been updated to the Rust 2021 edition standards, uses async I/O, and compiles against the latest serde and
 //! reqwest libraries.
 //!
 //! **NOT 1.0 YET, so expect changes**
 //!
-//! **Supports `CouchDB` 2.3.0 and up, including the newly released 3.0 version.**
+//! **Supports `CouchDB` 2.3.0 and up. Used in production with various `CouchDB` versions, including 3.4.1**
 //!
 //! Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/index.html) in detail to see what's possible.
 //!
