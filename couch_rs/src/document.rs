@@ -9,6 +9,7 @@ pub const ID_FIELD: &str = "_id";
 pub const REV_FIELD: &str = "_rev";
 
 /// Trait to deal with typed `CouchDB` documents.
+///
 /// For types implementing this trait, the _id and _rev fields on the json data sent/received to/from couchdb are automatically handled by this crate, using `get_id` and `get_rev` to get the values (before sending data to couchdb) and `set_id` and `set_rev` to set them (after receiving data from couchdb).
 /// *Note*, when reading documents from couchdb directly, if whichever field name is used to store the revision is different from "_rev" (e.g. "`my_rev`"), the value will always be "the last value of _rev" as updating "_rev is handled by couchdb, not this crate. This should be transparent to users of this crate
 /// because `set_rev` will be called before returning the document to the user, so the user will always see the correct value.

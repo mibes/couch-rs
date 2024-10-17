@@ -17,6 +17,7 @@ use crate::types::query::{QueriesParams, QueryParams};
 use crate::types::view::ViewCollection;
 
 /// Wraps a database that will create/read/update/delete documents of a specific type.
+///
 /// This helps catching errors at compile time in case multiple instances of Database are used and each Database is supposed to handle a different type of document.
 pub struct Database<T: TypedCouchDocument> {
     db: RawDatabase,
