@@ -125,7 +125,7 @@ impl<T: TypedCouchDocument> DocumentCollection<T> {
             offset: doc.offset,
             total_rows: u32::try_from(items.len()).expect("total_rows > u32::MAX is not supported"),
             rows: items,
-            bookmark: Option::None,
+            bookmark: None,
         }
     }
 

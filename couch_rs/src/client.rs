@@ -51,7 +51,7 @@ pub(crate) async fn is_ok(request: RequestBuilder) -> bool {
 /// It is also responsible for the creation/access/destruction of databases.
 #[derive(Debug, Clone)]
 pub struct Client {
-    _client: reqwest::Client,
+    client: reqwest::Client,
     _gzip: bool,
     _timeout: Option<u64>,
     uri: Url,
@@ -66,21 +66,21 @@ const DEFAULT_TIME_OUT: u64 = 10;
 impl Client {
     /// new creates a new Couch client with a default timeout of 10 seconds.
     /// The timeout is applied from when the request starts connecting until the response body has finished.
-    /// The URI has to be in this format: http://hostname:5984, for example: http://192.168.64.5:5984
+    /// The URI has to be in this format: <http://hostname:5984>, for example: <http://192.168.64.5:5984>
     pub fn new(uri: &str, username: &str, password: &str) -> CouchResult<Client> {
         Client::new_with_timeout(uri, Some(username), Some(password), Some(DEFAULT_TIME_OUT))
     }
 
     /// `new_no_auth` creates a new Couch client with a default timeout of 10 seconds. *Without authentication*.
     /// The timeout is applied from when the request starts connecting until the response body has finished.
-    /// The URI has to be in this format: http://hostname:5984, for example: http://192.168.64.5:5984
+    /// The URI has to be in this format: <http://hostname:5984>, for example: <http://192.168.64.5:5984>
     pub fn new_no_auth(uri: &str) -> CouchResult<Client> {
         Client::new_with_timeout(uri, None, None, Some(DEFAULT_TIME_OUT))
     }
 
     /// `new_local_test` creates a new Couch client *for testing purposes* with a default timeout of 10 seconds.
     /// The timeout is applied from when the request starts connecting until the response body has finished.
-    /// The URI that will be used is: http://hostname:5984, with a username of "admin" and a password
+    /// The URI that will be used is: <http://hostname:5984>, with a username of "admin" and a password
     /// of "password". Use this only for testing!!!
     pub fn new_local_test() -> CouchResult<Client> {
         Client::new_with_timeout(
@@ -91,7 +91,7 @@ impl Client {
         )
     }
 
-    /// `new_with_timeout` creates a new Couch client. The URI has to be in this format: http://hostname:5984,
+    /// `new_with_timeout` creates a new Couch client. The URI has to be in this format: <http://hostname:5984>,
     /// The timeout is applied from when the request starts connecting until the response body has finished.
     /// Timeout is in seconds.
     ///
@@ -103,7 +103,7 @@ impl Client {
         password: Option<&str>,
         timeout: Option<u64>,
     ) -> CouchResult<Client> {
-        let mut headers = header::HeaderMap::new();
+        let mut headers = HeaderMap::new();
 
         if let Some(username) = username {
             let mut header_value = b"Basic ".to_vec();
@@ -116,7 +116,7 @@ impl Client {
                 }
             }
 
-            let auth_header = header::HeaderValue::from_bytes(&header_value).expect("can not set AUTHORIZATION header");
+            let auth_header = HeaderValue::from_bytes(&header_value).expect("can not set AUTHORIZATION header");
             headers.insert(header::AUTHORIZATION, auth_header);
         }
 
@@ -127,7 +127,7 @@ impl Client {
         let client = client_builder.build()?;
 
         Ok(Client {
-            _client: client,
+            client,
             uri: parse_server(uri)?,
             _gzip: true,
             _timeout: timeout,
@@ -317,7 +317,7 @@ impl Client {
             }
         }
 
-        self._client
+        self.client
             .request(method, uri.as_str())
             .headers(construct_json_headers(Some(uri.as_str())))
     }
