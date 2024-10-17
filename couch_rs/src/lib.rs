@@ -119,11 +119,9 @@ extern crate couch_rs_derive;
 #[cfg(feature = "couch_rs_derive")]
 #[doc(hidden)]
 pub use couch_rs_derive::*;
-
-pub use std::borrow::Cow;
-
 // Re-export the http crate which is used in `CouchError`.
 pub use http;
+pub use std::borrow::Cow;
 
 /// Macros that the crate exports to facilitate most of the
 /// doc-to-json-to-string-related tasks
@@ -219,9 +217,7 @@ pub use client::Client;
 #[cfg(test)]
 mod couch_rs_tests {
     use crate as couch_rs;
-    use couch_rs::document::TypedCouchDocument;
-    use couch_rs::types::document::DocumentId;
-    use couch_rs::CouchDocument;
+    use couch_rs::{document::TypedCouchDocument, types::document::DocumentId, CouchDocument};
     use serde::{Deserialize, Serialize};
     use std::borrow::Cow;
 
@@ -265,11 +261,12 @@ mod couch_rs_tests {
     }
 
     mod client_tests {
-        use crate::client::Client;
-        use crate::couch_rs_tests::TestDoc;
-        use crate::couch_rs_tests::TestDocImplementing;
-        use crate::document::TypedCouchDocument;
-        use crate::error::CouchError;
+        use crate::{
+            client::Client,
+            couch_rs_tests::{TestDoc, TestDocImplementing},
+            document::TypedCouchDocument,
+            error::CouchError,
+        };
         use reqwest::StatusCode;
         use serde_json::json;
 
@@ -564,19 +561,24 @@ mod couch_rs_tests {
     }
 
     mod database_tests {
-        use crate::document::{DocumentCollection, TypedCouchDocument};
-        use crate::error::CouchResultExt;
-        use crate::management::ClusterSetup;
-        use crate::management::EnsureDbsExist;
-        use crate::types;
-        use crate::types::find::FindQuery;
-        use crate::types::query::{QueriesParams, QueryParams};
-        use crate::types::view::{CouchFunc, CouchViews};
-        use crate::{client::Client, types::view::ViewCollection};
-        use crate::{database::Database, error::CouchResult};
+        use crate::{
+            client::Client,
+            database::Database,
+            document::{DocumentCollection, TypedCouchDocument},
+            error::{CouchResult, CouchResultExt},
+            management::{ClusterSetup, EnsureDbsExist},
+            types,
+            types::{
+                find::FindQuery,
+                query::{QueriesParams, QueryParams},
+                view::{CouchFunc, CouchViews, ViewCollection},
+            },
+        };
         use serde_json::{json, Value};
-        use tokio::sync::mpsc;
-        use tokio::sync::mpsc::{Receiver, Sender};
+        use tokio::sync::{
+            mpsc,
+            mpsc::{Receiver, Sender},
+        };
 
         async fn setup(dbname: &str) -> (Client, Database, Value) {
             let client = Client::new_local_test().unwrap();

@@ -1,6 +1,7 @@
-use couch_rs::error::CouchResult;
-use couch_rs::types::view::RawViewCollection;
-use couch_rs::types::view::{CouchFunc, CouchViews};
+use couch_rs::{
+    error::CouchResult,
+    types::view::{CouchFunc, CouchViews, RawViewCollection},
+};
 use serde_json::json;
 
 const TEST_DB: &str = "view_db";

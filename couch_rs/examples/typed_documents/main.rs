@@ -1,9 +1,7 @@
 #![allow(clippy::pub_underscore_fields)]
 #![allow(clippy::used_underscore_binding)]
 
-use couch_rs::document::TypedCouchDocument;
-use couch_rs::types::document::DocumentId;
-use couch_rs::CouchDocument;
+use couch_rs::{document::TypedCouchDocument, types::document::DocumentId, CouchDocument};
 use serde::{Deserialize, Serialize};
 
 const TEST_DB: &str = "test_db";

@@ -1,20 +1,22 @@
-use std::marker::PhantomData;
-
+use crate::{
+    changes::ChangesStream,
+    client::Client,
+    database::Database as RawDatabase,
+    document::{DocumentCollection, TypedCouchDocument},
+    error::CouchResult,
+    types::{
+        design::DesignCreated,
+        document::{DocumentCreatedResult, DocumentId},
+        find::FindQuery,
+        index::{DatabaseIndexList, IndexFields, IndexType},
+        query::{QueriesParams, QueryParams},
+        view::ViewCollection,
+    },
+};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
+use std::marker::PhantomData;
 use tokio::sync::mpsc::Sender;
-
-use crate::changes::ChangesStream;
-use crate::client::Client;
-use crate::database::Database as RawDatabase;
-use crate::document::{DocumentCollection, TypedCouchDocument};
-use crate::error::CouchResult;
-use crate::types::design::DesignCreated;
-use crate::types::document::{DocumentCreatedResult, DocumentId};
-use crate::types::find::FindQuery;
-use crate::types::index::{DatabaseIndexList, IndexFields, IndexType};
-use crate::types::query::{QueriesParams, QueryParams};
-use crate::types::view::ViewCollection;
 
 /// Wraps a database that will create/read/update/delete documents of a specific type.
 ///

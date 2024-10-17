@@ -1,10 +1,10 @@
 use couch_rs::document::DocumentCollection;
 use serde_json::Value;
-use std::fs::File;
-use std::io::prelude::*;
-use std::time::SystemTime;
-use tokio::sync::mpsc;
-use tokio::sync::mpsc::{Receiver, Sender};
+use std::{fs::File, io::prelude::*, time::SystemTime};
+use tokio::sync::{
+    mpsc,
+    mpsc::{Receiver, Sender},
+};
 
 const TEST_DB: &str = "test_db";
 

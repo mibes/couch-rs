@@ -1,6 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 use crate::error::{CouchError, CouchResult, ErrorMessage};
+use serde::{Deserialize, Serialize};
 
 /// Design document created abstraction
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]

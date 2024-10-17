@@ -105,6 +105,7 @@ async fn get_changes(client: Client, database: String, params: HashMap<String, S
 
 impl Stream for ChangesStream {
     type Item = CouchResult<ChangeEvent>;
+
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         loop {
             self.state = match self.state {
