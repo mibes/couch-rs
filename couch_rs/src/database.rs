@@ -1,13 +1,19 @@
-use crate::{changes::ChangesStream, client::{is_accepted, is_ok, Client}, document::{DocumentCollection, TypedCouchDocument, ID_FIELD, REV_FIELD}, error, error::{CouchError, CouchResult, ErrorMessage}, types::{
-    design::DesignCreated,
-    document::{DocumentCreatedDetails, DocumentCreatedResponse, DocumentCreatedResult, DocumentId},
-    find::{FindQuery, FindResult},
-    index::{DatabaseIndexList, DeleteIndexResponse, IndexFields, IndexType},
-    query::{QueriesCollection, QueriesParams, QueryParams},
-    view::ViewCollection,
-}};
+use crate::{
+    changes::ChangesStream,
+    client::{is_accepted, is_ok, Client},
+    document::{DocumentCollection, TypedCouchDocument, ID_FIELD, REV_FIELD},
+    error::{CouchError, CouchResult, ErrorMessage},
+    types::{
+        design::DesignCreated,
+        document::{DocumentCreatedDetails, DocumentCreatedResponse, DocumentCreatedResult, DocumentId},
+        find::{FindQuery, FindResult},
+        index::{DatabaseIndexList, DeleteIndexResponse, IndexFields, IndexType},
+        query::{QueriesCollection, QueriesParams, QueryParams},
+        view::ViewCollection,
+    },
+};
 use futures_core::Future;
-use reqwest::{Error, Response, StatusCode};
+use reqwest::StatusCode;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{from_value, json, to_string, Value};
 use std::{collections::HashMap, fmt::Debug, pin::Pin, sync::Arc};
@@ -1040,7 +1046,7 @@ impl Database {
             }
             Err(e) => {
                 let id: String = doc.get_id().into();
-                Err(error::CouchError::new_with_id(
+                Err(CouchError::new_with_id(
                     Some(id),
                     "Failed to delete document".to_string(),
                     e.status().unwrap_or(StatusCode::BAD_REQUEST))
