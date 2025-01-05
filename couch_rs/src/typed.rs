@@ -190,7 +190,7 @@ impl<T: TypedCouchDocument> Database<T> {
     }
 
     /// See [`Database::remove`](crate::database::Database::remove)
-    pub async fn remove(&self, doc: &T) -> bool {
+    pub async fn remove(&self, doc: &T) -> CouchResult<()> {
         self.db.remove(doc).await
     }
 

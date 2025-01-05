@@ -1,19 +1,13 @@
-use crate::{
-    changes::ChangesStream,
-    client::{is_accepted, is_ok, Client},
-    document::{DocumentCollection, TypedCouchDocument, ID_FIELD, REV_FIELD},
-    error::{CouchError, CouchResult, ErrorMessage},
-    types::{
-        design::DesignCreated,
-        document::{DocumentCreatedDetails, DocumentCreatedResponse, DocumentCreatedResult, DocumentId},
-        find::{FindQuery, FindResult},
-        index::{DatabaseIndexList, DeleteIndexResponse, IndexFields, IndexType},
-        query::{QueriesCollection, QueriesParams, QueryParams},
-        view::ViewCollection,
-    },
-};
+use crate::{changes::ChangesStream, client::{is_accepted, is_ok, Client}, document::{DocumentCollection, TypedCouchDocument, ID_FIELD, REV_FIELD}, error, error::{CouchError, CouchResult, ErrorMessage}, types::{
+    design::DesignCreated,
+    document::{DocumentCreatedDetails, DocumentCreatedResponse, DocumentCreatedResult, DocumentId},
+    find::{FindQuery, FindResult},
+    index::{DatabaseIndexList, DeleteIndexResponse, IndexFields, IndexType},
+    query::{QueriesCollection, QueriesParams, QueryParams},
+    view::ViewCollection,
+}};
 use futures_core::Future;
-use reqwest::StatusCode;
+use reqwest::{Error, Response, StatusCode};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{from_value, json, to_string, Value};
 use std::{collections::HashMap, fmt::Debug, pin::Pin, sync::Arc};
@@ -1035,12 +1029,24 @@ impl Database {
     ///     Ok(())
     /// }
     ///```
-    pub async fn remove<T: TypedCouchDocument>(&self, doc: &T) -> bool {
+    pub async fn remove<T: TypedCouchDocument>(&self, doc: &T) -> CouchResult<()> {
         let mut h = HashMap::new();
         h.insert(s!("rev"), doc.get_rev().into_owned());
 
         let request = self.client.delete(&self.create_document_path(&doc.get_id()), Some(&h));
-        is_ok(request).await
+        match request.send().await {
+            Ok(_) => {
+                Ok(())
+            }
+            Err(e) => {
+                let id: String = doc.get_id().into();
+                Err(error::CouchError::new_with_id(
+                    Some(id),
+                    "Failed to delete document".to_string(),
+                    e.status().unwrap_or(StatusCode::BAD_REQUEST))
+                )
+            }
+        }
     }
 
     /// Inserts an index on a database, using the `_index` endpoint.
