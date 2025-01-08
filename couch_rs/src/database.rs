@@ -1041,16 +1041,14 @@ impl Database {
 
         let request = self.client.delete(&self.create_document_path(&doc.get_id()), Some(&h));
         match request.send().await {
-            Ok(_) => {
-                Ok(())
-            }
+            Ok(_) => Ok(()),
             Err(e) => {
                 let id: String = doc.get_id().into();
                 Err(CouchError::new_with_id(
                     Some(id),
                     "Failed to delete document".to_string(),
-                    e.status().unwrap_or(StatusCode::BAD_REQUEST))
-                )
+                    e.status().unwrap_or(StatusCode::BAD_REQUEST),
+                ))
             }
         }
     }
