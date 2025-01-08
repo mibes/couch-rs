@@ -1035,12 +1035,24 @@ impl Database {
     ///     Ok(())
     /// }
     ///```
-    pub async fn remove<T: TypedCouchDocument>(&self, doc: &T) -> bool {
+    pub async fn remove<T: TypedCouchDocument>(&self, doc: &T) -> CouchResult<()> {
         let mut h = HashMap::new();
         h.insert(s!("rev"), doc.get_rev().into_owned());
 
         let request = self.client.delete(&self.create_document_path(&doc.get_id()), Some(&h));
-        is_ok(request).await
+        match request.send().await {
+            Ok(_) => {
+                Ok(())
+            }
+            Err(e) => {
+                let id: String = doc.get_id().into();
+                Err(CouchError::new_with_id(
+                    Some(id),
+                    "Failed to delete document".to_string(),
+                    e.status().unwrap_or(StatusCode::BAD_REQUEST))
+                )
+            }
+        }
     }
 
     /// Inserts an index on a database, using the `_index` endpoint.

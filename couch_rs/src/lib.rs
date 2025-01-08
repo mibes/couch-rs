@@ -462,7 +462,7 @@ mod couch_rs_tests {
             assert!(!my_doc.get_rev().is_empty(), "Found empty _rev for document {my_doc:?}");
 
             let document: TestDocImplementing = db.get(&my_doc.my_id).await.expect("can not get doc");
-            assert!(db.remove(&document).await, "can not remove doc {document:?}");
+            assert!(db.remove(&document).await.is_ok(), "can not remove doc {document:?}");
 
             client
                 .destroy_db("create_read_remove_with_rev")
@@ -504,7 +504,7 @@ mod couch_rs_tests {
             assert!(!my_doc.get_rev().is_empty(), "Found empty _rev for document {my_doc:?}");
 
             let document: TestDocImplementing = db.get(UNIQUE_ID).await.expect("can not get doc");
-            assert!(db.remove(&document).await, "can not remove doc");
+            assert!(db.remove(&document).await.is_ok(), "can not remove doc");
 
             client
                 .destroy_db("should_keep_id_bulk_creating_a_typed_document_implementing")
@@ -645,7 +645,7 @@ mod couch_rs_tests {
             let dbname = "should_handle_a_document_plus";
             let (client, db, mut doc) = setup(dbname).await;
 
-            assert!(db.remove(&doc).await);
+            assert!(db.remove(&doc).await.is_ok());
             // make sure db is empty
             assert_eq!(db.get_all_raw().await.unwrap().rows.len(), 0);
 
@@ -662,7 +662,7 @@ mod couch_rs_tests {
             assert_eq!(db.get_all_raw().await.unwrap().rows.len(), 1);
 
             // delete it
-            assert!(db.remove(&created).await);
+            assert!(db.remove(&created).await.is_ok());
             // make sure db has no docs
             assert_eq!(db.get_all_raw().await.unwrap().rows.len(), 0);
 
@@ -672,7 +672,7 @@ mod couch_rs_tests {
         #[tokio::test]
         async fn should_remove_a_document() {
             let (client, db, doc) = setup("should_remove_a_document").await;
-            assert!(db.remove(&doc).await);
+            assert!(db.remove(&doc).await.is_ok());
 
             teardown(client, "should_remove_a_document").await;
         }
@@ -787,7 +787,7 @@ mod couch_rs_tests {
 
             let collection = db.get_bulk_raw(vec![id]).await.unwrap();
             assert_eq!(collection.rows.len(), 1);
-            assert!(db.remove(&doc).await);
+            assert!(db.remove(&doc).await.is_ok());
 
             teardown(client, "should_bulk_get_a_document").await;
         }
@@ -800,7 +800,7 @@ mod couch_rs_tests {
 
             let collection = db.get_bulk_raw(vec![id, invalid_id]).await.unwrap();
             assert_eq!(collection.rows.len(), 1);
-            assert!(db.remove(&doc).await);
+            assert!(db.remove(&doc).await.is_ok());
 
             teardown(client, "should_bulk_get_invalid_documents").await;
         }
@@ -814,7 +814,7 @@ mod couch_rs_tests {
 
             let collection = db.get_all_params_raw(Some(params)).await.unwrap();
             assert_eq!(collection.rows.len(), 1);
-            assert!(db.remove(&doc).await);
+            assert!(db.remove(&doc).await.is_ok());
 
             teardown(client, "should_get_all_documents_with_keys").await;
         }
@@ -892,8 +892,8 @@ mod couch_rs_tests {
                 0
             );
 
-            assert!(db.remove(&second_doc).await);
-            assert!(db.remove(&doc).await);
+            assert!(db.remove(&second_doc).await.is_ok());
+            assert!(db.remove(&doc).await.is_ok());
 
             teardown(client, db_name).await;
         }
@@ -968,8 +968,8 @@ mod couch_rs_tests {
                 0
             );
 
-            assert!(db.remove(&ndoc).await);
-            assert!(db.remove(&doc).await);
+            assert!(db.remove(&ndoc).await.is_ok());
+            assert!(db.remove(&doc).await.is_ok());
 
             teardown(client, db_name).await;
         }
@@ -1051,8 +1051,8 @@ mod couch_rs_tests {
                 1
             );
 
-            assert!(db.remove(&ndoc).await);
-            assert!(db.remove(&doc).await);
+            assert!(db.remove(&ndoc).await.is_ok());
+            assert!(db.remove(&doc).await.is_ok());
 
             teardown(client, dbname).await;
         }
@@ -1088,7 +1088,7 @@ mod couch_rs_tests {
             assert!(collections.get(2).unwrap().rows.first().unwrap().doc.is_none());
 
             for doc in docs {
-                assert!(db.remove(&doc).await);
+                assert!(db.remove(&doc).await.is_ok());
             }
 
             teardown(client, dbname).await;
