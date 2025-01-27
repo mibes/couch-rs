@@ -1,5 +1,6 @@
 pub mod changes;
 pub mod design;
+pub mod design_info;
 pub mod document;
 pub mod find;
 pub mod index;

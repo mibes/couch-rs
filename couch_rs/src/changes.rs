@@ -87,8 +87,8 @@ impl ChangesStream {
     }
 
     /// Get the last retrieved seq.
-    pub fn last_seq(&self) -> &Option<serde_json::Value> {
-        &self.last_seq
+    pub fn last_seq(&self) -> Option<&serde_json::Value> {
+        self.last_seq.as_ref()
     }
 
     /// Whether this stream is running in infinite mode.

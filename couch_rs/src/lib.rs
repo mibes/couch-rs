@@ -919,6 +919,11 @@ mod couch_rs_tests {
             )
             .await
             .unwrap();
+
+            // get the view's design information
+            let design_info = db.get_design_info(view_name).await.unwrap();
+            assert_eq!(design_info.name, view_name);
+
             let mut ndoc = json!({
                 "thing": true
             });

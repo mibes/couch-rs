@@ -5,6 +5,7 @@ use crate::{
     error::{CouchError, CouchResult, ErrorMessage},
     types::{
         design::DesignCreated,
+        design_info::DesignInfo,
         document::{DocumentCreatedDetails, DocumentCreatedResponse, DocumentCreatedResult, DocumentId},
         find::{FindQuery, FindResult},
         index::{DatabaseIndexList, DeleteIndexResponse, IndexFields, IndexType},
@@ -210,8 +211,7 @@ impl Database {
             .await?
             .error_for_status()?
             .couch_json()
-            .await
-            .map_err(CouchError::from)?;
+            .await?;
         let id = get_mandatory_string_value(ID_FIELD, &value)?;
         let rev = get_mandatory_string_value(REV_FIELD, &value)?;
         let mut document: T = from_value(value)?;
@@ -1204,6 +1204,22 @@ impl Database {
     #[must_use]
     pub fn changes(&self, last_seq: Option<Value>) -> ChangesStream {
         ChangesStream::new(self.client.clone(), self.name.clone(), last_seq)
+    }
+
+    /// Get information about the specified design document, including the index, index size and current status of the
+    /// design document and associated index information.
+    ///
+    /// See the [CouchDB docs](https://docs.couchdb.org/en/stable/api/ddoc/common.html#db-design-ddoc-info)
+    /// for more information.
+    pub async fn get_design_info(&self, design_name: &str) -> CouchResult<DesignInfo> {
+        let uri = format!("{}/_info", self.create_design_path(design_name));
+        self.client
+            .get(&uri, None)
+            .send()
+            .await?
+            .json::<DesignInfo>()
+            .await
+            .map_err(CouchError::from)
     }
 }
 
