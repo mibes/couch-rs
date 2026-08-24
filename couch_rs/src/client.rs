@@ -53,8 +53,6 @@ pub(crate) async fn is_ok(request: RequestBuilder) -> bool {
 #[allow(clippy::struct_field_names)]
 pub struct Client {
     client: reqwest::Client,
-    _gzip: bool,
-    _timeout: Option<u64>,
     uri: Url,
     pub db_prefix: String,
 }
@@ -142,14 +140,8 @@ impl Client {
         Ok(Client {
             client,
             uri: parse_server(uri)?,
-            _gzip: true,
-            _timeout: timeout,
             db_prefix: String::new(),
         })
-    }
-
-    pub fn get_self(&mut self) -> &mut Self {
-        self
     }
 
     /// Set the URI of the client
