@@ -10,7 +10,9 @@ use reqwest::{
     Method, RequestBuilder, StatusCode, Url,
     header::{self, CONTENT_TYPE, HeaderMap, HeaderValue, REFERER, USER_AGENT},
 };
-use std::{collections::HashMap, io::Write, time::Duration};
+use std::{collections::HashMap, io::Write};
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::Duration;
 
 fn construct_json_headers(uri: Option<&str>) -> HeaderMap {
     let mut headers = HeaderMap::new();
@@ -112,7 +114,8 @@ impl Client {
         uri: &str,
         username: Option<&str>,
         password: Option<&str>,
-        timeout: Option<u64>,
+        #[cfg(target_arch = "wasm32")] _timeout: Option<u64>,
+        #[cfg(not(target_arch = "wasm32"))] timeout: Option<u64>,
     ) -> CouchResult<Client> {
         let mut headers = HeaderMap::new();
 
@@ -131,6 +134,7 @@ impl Client {
             headers.insert(header::AUTHORIZATION, auth_header);
         }
 
+        #[cfg_attr(target_arch = "wasm32", allow(unused_mut))]
         let mut client_builder = reqwest::Client::builder().default_headers(headers);
 
         #[cfg(not(target_arch = "wasm32"))]

@@ -34,10 +34,20 @@ pub struct ChangesStream {
     infinite: bool,
 }
 
+#[cfg(target_arch = "wasm32")]
+type ChangesRequestFuture = Pin<Box<dyn Future<Output = CouchResult<Response>> + 'static>>;
+#[cfg(not(target_arch = "wasm32"))]
+type ChangesRequestFuture = Pin<Box<dyn Future<Output = CouchResult<Response>> + Send + Sync + 'static>>;
+
+#[cfg(target_arch = "wasm32")]
+type ChangesLineStream = Pin<Box<dyn Stream<Item = io::Result<String>> + 'static>>;
+#[cfg(not(target_arch = "wasm32"))]
+type ChangesLineStream = Pin<Box<dyn Stream<Item = io::Result<String>> + Send + Sync + 'static>>;
+
 enum ChangesStreamState {
     Idle,
-    Requesting(Pin<Box<dyn Future<Output = CouchResult<Response>> + Send + Sync + 'static>>),
-    Reading(Pin<Box<dyn Stream<Item = io::Result<String>> + Send + Sync + 'static>>),
+    Requesting(ChangesRequestFuture),
+    Reading(ChangesLineStream),
 }
 
 impl ChangesStream {
