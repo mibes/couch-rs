@@ -113,7 +113,7 @@ impl Stream for ChangesStream {
                     let mut params = self.params.clone();
                     if let Some(seq) = &self.last_seq {
                         let seq = match seq {
-                            serde_json::Value::String(seq) => seq.to_string(),
+                            serde_json::Value::String(seq) => seq.clone(),
                             _ => seq.to_string(),
                         };
                         params.insert("since".to_string(), seq);
