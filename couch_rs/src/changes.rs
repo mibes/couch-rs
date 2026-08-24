@@ -4,7 +4,7 @@ use crate::{
     types::changes::{ChangeEvent, Event},
 };
 use futures_core::{Future, Stream};
-use futures_util::{ready, FutureExt, StreamExt, TryStreamExt};
+use futures_util::{FutureExt, StreamExt, TryStreamExt, ready};
 use reqwest::{Method, Response, StatusCode};
 use std::{
     collections::HashMap,
@@ -36,8 +36,8 @@ pub struct ChangesStream {
 
 enum ChangesStreamState {
     Idle,
-    Requesting(Pin<Box<dyn Future<Output = CouchResult<Response>>>>),
-    Reading(Pin<Box<dyn Stream<Item = io::Result<String>>>>),
+    Requesting(Pin<Box<dyn Future<Output = CouchResult<Response>> + Send + Sync + 'static>>),
+    Reading(Pin<Box<dyn Stream<Item = io::Result<String>> + Send + Sync + 'static>>),
 }
 
 impl ChangesStream {
@@ -87,8 +87,8 @@ impl ChangesStream {
     }
 
     /// Get the last retrieved seq.
-    pub fn last_seq(&self) -> &Option<serde_json::Value> {
-        &self.last_seq
+    pub fn last_seq(&self) -> Option<&serde_json::Value> {
+        self.last_seq.as_ref()
     }
 
     /// Whether this stream is running in infinite mode.
@@ -105,13 +105,18 @@ async fn get_changes(client: Client, database: String, params: HashMap<String, S
 
 impl Stream for ChangesStream {
     type Item = CouchResult<ChangeEvent>;
+
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         loop {
             self.state = match self.state {
                 ChangesStreamState::Idle => {
                     let mut params = self.params.clone();
                     if let Some(seq) = &self.last_seq {
-                        params.insert("since".to_string(), seq.to_string());
+                        let seq = match seq {
+                            serde_json::Value::String(seq) => seq.to_string(),
+                            _ => seq.to_string(),
+                        };
+                        params.insert("since".to_string(), seq);
                     }
                     let fut = get_changes(self.client.clone(), self.database.clone(), params);
                     ChangesStreamState::Requesting(Box::pin(fut))
@@ -120,9 +125,7 @@ impl Stream for ChangesStream {
                     Err(err) => return Poll::Ready(Some(Err(err))),
                     Ok(res) => {
                         if res.status().is_success() {
-                            let stream = res
-                                .bytes_stream()
-                                .map_err(|err| io::Error::new(io::ErrorKind::Other, err));
+                            let stream = res.bytes_stream().map_err(io::Error::other);
                             let reader = StreamReader::new(stream);
                             let lines = Box::pin(LinesStream::new(reader.lines()));
                             ChangesStreamState::Reading(lines)
@@ -187,7 +190,9 @@ impl Stream for ChangesStream {
 mod tests {
     use crate::client::Client;
     use futures_util::StreamExt;
-    use serde_json::{json, Value};
+    use serde_json::{Value, json};
+    use tokio::join;
+
     #[tokio::test]
     async fn should_get_changes() {
         let client = Client::new_local_test().unwrap();
@@ -217,7 +222,58 @@ mod tests {
                 break;
             }
         }
-        assert!(collected_changes.len() == 10);
+
+        assert_eq!(collected_changes.len(), 10, "should collect 10 changes");
         t.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn can_stream_changes_async() {
+        let client = Client::new_local_test().unwrap();
+        let db = client.db("should_get_changes").await.unwrap();
+        let mut changes = db.changes(None);
+        changes.set_infinite(true);
+
+        let (tx, mut rx) = tokio::sync::mpsc::channel(10);
+
+        let db_update_task = tokio::spawn({
+            let db = db.clone();
+            async move {
+                let mut docs: Vec<Value> = (0..10)
+                    .map(|idx| {
+                        json!({
+                            "_id": format!("test_async_{}", idx),
+                            "count": idx,
+                        })
+                    })
+                    .collect();
+
+                db.bulk_docs(&mut docs).await.expect("should insert 10 documents");
+            }
+        });
+
+        let monitor_task = tokio::spawn(async move {
+            let mut iterations = 0;
+            while let Some(change) = changes.next().await {
+                tx.send(change).await.expect("should send change");
+
+                // stop at 10
+                iterations += 1;
+                if iterations == 10 {
+                    break;
+                }
+            }
+        });
+
+        let mut collected_changes = vec![];
+        while let Some(change) = rx.recv().await {
+            collected_changes.push(change);
+            if collected_changes.len() == 10 {
+                break;
+            }
+        }
+
+        assert_eq!(collected_changes.len(), 10, "should collect 10 changes");
+        let _ = join!(db_update_task, monitor_task);
     }
 }

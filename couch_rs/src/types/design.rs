@@ -1,6 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 use crate::error::{CouchError, CouchResult, ErrorMessage};
+use serde::{Deserialize, Serialize};
 
 /// Design document created abstraction
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
@@ -19,6 +18,10 @@ pub enum Status {
 }
 
 impl DesignCreated {
+    /// Returns the status of the design creation operation.
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the response contains an error or is missing expected fields.
     pub fn status(&self) -> CouchResult<Status> {
         if let Some(result) = &self.result {
             if result == "created" {

@@ -1,4 +1,4 @@
-use std::{error, fmt, sync::Arc};
+use std::{convert::From, error, fmt, sync::Arc};
 
 // Define our error types. These may be customized for our error handling cases.
 // Now we will be able to write our own errors, defer to an underlying error
@@ -73,6 +73,9 @@ impl CouchError {
 
 pub trait CouchResultExt<T> {
     /// turns an Ok into an Ok(Some), a not-found into an Ok(None), otherwise it will return the error.
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the error is not a not-found error.
     fn into_option(self) -> CouchResult<Option<T>>;
 }
 
@@ -121,7 +124,7 @@ impl error::Error for CouchError {
     }
 }
 
-impl std::convert::From<reqwest::Error> for CouchError {
+impl From<reqwest::Error> for CouchError {
     fn from(err: reqwest::Error) -> Self {
         CouchError::OperationFailed(ErrorDetails {
             id: None,
@@ -132,7 +135,7 @@ impl std::convert::From<reqwest::Error> for CouchError {
     }
 }
 
-impl std::convert::From<serde_json::Error> for CouchError {
+impl From<serde_json::Error> for CouchError {
     fn from(err: serde_json::Error) -> Self {
         CouchError::InvalidJson(ErrorMessage {
             message: err.to_string(),
@@ -141,7 +144,7 @@ impl std::convert::From<serde_json::Error> for CouchError {
     }
 }
 
-impl std::convert::From<url::ParseError> for CouchError {
+impl From<url::ParseError> for CouchError {
     fn from(err: url::ParseError) -> Self {
         CouchError::MalformedUrl(ErrorMessage {
             message: err.to_string(),

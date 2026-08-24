@@ -17,7 +17,7 @@ Include this dependency in the Cargo.toml file:
 
 ```toml
 [dependencies]
-couch_rs = "0.10"
+couch_rs = "0.13"
 ```
 
 ## Description
@@ -30,12 +30,11 @@ library. The original project can be found at <https://github.com/YellowInnovati
 The Sofa library lacked support for async I/O, and missed a few essential operations we needed in our projects. That's
 why I've decided to create a new project based on the original Sofa code.
 
-The rust-rs library has been updated to the Rust 2018 edition standards, uses async I/O, and compiles against the latest
-serde and reqwest libraries.
+The rust-rs library has been updated to the Rust 2021 edition standards, uses async I/O, and compiles against the latest serde and reqwest libraries.
 
 **NOT 1.0 YET, so expect changes**
 
-**Supports CouchDB 2.3.0 and up. Used in production with various CouchDB versions, including 3.3.3**
+**Supports CouchDB 2.3.0 and up. Used in production with various CouchDB versions, including 3.4.1**
 
 Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/index.html) in detail to see what's
 possible.
@@ -90,6 +89,28 @@ actually testing features on dbs/documents.
 
 If bash is available on your environment, you can also use the `test.sh` script which basically does the same thing
 described above.
+
+## TLS Backend
+
+By default, `couch_rs` uses `rustls` as the TLS backend for `reqwest`. This provides a pure Rust implementation that works across platforms without requiring system TLS libraries.
+
+### Switching to native-tls
+
+If you need to use the system's native TLS implementation instead (for example, to support system certificate stores or for compatibility with certain corporate proxy configurations), you can disable the default features and explicitly enable `native-tls`:
+
+```toml
+[dependencies]
+couch_rs = { version = "0.13", default-features = false, features = ["derive", "native-tls"] }
+```
+
+Available TLS feature options (choose one):
+- `rustls-tls` (default) - Uses rustls, a pure Rust TLS implementation
+- `native-tls` - Uses the platform's native TLS library (OpenSSL on Linux, Secure Transport on macOS, SChannel on Windows)
+- `native-tls-vendored` - Same as `native-tls`, but compiles and statically links OpenSSL
+- `native-tls-alpn` - Native TLS with ALPN support
+- `rustls-no-provider` - rustls without a default crypto provider (for advanced use cases)
+
+Note: When using `default-features = false`, make sure to re-enable the `derive` feature if you want to use the `#[derive(CouchDocument)]` macro.
 
 ## License
 

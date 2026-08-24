@@ -5,10 +5,10 @@ use crate::{
     types::system::{CouchResponse, CouchStatus, DbInfo},
 };
 use base64::engine::general_purpose;
-use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
+use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
 use reqwest::{
-    header::{self, HeaderMap, HeaderValue, CONTENT_TYPE, REFERER, USER_AGENT},
     Method, RequestBuilder, StatusCode, Url,
+    header::{self, CONTENT_TYPE, HeaderMap, HeaderValue, REFERER, USER_AGENT},
 };
 use std::{collections::HashMap, io::Write, time::Duration};
 
@@ -50,10 +50,9 @@ pub(crate) async fn is_ok(request: RequestBuilder) -> bool {
 /// Client handles the URI manipulation logic and the HTTP calls to the `CouchDB` REST API.
 /// It is also responsible for the creation/access/destruction of databases.
 #[derive(Debug, Clone)]
+#[allow(clippy::struct_field_names)]
 pub struct Client {
-    _client: reqwest::Client,
-    _gzip: bool,
-    _timeout: Option<u64>,
+    client: reqwest::Client,
     uri: Url,
     pub db_prefix: String,
 }
@@ -66,22 +65,31 @@ const DEFAULT_TIME_OUT: u64 = 10;
 impl Client {
     /// new creates a new Couch client with a default timeout of 10 seconds.
     /// The timeout is applied from when the request starts connecting until the response body has finished.
-    /// The URI has to be in this format: http://hostname:5984, for example: http://192.168.64.5:5984
+    /// The URI has to be in this format: <http://hostname:5984>, for example: <http://192.168.64.5:5984>
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the URI is invalid.
     pub fn new(uri: &str, username: &str, password: &str) -> CouchResult<Client> {
         Client::new_with_timeout(uri, Some(username), Some(password), Some(DEFAULT_TIME_OUT))
     }
 
     /// `new_no_auth` creates a new Couch client with a default timeout of 10 seconds. *Without authentication*.
     /// The timeout is applied from when the request starts connecting until the response body has finished.
-    /// The URI has to be in this format: http://hostname:5984, for example: http://192.168.64.5:5984
+    /// The URI has to be in this format: <http://hostname:5984>, for example: <http://192.168.64.5:5984>
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the URI is invalid.
     pub fn new_no_auth(uri: &str) -> CouchResult<Client> {
         Client::new_with_timeout(uri, None, None, Some(DEFAULT_TIME_OUT))
     }
 
     /// `new_local_test` creates a new Couch client *for testing purposes* with a default timeout of 10 seconds.
     /// The timeout is applied from when the request starts connecting until the response body has finished.
-    /// The URI that will be used is: http://hostname:5984, with a username of "admin" and a password
+    /// The URI that will be used is: <http://hostname:5984>, with a username of "admin" and a password
     /// of "password". Use this only for testing!!!
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the URI is invalid.
     pub fn new_local_test() -> CouchResult<Client> {
         Client::new_with_timeout(
             TEST_DB_HOST,
@@ -91,19 +99,22 @@ impl Client {
         )
     }
 
-    /// `new_with_timeout` creates a new Couch client. The URI has to be in this format: http://hostname:5984,
+    /// `new_with_timeout` creates a new Couch client. The URI has to be in this format: <http://hostname:5984>,
     /// The timeout is applied from when the request starts connecting until the response body has finished.
     /// Timeout is in seconds.
     ///
     /// # Panics
     /// Panics when the AUTHORIZATION header can not be set on the request.
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the URI is invalid.
     pub fn new_with_timeout(
         uri: &str,
         username: Option<&str>,
         password: Option<&str>,
         timeout: Option<u64>,
     ) -> CouchResult<Client> {
-        let mut headers = header::HeaderMap::new();
+        let mut headers = HeaderMap::new();
 
         if let Some(username) = username {
             let mut header_value = b"Basic ".to_vec();
@@ -116,7 +127,7 @@ impl Client {
                 }
             }
 
-            let auth_header = header::HeaderValue::from_bytes(&header_value).expect("can not set AUTHORIZATION header");
+            let auth_header = HeaderValue::from_bytes(&header_value).expect("can not set AUTHORIZATION header");
             headers.insert(header::AUTHORIZATION, auth_header);
         }
 
@@ -132,18 +143,16 @@ impl Client {
         }
 
         Ok(Client {
-            _client: client_builder.build()?,
+            client: client_builder.build()?,
             uri: parse_server(uri)?,
-            _gzip: true,
-            _timeout: timeout,
             db_prefix: String::new(),
         })
     }
 
-    pub fn get_self(&mut self) -> &mut Self {
-        self
-    }
-
+    /// Set the URI of the client
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the URI is invalid.
     pub fn set_uri(&mut self, uri: &str) -> CouchResult<&Self> {
         self.uri = parse_server(uri)?;
         Ok(self)
@@ -174,6 +183,9 @@ impl Client {
     ///     Ok(())
     /// }
     ///```
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails.
     pub async fn list_dbs(&self) -> CouchResult<Vec<String>> {
         let response = self.get("/_all_dbs", None).send().await?;
         let data = response.json().await?;
@@ -188,6 +200,9 @@ impl Client {
     }
 
     /// Connect to an existing database, or create a new one, when this one does not exist.
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails.
     pub async fn db(&self, dbname: &str) -> CouchResult<Database> {
         let name = self.build_dbname(dbname);
 
@@ -206,6 +221,9 @@ impl Client {
     }
 
     /// Create a new database with the given name
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails.
     pub async fn make_db(&self, dbname: &str) -> CouchResult<Database> {
         let name = self.build_dbname(dbname);
 
@@ -229,6 +247,9 @@ impl Client {
     }
 
     /// Destroy the database with the given name
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails.
     pub async fn destroy_db(&self, dbname: &str) -> CouchResult<bool> {
         let response = self
             .delete(&self.build_dbname(dbname), None)
@@ -262,6 +283,9 @@ impl Client {
     ///     return Ok(());
     /// }
     /// ```
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails.
     pub async fn exists(&self, dbname: &str) -> CouchResult<bool> {
         let result = self.head(&self.build_dbname(dbname), None).send().await?;
         Ok(result.status().is_success())
@@ -269,6 +293,9 @@ impl Client {
 
     /// Gets information about the specified database.
     /// See [common](https://docs.couchdb.org/en/stable/api/database/common.html) for more details.
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails.
     pub async fn get_info(&self, dbname: &str) -> CouchResult<DbInfo> {
         let response = self
             .get(&self.build_dbname(dbname), None)
@@ -282,6 +309,9 @@ impl Client {
     /// Returns meta information about the instance. The response contains information about the server,
     /// including a welcome message and the version of the server.
     /// See [common](https://docs.couchdb.org/en/stable/api/server/common.html) for more details.
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails.
     pub async fn check_status(&self) -> CouchResult<CouchStatus> {
         let response = self.get("", None).headers(construct_json_headers(None)).send().await?;
 
@@ -291,6 +321,9 @@ impl Client {
 
     /// Returns membership information about the cluster.
     /// See [_membership](https://docs.couchdb.org/en/latest/api/server/common.html?#membership) for more details.
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails.
     pub async fn membership(&self) -> CouchResult<Membership> {
         let response = self.get("/_membership", None).send().await?;
         let membership = response.json().await?;
@@ -299,6 +332,9 @@ impl Client {
 
     /// Returns `cluster_setup` information about the cluster.
     /// See [_cluster_setup](https://docs.couchdb.org/en/latest/api/server/common.html?#cluster-setup) for more details.
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails.
     pub async fn cluster_setup(&self, request: EnsureDbsExist) -> CouchResult<ClusterSetup> {
         let ensure_dbs_array = serde_json::to_value(&request.ensure_dbs_exist)?;
         let ensure_dbs_arrays = serde_json::to_string(&ensure_dbs_array)?;
@@ -322,7 +358,7 @@ impl Client {
             }
         }
 
-        self._client
+        self.client
             .request(method, uri.as_str())
             .headers(construct_json_headers(Some(uri.as_str())))
     }

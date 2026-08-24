@@ -1,10 +1,11 @@
 use crate::{
     changes::ChangesStream,
-    client::{is_accepted, is_ok, Client},
-    document::{DocumentCollection, TypedCouchDocument, ID_FIELD, REV_FIELD},
+    client::{Client, is_accepted, is_ok},
+    document::{DocumentCollection, ID_FIELD, REV_FIELD, TypedCouchDocument},
     error::{CouchError, CouchResult, ErrorMessage},
     types::{
         design::DesignCreated,
+        design_info::DesignInfo,
         document::{DocumentCreatedDetails, DocumentCreatedResponse, DocumentCreatedResult, DocumentId},
         find::{FindQuery, FindResult},
         index::{DatabaseIndexList, DeleteIndexResponse, IndexFields, IndexType},
@@ -14,8 +15,8 @@ use crate::{
 };
 use futures_core::Future;
 use reqwest::StatusCode;
-use serde::{de::DeserializeOwned, Serialize};
-use serde_json::{from_value, json, to_string, Value};
+use serde::{Serialize, de::DeserializeOwned};
+use serde_json::{Value, from_value, json, to_string};
 use std::{collections::HashMap, fmt::Debug, pin::Pin, sync::Arc};
 use tokio::sync::mpsc::Sender;
 
@@ -68,14 +69,14 @@ impl CouchJsonExt for reqwest::Response {
 /// (sometimes called Collection in other `NoSQL` flavors such as `MongoDB`).
 #[derive(Debug, Clone)]
 pub struct Database {
-    _client: Client,
+    client: Client,
     name: String,
 }
 
 impl Database {
     #[must_use]
     pub fn new(name: String, client: Client) -> Database {
-        Database { _client: client, name }
+        Database { client, name }
     }
 
     // convenience function to retrieve the name of the database
@@ -124,7 +125,7 @@ impl Database {
         let mut path: String = self.name.clone();
         path.push_str("/_compact");
 
-        let request = self._client.post(&path, String::new());
+        let request = self.client.post(&path, String::new());
         is_accepted(request).await
     }
 
@@ -133,13 +134,13 @@ impl Database {
         let mut path: String = self.name.clone();
         path.push_str("/_view_cleanup");
 
-        let request = self._client.post(&path, String::new());
+        let request = self.client.post(&path, String::new());
         is_accepted(request).await
     }
 
     /// Starts the compaction of a given index
     pub async fn compact_index(&self, index: &str) -> bool {
-        let request = self._client.post(&self.create_compact_path(index), String::new());
+        let request = self.client.post(&self.create_compact_path(index), String::new());
         is_accepted(request).await
     }
 
@@ -165,11 +166,14 @@ impl Database {
     /// }
     /// ```
     pub async fn exists(&self, id: &str) -> bool {
-        let request = self._client.head(&self.create_document_path(id), None);
+        let request = self.client.head(&self.create_document_path(id), None);
         is_ok(request).await
     }
 
     /// Convenience wrapper around `get::`<Value>(id)
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the document does not exist or the request fails.
     pub async fn get_raw(&self, id: &str) -> CouchResult<Value> {
         self.get(id).await
     }
@@ -224,16 +228,18 @@ impl Database {
     ///     Ok(())
     /// }
     ///```
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the document does not exist, cannot be deserialized, or the request fails.
     pub async fn get<T: TypedCouchDocument>(&self, id: &str) -> CouchResult<T> {
-        let value: serde_json::Value = self
-            ._client
+        let value: Value = self
+            .client
             .get(&self.create_document_path(id), None)
             .send()
             .await?
             .error_for_status()?
             .couch_json()
-            .await
-            .map_err(CouchError::from)?;
+            .await?;
         let id = get_mandatory_string_value(ID_FIELD, &value)?;
         let rev = get_mandatory_string_value(REV_FIELD, &value)?;
         let mut document: T = from_value(value)?;
@@ -243,11 +249,17 @@ impl Database {
     }
 
     /// Gets documents in bulk with provided IDs list
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if any document cannot be retrieved or deserialized, or if the request fails.
     pub async fn get_bulk<T: TypedCouchDocument>(&self, ids: Vec<DocumentId>) -> CouchResult<DocumentCollection<T>> {
         self.get_bulk_params(ids, None).await
     }
 
     /// Gets documents in bulk with provided IDs list, as raw Values
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if any document cannot be retrieved or the request fails.
     pub async fn get_bulk_raw(&self, ids: Vec<DocumentId>) -> CouchResult<DocumentCollection<Value>> {
         self.get_bulk_params(ids, None).await
     }
@@ -284,6 +296,9 @@ impl Database {
     ///    return Ok(());
     /// }
     /// ```
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the bulk operation fails, documents cannot be serialized, or the response size doesn't match the request.
     pub async fn bulk_docs<T: TypedCouchDocument>(
         &self,
         raw_docs: &mut [T],
@@ -294,7 +309,7 @@ impl Database {
             .collect::<CouchResult<_>>()?;
         let body = format!(r#"{{"docs":{} }}"#, to_string(&upsert_values)?);
         let response = self
-            ._client
+            .client
             .post(&self.create_raw_path("_bulk_docs"), body)
             .send()
             .await?;
@@ -370,6 +385,9 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails, documents cannot be deserialized, or query parameters are invalid.
     pub async fn get_bulk_params<T: TypedCouchDocument>(
         &self,
         ids: Vec<DocumentId>,
@@ -381,7 +399,7 @@ impl Database {
         options.keys = ids;
 
         let response = self
-            ._client
+            .client
             .post(&self.create_raw_path("_all_docs"), to_string(&options)?)
             .send()
             .await?
@@ -391,11 +409,17 @@ impl Database {
     }
 
     /// Gets all the documents in database
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails or documents cannot be deserialized.
     pub async fn get_all<T: TypedCouchDocument>(&self) -> CouchResult<DocumentCollection<T>> {
         self.get_all_params(None).await
     }
 
     /// Gets all the documents in database as raw Values
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails.
     pub async fn get_all_raw(&self) -> CouchResult<DocumentCollection<Value>> {
         self.get_all_params(None).await
     }
@@ -408,6 +432,9 @@ impl Database {
     /// This operation is identical to `find_batched(FindQuery::find_all()`, tx, `batch_size`, `max_results`)
     ///
     /// Check out the `async_batch_read` example for usage details
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails, documents cannot be deserialized, or communication through the channel fails.
     pub async fn get_all_batched<T: TypedCouchDocument>(
         &self,
         tx: Sender<DocumentCollection<T>>,
@@ -425,6 +452,9 @@ impl Database {
     /// always rounded *up* to the nearest multiplication of `batch_size`.
     ///
     /// Check out the `async_batch_read` example for usage details
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails, documents cannot be deserialized, or communication through the channel fails.
     pub async fn find_batched<T: TypedCouchDocument>(
         &self,
         mut query: FindQuery,
@@ -432,11 +462,11 @@ impl Database {
         batch_size: u64,
         max_results: u64,
     ) -> CouchResult<u64> {
-        let mut bookmark = Option::None;
+        let mut bookmark = None;
         let limit = if batch_size > 0 { batch_size } else { 1000 };
 
         let mut results: u64 = 0;
-        query.limit = Option::Some(limit);
+        query.limit = Some(limit);
 
         let maybe_err = loop {
             let mut segment_query = query.clone();
@@ -519,6 +549,9 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails or results cannot be deserialized.
     pub async fn query_many_all_docs(
         &self,
         queries: QueriesParams,
@@ -528,6 +561,9 @@ impl Database {
     }
 
     /// Executes multiple queries against a view.
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails or results cannot be deserialized.
     pub async fn query_many(
         &self,
         design_name: &str,
@@ -546,7 +582,7 @@ impl Database {
         // we use POST here, because this allows for a larger set of keys to be provided, compared
         // to a GET call. It provides the same functionality
         let response = self
-            ._client
+            .client
             .post(view_path, js!(&queries))
             .send()
             .await?
@@ -556,6 +592,10 @@ impl Database {
         Ok(results.results)
     }
 
+    /// Gets all documents with parameters, as raw Values
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails or query parameters are invalid.
     pub async fn get_all_params_raw(
         &self,
         params: Option<QueryParams<DocumentId>>,
@@ -565,6 +605,9 @@ impl Database {
 
     /// Gets all the documents in database, with applied parameters.
     /// Parameters description can be found here: [api-ddoc-view](https://docs.couchdb.org/en/latest/api/ddoc/views.html#api-ddoc-view)
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails, documents cannot be deserialized, or query parameters are invalid.
     pub async fn get_all_params<T: TypedCouchDocument>(
         &self,
         params: Option<QueryParams<DocumentId>>,
@@ -576,7 +619,7 @@ impl Database {
         // we use POST here, because this allows for a larger set of keys to be provided, compared
         // to a GET call. It provides the same functionality
         let response = self
-            ._client
+            .client
             .post(&self.create_raw_path("_all_docs"), js!(&options))
             .send()
             .await?
@@ -605,6 +648,9 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the query fails or documents cannot be deserialized.
     pub async fn find_raw(&self, query: &FindQuery) -> CouchResult<DocumentCollection<Value>> {
         self.find(query).await
     }
@@ -643,9 +689,12 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the query fails, documents cannot be deserialized, or the query is invalid.
     pub async fn find<T: TypedCouchDocument>(&self, query: &FindQuery) -> CouchResult<DocumentCollection<T>> {
         let path = self.create_raw_path("_find");
-        let response = self._client.post(&path, js!(query)).send().await?;
+        let response = self.client.post(&path, js!(query)).send().await?;
         let status = response.status();
         let data: FindResult<T> = response.couch_json().await?;
 
@@ -659,7 +708,7 @@ impl Database {
                 })
                 .collect();
 
-            let mut bookmark = Option::None;
+            let mut bookmark = None;
             let returned_bookmark = data.bookmark.unwrap_or_default();
 
             if returned_bookmark != "nil" && !returned_bookmark.is_empty() {
@@ -726,10 +775,13 @@ impl Database {
     ///     Ok(())
     /// }
     ///```
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the document cannot be serialized, the save operation fails, or the document revision conflicts.
     pub async fn save<T: TypedCouchDocument>(&self, doc: &mut T) -> DocumentCreatedResult {
         let id = doc.get_id().to_string();
         let body = to_string(&doc)?;
-        let response = self._client.put(&self.create_document_path(&id), body).send().await?;
+        let response = self.client.put(&self.create_document_path(&id), body).send().await?;
         let status = response.status();
         let data: DocumentCreatedResponse = response.json().await?;
 
@@ -770,9 +822,12 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the document cannot be serialized, the creation fails, or the response is invalid.
     pub async fn create<T: TypedCouchDocument>(&self, doc: &mut T) -> DocumentCreatedResult {
         let value = to_create_value(doc)?;
-        let response = self._client.post(&self.name, to_string(&value)?).send().await?;
+        let response = self.client.post(&self.name, to_string(&value)?).send().await?;
 
         let status = response.status();
         let data: DocumentCreatedResponse = response.json().await?;
@@ -827,6 +882,9 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the document cannot be retrieved, serialized, or the upsert operation fails.
     pub async fn upsert<T: TypedCouchDocument>(&self, doc: &mut T) -> DocumentCreatedResult {
         let id = doc.get_id();
 
@@ -850,10 +908,10 @@ impl Database {
     ///
     /// This will first fetch the latest rev for each document that does not have a rev set. It
     /// will then insert all documents into the database.
-    pub async fn bulk_upsert<T: TypedCouchDocument + Clone>(
-        &self,
-        docs: &mut [T],
-    ) -> CouchResult<Vec<DocumentCreatedResult>> {
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if any document cannot be retrieved, the bulk operation fails, or response data is inconsistent.
+    pub async fn bulk_upsert<T: TypedCouchDocument>(&self, docs: &mut [T]) -> CouchResult<Vec<DocumentCreatedResult>> {
         // First collect all docs that do not have a rev set.
         let mut docs_without_rev = vec![];
         for (i, doc) in docs.iter().enumerate() {
@@ -863,7 +921,7 @@ impl Database {
         }
 
         // Fetch the latest rev for the docs that do not have a rev set.
-        let ids_without_rev: Vec<String> = docs_without_rev.iter().map(|(id, _)| id.to_string()).collect();
+        let ids_without_rev: Vec<String> = docs_without_rev.iter().map(|(id, _)| id.clone()).collect();
         let bulk_get = self.get_bulk::<Value>(ids_without_rev).await?;
         for (req_idx, (sent_id, doc_idx)) in docs_without_rev.iter().enumerate() {
             let result = bulk_get.get_data().get(req_idx);
@@ -913,14 +971,13 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn create_view<T: Into<serde_json::Value>>(
-        &self,
-        design_name: &str,
-        views: T,
-    ) -> CouchResult<DesignCreated> {
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the design document cannot be created or the request fails.
+    pub async fn create_view<T: Into<Value>>(&self, design_name: &str, views: T) -> CouchResult<DesignCreated> {
         let doc: Value = views.into();
         let response = self
-            ._client
+            .client
             .put(&self.create_design_path(design_name), to_string(&doc)?)
             .send()
             .await?;
@@ -937,6 +994,9 @@ impl Database {
     }
 
     /// Executes a query against a view, returning untyped Values
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the query fails or results cannot be deserialized.
     pub async fn query_raw(
         &self,
         design_name: &str,
@@ -993,8 +1053,11 @@ impl Database {
     ///     Ok(())
     /// }
     /// ```
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the query fails, parameters are invalid, or results cannot be deserialized.
     pub async fn query<
-        K: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug + Clone,
+        K: Serialize + DeserializeOwned + PartialEq + Debug + Clone,
         V: DeserializeOwned,
         T: TypedCouchDocument,
     >(
@@ -1007,7 +1070,7 @@ impl Database {
             options = Some(QueryParams::default());
         }
 
-        self._client
+        self.client
             .post(&self.create_query_view_path(design_name, view_name), js!(&options))
             .send()
             .await?
@@ -1018,6 +1081,9 @@ impl Database {
     }
 
     /// Executes an update function.
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the update function fails or the request is invalid.
     pub async fn execute_update(
         &self,
         design_id: &str,
@@ -1030,7 +1096,7 @@ impl Database {
             None => String::default(),
         };
 
-        self._client
+        self.client
             .put(&self.create_execute_update_path(design_id, name, document_id), body)
             .send()
             .await?
@@ -1064,12 +1130,25 @@ impl Database {
     ///     Ok(())
     /// }
     ///```
-    pub async fn remove<T: TypedCouchDocument>(&self, doc: &T) -> bool {
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the document cannot be deleted or the request fails.
+    pub async fn remove<T: TypedCouchDocument>(&self, doc: &T) -> CouchResult<()> {
         let mut h = HashMap::new();
         h.insert(s!("rev"), doc.get_rev().into_owned());
 
-        let request = self._client.delete(&self.create_document_path(&doc.get_id()), Some(&h));
-        is_ok(request).await
+        let request = self.client.delete(&self.create_document_path(&doc.get_id()), Some(&h));
+        match request.send().await {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                let id: String = doc.get_id().into();
+                Err(CouchError::new_with_id(
+                    Some(id),
+                    "Failed to delete document".to_string(),
+                    e.status().unwrap_or(StatusCode::BAD_REQUEST),
+                ))
+            }
+        }
     }
 
     /// Inserts an index on a database, using the `_index` endpoint.
@@ -1124,6 +1203,9 @@ impl Database {
     ///
     /// # Panics
     /// When the internal json! macro fails to create a json object. Not expected to happen.
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the index cannot be created or the request fails.
     pub async fn insert_index(
         &self,
         name: &str,
@@ -1148,7 +1230,7 @@ impl Database {
         }
 
         let response = self
-            ._client
+            .client
             .post(&self.create_raw_path("_index"), js!(Value::Object(body.clone())))
             .send()
             .await?;
@@ -1164,8 +1246,11 @@ impl Database {
     }
 
     /// Reads the database's indexes and returns them
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails or the response cannot be deserialized.
     pub async fn read_indexes(&self) -> CouchResult<DatabaseIndexList> {
-        self._client
+        self.client
             .get(&self.create_raw_path("_index"), None)
             .send()
             .await?
@@ -1175,11 +1260,14 @@ impl Database {
     }
 
     /// Deletes a db index. Returns true if successful, false otherwise.
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails or the response cannot be deserialized.
     pub async fn delete_index(&self, ddoc: DocumentId, name: String) -> CouchResult<bool> {
         let uri = format!("_index/{ddoc}/json/{name}");
 
         match self
-            ._client
+            .client
             .delete(&self.create_raw_path(&uri), None)
             .send()
             .await?
@@ -1195,6 +1283,9 @@ impl Database {
     /// Method to ensure an index is created on the database with the following
     /// spec. Returns `true` when we created a new one, or `false` when the
     /// index was already existing.
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the index cannot be created or the response is invalid.
     #[deprecated(since = "0.9.1", note = "please use `insert_index` instead")]
     pub async fn ensure_index(&self, name: &str, spec: IndexFields) -> CouchResult<bool> {
         let result: DesignCreated = self.insert_index(name, spec, None, None).await?;
@@ -1202,15 +1293,11 @@ impl Database {
             return Err(CouchError::new_with_id(
                 result.id,
                 "DesignCreated did not return 'result' field as expected".to_string(),
-                reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
             ));
         };
 
-        if r == "created" {
-            Ok(true)
-        } else {
-            Ok(false)
-        }
+        if r == "created" { Ok(true) } else { Ok(false) }
     }
 
     /// A streaming handler for the `CouchDB` `_changes` endpoint.
@@ -1221,13 +1308,32 @@ impl Database {
     /// It can return all changes from a `seq` string, and can optionally run in infinite (live)
     /// mode.
     #[must_use]
-    pub fn changes(&self, last_seq: Option<serde_json::Value>) -> ChangesStream {
-        ChangesStream::new(self._client.clone(), self.name.clone(), last_seq)
+    pub fn changes(&self, last_seq: Option<Value>) -> ChangesStream {
+        ChangesStream::new(self.client.clone(), self.name.clone(), last_seq)
+    }
+
+    /// Get information about the specified design document, including the index, index size and current status of the
+    /// design document and associated index information.
+    ///
+    /// See the [CouchDB docs](https://docs.couchdb.org/en/stable/api/ddoc/common.html#db-design-ddoc-info)
+    /// for more information.
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the request fails or the response cannot be deserialized.
+    pub async fn get_design_info(&self, design_name: &str) -> CouchResult<DesignInfo> {
+        let uri = format!("{}/_info", self.create_design_path(design_name));
+        self.client
+            .get(&uri, None)
+            .send()
+            .await?
+            .json::<DesignInfo>()
+            .await
+            .map_err(CouchError::from)
     }
 }
 
 fn get_mandatory_string_value(key: &str, value: &Value) -> CouchResult<String> {
-    let id = if let Some(serde_json::Value::String(id)) = value.get(key) {
+    let id = if let Some(Value::String(id)) = value.get(key) {
         id.to_owned()
     } else {
         return Err(CouchError::new(
@@ -1254,7 +1360,7 @@ fn to_upsert_value(doc: &impl TypedCouchDocument) -> CouchResult<serde_json::Map
 
 fn get_value_map(doc: &impl TypedCouchDocument) -> CouchResult<serde_json::Map<String, Value>> {
     let value = serde_json::to_value(doc)?;
-    let serde_json::Value::Object(value) = value else {
+    let Value::Object(value) = value else {
         return Err(CouchError::new(
             s!("invalid document type, expected something that deserializes as json object"),
             StatusCode::INTERNAL_SERVER_ERROR,

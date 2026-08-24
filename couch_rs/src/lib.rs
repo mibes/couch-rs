@@ -5,17 +5,17 @@
 //! This crate is an interface to `CouchDB` HTTP REST API. Works with stable Rust.
 //!
 //! This library is a spin-off based on the excellent work done by Mathieu Amiot and others at Yellow Innovation on the
-//! Sofa library. The original project can be found at https://github.com/YellowInnovation/sofa
+//! Sofa library. The original project can be found at <https://github.com/YellowInnovation/sofa>
 //!
 //! The Sofa library lacked support for async I/O, and missed a few essential operations we needed in our projects. That's
 //! why I've decided to create a new project based on the original Sofa code.
 //!
-//! The rust-rs library has been updated to the Rust 2018 edition standards, uses async I/O, and compiles against the latest serde and
+//! The rust-rs library has been updated to the Rust 2021 edition standards, uses async I/O, and compiles against the latest serde and
 //! reqwest libraries.
 //!
 //! **NOT 1.0 YET, so expect changes**
 //!
-//! **Supports `CouchDB` 2.3.0 and up, including the newly released 3.0 version.**
+//! **Supports `CouchDB` 2.3.0 and up. Used in production with various `CouchDB` versions, including 3.4.1**
 //!
 //! Be sure to check [CouchDB's Documentation](http://docs.couchdb.org/en/latest/index.html) in detail to see what's possible.
 //!
@@ -103,6 +103,12 @@
 //! See the `database` module for additional usage examples. Or have a look at the `examples` in the
 //! GitHub repositiory.
 //!
+//! The `typed` module provides a typed wrapper around `Database` where all operations are performed on a specific generic type.
+//! This is useful when you want to work with a specific type of document for all operations on a database insteance as the compiler
+//! will flag any errors at compile time if different types are mixed using the same database instance.
+
+#![allow(clippy::used_underscore_binding)]
+#![allow(clippy::pub_underscore_fields)]
 
 // Re-export #[derive(CouchDocument)].
 #[cfg(feature = "couch_rs_derive")]
@@ -113,11 +119,9 @@ extern crate couch_rs_derive;
 #[cfg(feature = "couch_rs_derive")]
 #[doc(hidden)]
 pub use couch_rs_derive::*;
-
-pub use std::borrow::Cow;
-
 // Re-export the http crate which is used in `CouchError`.
 pub use http;
+pub use std::borrow::Cow;
 
 /// Macros that the crate exports to facilitate most of the
 /// doc-to-json-to-string-related tasks
@@ -164,9 +168,7 @@ mod macros {
 
     /// Gets milliseconds from timespec
     macro_rules! tspec_ms {
-        ($tspec:ident) => {{
-            $tspec.sec * 1000 + $tspec.nsec as i64 / 1000000
-        }};
+        ($tspec:ident) => {{ $tspec.sec * 1000 + $tspec.nsec as i64 / 1000000 }};
     }
 
     /// Gets current UNIX time in milliseconds
@@ -179,15 +181,17 @@ mod macros {
 
     /// Url encode path segments
     macro_rules! url_encode {
-        ($id:ident) => {{
-            url::form_urlencoded::byte_serialize($id.as_bytes()).collect::<String>()
-        }};
+        ($id:ident) => {{ url::form_urlencoded::byte_serialize($id.as_bytes()).collect::<String>() }};
     }
 }
 
 mod client;
 /// Database operations on a `CouchDB` Database.
 pub mod database;
+
+/// Typed Database operations on a `CouchDB` Database.
+pub mod typed;
+
 /// Document model to support `CouchDB` document operations.
 pub mod document;
 /// Error wrappers for the HTTP status codes returned by `CouchDB`.
@@ -209,9 +213,7 @@ pub use client::Client;
 #[cfg(test)]
 mod couch_rs_tests {
     use crate as couch_rs;
-    use couch_rs::document::TypedCouchDocument;
-    use couch_rs::types::document::DocumentId;
-    use couch_rs::CouchDocument;
+    use couch_rs::{CouchDocument, document::TypedCouchDocument, types::document::DocumentId};
     use serde::{Deserialize, Serialize};
     use std::borrow::Cow;
 
@@ -233,11 +235,11 @@ mod couch_rs_tests {
         last_name: String,
     }
     impl TypedCouchDocument for TestDocImplementing {
-        fn get_id(&self) -> Cow<str> {
+        fn get_id(&self) -> Cow<'_, str> {
             Cow::Borrowed(&self.my_id)
         }
 
-        fn get_rev(&self) -> Cow<str> {
+        fn get_rev(&self) -> Cow<'_, str> {
             Cow::Borrowed(&self.my_rev)
         }
 
@@ -255,11 +257,12 @@ mod couch_rs_tests {
     }
 
     mod client_tests {
-        use crate::client::Client;
-        use crate::couch_rs_tests::TestDoc;
-        use crate::couch_rs_tests::TestDocImplementing;
-        use crate::document::TypedCouchDocument;
-        use crate::error::CouchError;
+        use crate::{
+            client::Client,
+            couch_rs_tests::{TestDoc, TestDocImplementing},
+            document::TypedCouchDocument,
+            error::CouchError,
+        };
         use reqwest::StatusCode;
         use serde_json::json;
 
@@ -350,8 +353,8 @@ mod couch_rs_tests {
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
             let mut my_doc = TestDoc {
-                _id: "".to_string(),
-                _rev: "".to_string(),
+                _id: String::new(),
+                _rev: String::new(),
                 first_name: "John".to_string(),
                 last_name: "Doe".to_string(),
             };
@@ -373,14 +376,15 @@ mod couch_rs_tests {
 
         #[tokio::test]
         async fn should_keep_id_creating_a_typed_document_deriving() {
+            const UNIQUE_ID: &str = "unique_id";
+
             let client = Client::new_local_test().unwrap();
             let dbw = client.db("should_keep_id_creating_a_typed_document").await;
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
-            const UNIQUE_ID: &str = "unique_id";
             let mut my_doc = TestDoc {
                 _id: UNIQUE_ID.to_string(),
-                _rev: "".to_string(),
+                _rev: String::new(),
                 first_name: "John".to_string(),
                 last_name: "Doe".to_string(),
             };
@@ -439,11 +443,11 @@ mod couch_rs_tests {
             let details = db
                 .create(&mut my_doc)
                 .await
-                .unwrap_or_else(|err| panic!("can not create doc with rev '{}': {}", rev, err));
+                .unwrap_or_else(|err| panic!("can not create doc with rev '{rev}': {err}"));
 
             assert_eq!(details.rev, my_doc.my_rev);
             if autogenerated_id {
-                assert!(!my_doc.get_id().is_empty(), "Found empty _id for document {:?}", my_doc);
+                assert!(!my_doc.get_id().is_empty(), "Found empty _id for document {my_doc:?}");
                 assert_ne!(
                     my_doc.my_id, id,
                     "generated id and original id (empty) should be different"
@@ -451,14 +455,10 @@ mod couch_rs_tests {
             } else {
                 assert_eq!(my_doc.my_id, id);
             }
-            assert!(
-                !my_doc.get_rev().is_empty(),
-                "Found empty _rev for document {:?}",
-                my_doc
-            );
+            assert!(!my_doc.get_rev().is_empty(), "Found empty _rev for document {my_doc:?}");
 
             let document: TestDocImplementing = db.get(&my_doc.my_id).await.expect("can not get doc");
-            assert!(db.remove(&document).await, "can not remove doc {:?}", document);
+            assert!(db.remove(&document).await.is_ok(), "can not remove doc {document:?}");
 
             client
                 .destroy_db("create_read_remove_with_rev")
@@ -468,13 +468,13 @@ mod couch_rs_tests {
 
         #[tokio::test]
         async fn should_keep_id_bulk_creating_a_typed_document_implementing() {
+            const UNIQUE_ID: &str = "unique_id";
             let client = Client::new_local_test().unwrap();
             let dbw = client
                 .db("should_keep_id_bulk_creating_a_typed_document_implementing")
                 .await;
             assert!(dbw.is_ok());
             let db = dbw.unwrap();
-            const UNIQUE_ID: &str = "unique_id";
             let mut my_doc = TestDocImplementing {
                 my_id: UNIQUE_ID.to_string(),
                 my_rev: String::default(),
@@ -486,7 +486,7 @@ mod couch_rs_tests {
             let results = db
                 .bulk_docs(&mut docs)
                 .await
-                .unwrap_or_else(|err| panic!("can not create doc: {}", err));
+                .unwrap_or_else(|err| panic!("can not create doc: {err}"));
             let my_doc = docs.into_iter().next().expect("no doc found");
             let details = results
                 .into_iter()
@@ -497,14 +497,10 @@ mod couch_rs_tests {
                 .expect("no result found");
             assert_eq!(details.rev, my_doc.my_rev);
             assert_eq!(my_doc.my_id, UNIQUE_ID);
-            assert!(
-                !my_doc.get_rev().is_empty(),
-                "Found empty _rev for document {:?}",
-                my_doc
-            );
+            assert!(!my_doc.get_rev().is_empty(), "Found empty _rev for document {my_doc:?}");
 
             let document: TestDocImplementing = db.get(UNIQUE_ID).await.expect("can not get doc");
-            assert!(db.remove(&document).await, "can not remove doc");
+            assert!(db.remove(&document).await.is_ok(), "can not remove doc");
 
             client
                 .destroy_db("should_keep_id_bulk_creating_a_typed_document_implementing")
@@ -561,19 +557,24 @@ mod couch_rs_tests {
     }
 
     mod database_tests {
-        use crate::document::{DocumentCollection, TypedCouchDocument};
-        use crate::error::CouchResultExt;
-        use crate::management::ClusterSetup;
-        use crate::management::EnsureDbsExist;
-        use crate::types;
-        use crate::types::find::FindQuery;
-        use crate::types::query::{QueriesParams, QueryParams};
-        use crate::types::view::{CouchFunc, CouchViews};
-        use crate::{client::Client, types::view::ViewCollection};
-        use crate::{database::Database, error::CouchResult};
-        use serde_json::{json, Value};
-        use tokio::sync::mpsc;
-        use tokio::sync::mpsc::{Receiver, Sender};
+        use crate::{
+            client::Client,
+            database::Database,
+            document::{DocumentCollection, TypedCouchDocument},
+            error::{CouchResult, CouchResultExt},
+            management::{ClusterSetup, EnsureDbsExist},
+            types,
+            types::{
+                find::FindQuery,
+                query::{QueriesParams, QueryParams},
+                view::{CouchFunc, CouchViews, ViewCollection},
+            },
+        };
+        use serde_json::{Value, json};
+        use tokio::sync::{
+            mpsc,
+            mpsc::{Receiver, Sender},
+        };
 
         async fn setup(dbname: &str) -> (Client, Database, Value) {
             let client = Client::new_local_test().unwrap();
@@ -611,14 +612,14 @@ mod couch_rs_tests {
                 let details = ndoc_result.unwrap();
                 assert_eq!(details.rev, doc.get("_rev").unwrap().as_str().unwrap());
 
-                docs.push(doc)
+                docs.push(doc);
             }
 
             (client, db, docs)
         }
 
         async fn teardown(client: Client, dbname: &str) {
-            assert!(client.destroy_db(dbname).await.unwrap())
+            assert!(client.destroy_db(dbname).await.unwrap());
         }
 
         #[tokio::test]
@@ -640,7 +641,7 @@ mod couch_rs_tests {
             let dbname = "should_handle_a_document_plus";
             let (client, db, mut doc) = setup(dbname).await;
 
-            assert!(db.remove(&doc).await);
+            assert!(db.remove(&doc).await.is_ok());
             // make sure db is empty
             assert_eq!(db.get_all_raw().await.unwrap().rows.len(), 0);
 
@@ -657,7 +658,7 @@ mod couch_rs_tests {
             assert_eq!(db.get_all_raw().await.unwrap().rows.len(), 1);
 
             // delete it
-            assert!(db.remove(&created).await);
+            assert!(db.remove(&created).await.is_ok());
             // make sure db has no docs
             assert_eq!(db.get_all_raw().await.unwrap().rows.len(), 0);
 
@@ -667,7 +668,7 @@ mod couch_rs_tests {
         #[tokio::test]
         async fn should_remove_a_document() {
             let (client, db, doc) = setup("should_remove_a_document").await;
-            assert!(db.remove(&doc).await);
+            assert!(db.remove(&doc).await.is_ok());
 
             teardown(client, "should_remove_a_document").await;
         }
@@ -782,7 +783,7 @@ mod couch_rs_tests {
 
             let collection = db.get_bulk_raw(vec![id]).await.unwrap();
             assert_eq!(collection.rows.len(), 1);
-            assert!(db.remove(&doc).await);
+            assert!(db.remove(&doc).await.is_ok());
 
             teardown(client, "should_bulk_get_a_document").await;
         }
@@ -795,7 +796,7 @@ mod couch_rs_tests {
 
             let collection = db.get_bulk_raw(vec![id, invalid_id]).await.unwrap();
             assert_eq!(collection.rows.len(), 1);
-            assert!(db.remove(&doc).await);
+            assert!(db.remove(&doc).await.is_ok());
 
             teardown(client, "should_bulk_get_invalid_documents").await;
         }
@@ -809,7 +810,7 @@ mod couch_rs_tests {
 
             let collection = db.get_all_params_raw(Some(params)).await.unwrap();
             assert_eq!(collection.rows.len(), 1);
-            assert!(db.remove(&doc).await);
+            assert!(db.remove(&doc).await.is_ok());
 
             teardown(client, "should_get_all_documents_with_keys").await;
         }
@@ -825,9 +826,9 @@ mod couch_rs_tests {
                 CouchViews::new(
                     view_name,
                     CouchFunc {
-                        map: r#"function(doc) {{
+                        map: r"function(doc) {{
                                     emit(doc._id, null);
-                            }}"#
+                            }}"
                         .to_string(),
                         reduce: None,
                     },
@@ -848,11 +849,10 @@ mod couch_rs_tests {
                     CouchFunc {
                         map: format!(
                             r#"function(doc) {{
-                                    if(doc._id === "{}") {{
+                                    if(doc._id === "{ndoc_id}") {{
                                         emit(doc._id, null);
                                     }}
-                            }}"#,
-                            ndoc_id
+                            }}"#
                         )
                         .to_string(),
                         reduce: None,
@@ -888,8 +888,8 @@ mod couch_rs_tests {
                 0
             );
 
-            assert!(db.remove(&second_doc).await);
-            assert!(db.remove(&doc).await);
+            assert!(db.remove(&second_doc).await.is_ok());
+            assert!(db.remove(&doc).await.is_ok());
 
             teardown(client, db_name).await;
         }
@@ -905,9 +905,9 @@ mod couch_rs_tests {
                 CouchViews::new(
                     view_name,
                     CouchFunc {
-                        map: r#"function(doc) {{
+                        map: r"function(doc) {{
                                     emit(doc._id, null);
-                            }}"#
+                            }}"
                         .to_string(),
                         reduce: None,
                     },
@@ -915,6 +915,11 @@ mod couch_rs_tests {
             )
             .await
             .unwrap();
+
+            // get the view's design information
+            let design_info = db.get_design_info(view_name).await.unwrap();
+            assert_eq!(design_info.name, view_name);
+
             let mut ndoc = json!({
                 "thing": true
             });
@@ -928,11 +933,10 @@ mod couch_rs_tests {
                     CouchFunc {
                         map: format!(
                             r#"function(doc) {{
-                                    if(doc._id === "{}") {{
+                                    if(doc._id === "{ndoc_id}") {{
                                         emit(doc._id, null);
                                     }}
-                            }}"#,
-                            ndoc_id
+                            }}"#
                         )
                         .to_string(),
                         reduce: None,
@@ -965,8 +969,8 @@ mod couch_rs_tests {
                 0
             );
 
-            assert!(db.remove(&ndoc).await);
-            assert!(db.remove(&doc).await);
+            assert!(db.remove(&ndoc).await.is_ok());
+            assert!(db.remove(&doc).await.is_ok());
 
             teardown(client, db_name).await;
         }
@@ -982,9 +986,9 @@ mod couch_rs_tests {
                 CouchViews::new(
                     view_name,
                     CouchFunc {
-                        map: r#"function(doc) {{
+                        map: r"function(doc) {{
                                     emit(doc._id, null);
-                            }}"#
+                            }}"
                         .to_string(),
                         reduce: None,
                     },
@@ -1005,11 +1009,10 @@ mod couch_rs_tests {
                     CouchFunc {
                         map: format!(
                             r#"function(doc) {{
-                                    if(doc._id === "{}") {{
+                                    if(doc._id === "{ndoc_id}") {{
                                         emit(doc._id, null);
                                     }}
-                            }}"#,
-                            ndoc_id
+                            }}"#
                         )
                         .to_string(),
                         reduce: None,
@@ -1049,8 +1052,8 @@ mod couch_rs_tests {
                 1
             );
 
-            assert!(db.remove(&ndoc).await);
-            assert!(db.remove(&doc).await);
+            assert!(db.remove(&ndoc).await.is_ok());
+            assert!(db.remove(&doc).await.is_ok());
 
             teardown(client, dbname).await;
         }
@@ -1059,7 +1062,7 @@ mod couch_rs_tests {
         async fn should_get_many_all_documents_with_keys() {
             let dbname = "should_get_many_all_documents_with_keys";
             let (client, db, docs) = setup_multiple(dbname, 4).await;
-            let doc = docs.get(0).unwrap();
+            let doc = docs.first().unwrap();
 
             let params1 = QueryParams {
                 key: Some(doc.get_id().into_owned()),
@@ -1075,18 +1078,18 @@ mod couch_rs_tests {
             let collections = db.query_many_all_docs(QueriesParams::new(params)).await.unwrap();
 
             assert_eq!(collections.len(), 3);
-            assert_eq!(collections.get(0).unwrap().rows.len(), 1);
+            assert_eq!(collections.first().unwrap().rows.len(), 1);
             // first result has no docs and only 1 row
-            assert!(collections.get(0).unwrap().rows.get(0).unwrap().doc.is_none());
+            assert!(collections.first().unwrap().rows.first().unwrap().doc.is_none());
             // second result has 4 rows with docs
             assert_eq!(collections.get(1).unwrap().rows.len(), 4);
-            assert!(collections.get(1).unwrap().rows.get(0).unwrap().doc.is_some());
+            assert!(collections.get(1).unwrap().rows.first().unwrap().doc.is_some());
             // third result has 4 rows without docs
             assert_eq!(collections.get(2).unwrap().rows.len(), 4);
-            assert!(collections.get(2).unwrap().rows.get(0).unwrap().doc.is_none());
+            assert!(collections.get(2).unwrap().rows.first().unwrap().doc.is_none());
 
-            for doc in docs.into_iter() {
-                assert!(db.remove(&doc).await);
+            for doc in docs {
+                assert!(db.remove(&doc).await.is_ok());
             }
 
             teardown(client, dbname).await;
@@ -1096,10 +1099,10 @@ mod couch_rs_tests {
         async fn should_handle_null_view_keys() {
             let dbname = "should_handle_null_view_keys";
             let (client, db, docs) = setup_multiple(dbname, 4).await;
-            let doc = docs.get(0).unwrap();
-            let count_by_id = r#"function (doc) {
+            let doc = docs.first().unwrap();
+            let count_by_id = r"function (doc) {
                                         emit(doc._id, null);
-                                    }"#;
+                                    }";
             let view_name = "should_handle_null_view_keys";
             /* a view/reduce like this will return something like the following:
 
@@ -1109,13 +1112,14 @@ mod couch_rs_tests {
 
                this will fail to deserialize if ViewItem.key is a String. It needs to be a Value to cover for all json scenarios
             */
-            assert!(db
-                .create_view(
+            assert!(
+                db.create_view(
                     view_name,
                     CouchViews::new(view_name, CouchFunc::new(count_by_id, Some("_count"))),
                 )
                 .await
-                .is_ok());
+                .is_ok()
+            );
 
             assert!(db.query_raw(view_name, view_name, None).await.is_ok());
 
@@ -1127,11 +1131,11 @@ mod couch_rs_tests {
             let dbname = "should_handle_null_values";
             let nr_of_docs = 4;
             let (client, db, docs) = setup_multiple(dbname, nr_of_docs).await;
-            let doc = docs.get(0).unwrap();
+            let doc = docs.first().unwrap();
             // this view generates 'null' values
-            let count_by_id = r#"function (doc) {
+            let count_by_id = r"function (doc) {
                                         emit(doc._id, null);
-                                    }"#;
+                                    }";
             let view_name = "should_handle_null_values";
             /* a view/reduce like this will return something like the following:
 
@@ -1155,7 +1159,7 @@ mod couch_rs_tests {
             match result {
                 Ok(_) => {}
                 Err(e) => {
-                    panic!("problems executing query: {}", e);
+                    panic!("problems executing query: {e}");
                 }
             }
 
@@ -1235,10 +1239,10 @@ mod couch_rs_tests {
 
             db.bulk_docs(&mut docs).await.expect("should insert documents");
 
-            for doc in docs.iter_mut() {
+            for doc in &mut docs {
                 doc.as_object_mut()
                     .unwrap()
-                    .insert("updated".to_string(), serde_json::Value::Bool(true));
+                    .insert("updated".to_string(), Value::Bool(true));
             }
 
             let res = db.bulk_upsert(&mut docs).await.expect("should upsert documents");
@@ -1253,7 +1257,7 @@ mod couch_rs_tests {
                     docs[i].get_rev()
                 );
             }
-            let ids: Vec<String> = (0..count).map(|idx| format!("bd_{}", idx)).collect();
+            let ids: Vec<String> = (0..count).map(|idx| format!("bd_{idx}")).collect();
             let docs = db.get_bulk::<Value>(ids).await.expect("should get documents");
 
             for i in 0..count {

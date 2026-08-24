@@ -1,6 +1,7 @@
-use couch_rs::document::TypedCouchDocument;
-use couch_rs::types::document::DocumentId;
-use couch_rs::CouchDocument;
+#![allow(clippy::pub_underscore_fields)]
+#![allow(clippy::used_underscore_binding)]
+
+use couch_rs::{CouchDocument, document::TypedCouchDocument, types::document::DocumentId};
 use serde::{Deserialize, Serialize};
 
 const TEST_DB: &str = "test_db";
@@ -11,7 +12,7 @@ pub struct TestDoc {
     /// `CouchDB` stores its documents in a B+ tree. Each additional or updated document is stored as
     /// a leaf node, and may require re-writing intermediary and parent nodes. You may be able to take
     /// advantage of sequencing your own ids more effectively than the automatically generated ids if
-    /// you can arrange them to be sequential yourself. (https://docs.couchdb.org/en/stable/best-practices/documents.html)
+    /// you can arrange them to be sequential yourself. <https://docs.couchdb.org/en/stable/best-practices/documents.html>
     #[serde(skip_serializing_if = "String::is_empty")]
     pub _id: DocumentId,
     /// Document Revision, provided by `CouchDB`, helps negotiating conflicts

@@ -1,4 +1,4 @@
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::Value;
 use std::{
     borrow::Cow,
@@ -9,14 +9,15 @@ pub const ID_FIELD: &str = "_id";
 pub const REV_FIELD: &str = "_rev";
 
 /// Trait to deal with typed `CouchDB` documents.
+///
 /// For types implementing this trait, the _id and _rev fields on the json data sent/received to/from couchdb are automatically handled by this crate, using `get_id` and `get_rev` to get the values (before sending data to couchdb) and `set_id` and `set_rev` to set them (after receiving data from couchdb).
 /// *Note*, when reading documents from couchdb directly, if whichever field name is used to store the revision is different from "_rev" (e.g. "`my_rev`"), the value will always be "the last value of _rev" as updating "_rev is handled by couchdb, not this crate. This should be transparent to users of this crate
 /// because `set_rev` will be called before returning the document to the user, so the user will always see the correct value.
 pub trait TypedCouchDocument: DeserializeOwned + Serialize + Sized {
     /// get the _id field
-    fn get_id(&self) -> Cow<str>;
+    fn get_id(&self) -> Cow<'_, str>;
     /// get the _rev field
-    fn get_rev(&self) -> Cow<str>;
+    fn get_rev(&self) -> Cow<'_, str>;
     /// set the _rev field
     fn set_rev(&mut self, rev: &str);
     /// set the _id field
@@ -27,12 +28,12 @@ pub trait TypedCouchDocument: DeserializeOwned + Serialize + Sized {
 
 /// Allows dealing with _id and _rev fields in untyped (Value) documents
 impl TypedCouchDocument for Value {
-    fn get_id(&self) -> Cow<str> {
+    fn get_id(&self) -> Cow<'_, str> {
         let id: String = json_extr!(self[ID_FIELD]);
         Cow::from(id)
     }
 
-    fn get_rev(&self) -> Cow<str> {
+    fn get_rev(&self) -> Cow<'_, str> {
         let rev: String = json_extr!(self[REV_FIELD]);
         Cow::from(rev)
     }
@@ -125,7 +126,7 @@ impl<T: TypedCouchDocument> DocumentCollection<T> {
             offset: doc.offset,
             total_rows: u32::try_from(items.len()).expect("total_rows > u32::MAX is not supported"),
             rows: items,
-            bookmark: Option::None,
+            bookmark: None,
         }
     }
 

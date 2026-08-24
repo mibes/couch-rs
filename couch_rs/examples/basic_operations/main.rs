@@ -12,7 +12,7 @@
 /// automatically assigned IP address. Minikube for example generates a unique IP on start-up. You
 /// can obtain it with: `minikube ip`
 use couch_rs::types::find::FindQuery;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::error::Error;
 
 const TEST_DB: &str = "test_db";
