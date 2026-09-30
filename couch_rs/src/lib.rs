@@ -674,6 +674,24 @@ mod couch_rs_tests {
         }
 
         #[tokio::test]
+        async fn should_reject_removing_an_outdated_revision() {
+            let dbname = "should_reject_removing_an_outdated_revision";
+            let (client, db, mut doc) = setup(dbname).await;
+            let outdated = doc.clone();
+            doc["thing"] = json!(false);
+            db.save(&mut doc).await.unwrap();
+
+            let result = db.remove(&outdated).await;
+            let remaining = db.get_raw(&doc.get_id()).await;
+
+            let error = result.expect_err("deleting an outdated revision should fail");
+            assert_eq!(error.status(), Some(http::StatusCode::CONFLICT));
+            assert_eq!(remaining.unwrap(), doc);
+
+            teardown(client, dbname).await;
+        }
+
+        #[tokio::test]
         async fn should_recognize_a_non_existent_document() {
             let (client, db, doc) = setup("should_recognize_a_non_existent_document").await;
             let result = db.get_raw("non_existent").await;
