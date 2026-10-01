@@ -1138,7 +1138,7 @@ impl Database {
         h.insert(s!("rev"), doc.get_rev().into_owned());
 
         let request = self.client.delete(&self.create_document_path(&doc.get_id()), Some(&h));
-        match request.send().await {
+        match request.send().await.and_then(reqwest::Response::error_for_status) {
             Ok(_) => Ok(()),
             Err(e) => {
                 let id: String = doc.get_id().into();
