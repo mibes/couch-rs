@@ -15,9 +15,9 @@ pub const REV_FIELD: &str = "_rev";
 /// because `set_rev` will be called before returning the document to the user, so the user will always see the correct value.
 pub trait TypedCouchDocument: DeserializeOwned + Serialize + Sized {
     /// get the _id field
-    fn get_id(&self) -> Cow<str>;
+    fn get_id(&self) -> Cow<'_, str>;
     /// get the _rev field
-    fn get_rev(&self) -> Cow<str>;
+    fn get_rev(&self) -> Cow<'_, str>;
     /// set the _rev field
     fn set_rev(&mut self, rev: &str);
     /// set the _id field
@@ -28,12 +28,12 @@ pub trait TypedCouchDocument: DeserializeOwned + Serialize + Sized {
 
 /// Allows dealing with _id and _rev fields in untyped (Value) documents
 impl TypedCouchDocument for Value {
-    fn get_id(&self) -> Cow<str> {
+    fn get_id(&self) -> Cow<'_, str> {
         let id: String = json_extr!(self[ID_FIELD]);
         Cow::from(id)
     }
 
-    fn get_rev(&self) -> Cow<str> {
+    fn get_rev(&self) -> Cow<'_, str> {
         let rev: String = json_extr!(self[REV_FIELD]);
         Cow::from(rev)
     }

@@ -291,7 +291,7 @@ impl Database {
         }
         let result = raw_docs
             .iter_mut()
-            .zip(data.into_iter())
+            .zip(data)
             .map(|(doc, response): (&mut T, DocumentCreatedResponse)| {
                 let result: DocumentCreatedResult = response.into();
                 match result {
