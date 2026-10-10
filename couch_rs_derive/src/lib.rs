@@ -12,7 +12,7 @@ pub fn derive_couch_doc(input: TokenStream) -> TokenStream {
 fn impl_derive_couch_doc(ast: &syn::DeriveInput) -> TokenStream {
     let name = &ast.ident;
 
-    let gen = quote! {
+    let gen_doc = quote! {
         impl TypedCouchDocument for #name {
             fn get_id(&self) -> couch_rs::Cow<str> {
                 couch_rs::Cow::from(&self._id)
@@ -37,5 +37,5 @@ fn impl_derive_couch_doc(ast: &syn::DeriveInput) -> TokenStream {
         }
     };
 
-    gen.into()
+    gen_doc.into()
 }

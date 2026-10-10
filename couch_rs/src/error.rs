@@ -73,6 +73,9 @@ impl CouchError {
 
 pub trait CouchResultExt<T> {
     /// turns an Ok into an Ok(Some), a not-found into an Ok(None), otherwise it will return the error.
+    ///
+    /// # Errors
+    /// Returns a `CouchError` if the error is not a not-found error.
     fn into_option(self) -> CouchResult<Option<T>>;
 }
 

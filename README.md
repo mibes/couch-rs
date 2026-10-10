@@ -17,7 +17,7 @@ Include this dependency in the Cargo.toml file:
 
 ```toml
 [dependencies]
-couch_rs = "0.12"
+couch_rs = "0.13"
 ```
 
 ## Description
@@ -89,6 +89,28 @@ actually testing features on dbs/documents.
 
 If bash is available on your environment, you can also use the `test.sh` script which basically does the same thing
 described above.
+
+## TLS Backend
+
+By default, `couch_rs` uses `rustls` as the TLS backend for `reqwest`. This provides a pure Rust implementation that works across platforms without requiring system TLS libraries.
+
+### Switching to native-tls
+
+If you need to use the system's native TLS implementation instead (for example, to support system certificate stores or for compatibility with certain corporate proxy configurations), you can disable the default features and explicitly enable `native-tls`:
+
+```toml
+[dependencies]
+couch_rs = { version = "0.13", default-features = false, features = ["derive", "native-tls"] }
+```
+
+Available TLS feature options (choose one):
+- `rustls-tls` (default) - Uses rustls, a pure Rust TLS implementation
+- `native-tls` - Uses the platform's native TLS library (OpenSSL on Linux, Secure Transport on macOS, SChannel on Windows)
+- `native-tls-vendored` - Same as `native-tls`, but compiles and statically links OpenSSL
+- `native-tls-alpn` - Native TLS with ALPN support
+- `rustls-no-provider` - rustls without a default crypto provider (for advanced use cases)
+
+Note: When using `default-features = false`, make sure to re-enable the `derive` feature if you want to use the `#[derive(CouchDocument)]` macro.
 
 ## License
 

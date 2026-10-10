@@ -13,7 +13,7 @@ use crate::{
         view::ViewCollection,
     },
 };
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
 use std::marker::PhantomData;
 use tokio::sync::mpsc::Sender;
@@ -66,20 +66,32 @@ impl<T: TypedCouchDocument> Database<T> {
     }
 
     /// See [`Database::get`](crate::database::Database::get)
+    ///
+    /// # Errors
+    /// See [`Database::get`](crate::database::Database::get)
     pub async fn get(&self, id: &str) -> CouchResult<T> {
         self.db.get(id).await
     }
 
+    /// See [`Database::get_bulk`](crate::database::Database::get_bulk)
+    ///
+    /// # Errors
     /// See [`Database::get_bulk`](crate::database::Database::get_bulk)
     pub async fn get_bulk(&self, ids: Vec<DocumentId>) -> CouchResult<DocumentCollection<T>> {
         self.db.get_bulk(ids).await
     }
 
     /// See [`Database::bulk_docs`](crate::database::Database::bulk_docs)
+    ///
+    /// # Errors
+    /// See [`Database::bulk_docs`](crate::database::Database::bulk_docs)
     pub async fn bulk_docs(&self, raw_docs: &mut [T]) -> CouchResult<Vec<DocumentCreatedResult>> {
         self.db.bulk_docs(raw_docs).await
     }
 
+    /// See [`Database::get_bulk_params`](crate::database::Database::get_bulk_params)
+    ///
+    /// # Errors
     /// See [`Database::get_bulk_params`](crate::database::Database::get_bulk_params)
     pub async fn get_bulk_params(
         &self,
@@ -90,10 +102,16 @@ impl<T: TypedCouchDocument> Database<T> {
     }
 
     /// See [`Database::get_all`](crate::database::Database::get_all)
+    ///
+    /// # Errors
+    /// See [`Database::get_all`](crate::database::Database::get_all)
     pub async fn get_all(&self) -> CouchResult<DocumentCollection<T>> {
         self.db.get_all().await
     }
 
+    /// See [`Database::get_all_batched`](crate::database::Database::get_all_batched)
+    ///
+    /// # Errors
     /// See [`Database::get_all_batched`](crate::database::Database::get_all_batched)
     pub async fn get_all_batched(
         &self,
@@ -104,6 +122,9 @@ impl<T: TypedCouchDocument> Database<T> {
         self.db.get_all_batched(tx, batch_size, max_results).await
     }
 
+    /// See [`Database::find_batched`](crate::database::Database::find_batched)
+    ///
+    /// # Errors
     /// See [`Database::find_batched`](crate::database::Database::find_batched)
     pub async fn find_batched(
         &self,
@@ -116,6 +137,9 @@ impl<T: TypedCouchDocument> Database<T> {
     }
 
     /// See [`Database::query_many_all_docs`](crate::database::Database::query_many_all_docs)
+    ///
+    /// # Errors
+    /// See [`Database::query_many_all_docs`](crate::database::Database::query_many_all_docs)
     pub async fn query_many_all_docs(
         &self,
         queries: QueriesParams,
@@ -123,6 +147,9 @@ impl<T: TypedCouchDocument> Database<T> {
         self.db.query_many_all_docs(queries).await
     }
 
+    /// See [`Database::query_many`](crate::database::Database::query_many)
+    ///
+    /// # Errors
     /// See [`Database::query_many`](crate::database::Database::query_many)
     pub async fn query_many(
         &self,
@@ -134,40 +161,64 @@ impl<T: TypedCouchDocument> Database<T> {
     }
 
     /// See [`Database::get_all_params`](crate::database::Database::get_all_params)
+    ///
+    /// # Errors
+    /// See [`Database::get_all_params`](crate::database::Database::get_all_params)
     pub async fn get_all_params(&self, params: Option<QueryParams<DocumentId>>) -> CouchResult<DocumentCollection<T>> {
         self.db.get_all_params(params).await
     }
 
+    /// See [`Database::find`](crate::database::Database::find)
+    ///
+    /// # Errors
     /// See [`Database::find`](crate::database::Database::find)
     pub async fn find(&self, query: &FindQuery) -> CouchResult<DocumentCollection<T>> {
         self.db.find(query).await
     }
 
     /// See [`Database::save`](crate::database::Database::save)
+    ///
+    /// # Errors
+    /// See [`Database::save`](crate::database::Database::save)
     pub async fn save(&self, doc: &mut T) -> DocumentCreatedResult {
         self.db.save(doc).await
     }
 
+    /// See [`Database::create`](crate::database::Database::create)
+    ///
+    /// # Errors
     /// See [`Database::create`](crate::database::Database::create)
     pub async fn create(&self, doc: &mut T) -> DocumentCreatedResult {
         self.db.create(doc).await
     }
 
     /// See [`Database::upsert`](crate::database::Database::upsert)
+    ///
+    /// # Errors
+    /// See [`Database::upsert`](crate::database::Database::upsert)
     pub async fn upsert(&self, doc: &mut T) -> DocumentCreatedResult {
         self.db.upsert(doc).await
     }
 
+    /// See [`Database::bulk_upsert`](crate::database::Database::bulk_upsert)
+    ///
+    /// # Errors
     /// See [`Database::bulk_upsert`](crate::database::Database::bulk_upsert)
     pub async fn bulk_upsert(&self, docs: &mut [T]) -> CouchResult<Vec<DocumentCreatedResult>> {
         self.db.bulk_upsert(docs).await
     }
 
     /// See [`Database::create_view`](crate::database::Database::create_view)
+    ///
+    /// # Errors
+    /// See [`Database::create_view`](crate::database::Database::create_view)
     pub async fn create_view<V: Into<Value>>(&self, design_name: &str, views: V) -> CouchResult<DesignCreated> {
         self.db.create_view(design_name, views).await
     }
 
+    /// See [`Database::query`](crate::database::Database::query)
+    ///
+    /// # Errors
     /// See [`Database::query`](crate::database::Database::query)
     pub async fn query<K: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug + Clone, V: DeserializeOwned>(
         &self,
@@ -178,6 +229,9 @@ impl<T: TypedCouchDocument> Database<T> {
         self.db.query(design_name, view_name, options).await
     }
 
+    /// See [`Database::execute_update`](crate::database::Database::execute_update)
+    ///
+    /// # Errors
     /// See [`Database::execute_update`](crate::database::Database::execute_update)
     pub async fn execute_update(
         &self,
@@ -190,10 +244,16 @@ impl<T: TypedCouchDocument> Database<T> {
     }
 
     /// See [`Database::remove`](crate::database::Database::remove)
+    ///
+    /// # Errors
+    /// See [`Database::remove`](crate::database::Database::remove)
     pub async fn remove(&self, doc: &T) -> CouchResult<()> {
         self.db.remove(doc).await
     }
 
+    /// See [`Database::insert_index`](crate::database::Database::insert_index)
+    ///
+    /// # Errors
     /// See [`Database::insert_index`](crate::database::Database::insert_index)
     pub async fn insert_index(
         &self,
@@ -206,10 +266,16 @@ impl<T: TypedCouchDocument> Database<T> {
     }
 
     /// See [`Database::read_indexes`](crate::database::Database::read_indexes)
+    ///
+    /// # Errors
+    /// See [`Database::read_indexes`](crate::database::Database::read_indexes)
     pub async fn read_indexes(&self) -> CouchResult<DatabaseIndexList> {
         self.db.read_indexes().await
     }
 
+    /// See [`Database::delete_index`](crate::database::Database::delete_index)
+    ///
+    /// # Errors
     /// See [`Database::delete_index`](crate::database::Database::delete_index)
     pub async fn delete_index(&self, ddoc: DocumentId, name: String) -> CouchResult<bool> {
         self.db.delete_index(ddoc, name).await

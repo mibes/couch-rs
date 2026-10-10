@@ -1,45 +1,49 @@
 [package]
 name = "couch_rs"
-version = "0.12.1"
+version = { workspace = true }
 authors = [
-    "Mathieu Amiot <mathieu.amiot@yellowinnovation.fr>",
-    "Marcel Ibes <mibes@mibesco.com>",
+  "Mathieu Amiot <mathieu.amiot@yellowinnovation.fr>",
+  "Marcel Ibes <mibes@mibesco.com>",
 ]
 license = "MIT/Apache-2.0"
 description = "CouchDB library for Rust"
 readme = "README.md"
 documentation = "https://docs.rs/couch_rs"
 repository = "https://github.com/mibes/couch-rs"
-keywords = ["couchdb", "orm", "database", "nosql"]
+keywords = ["couchdb", "database", "nosql", "orm"]
 categories = ["database"]
-edition = "2021"
+edition = { workspace = true }
 include = ["**/*.rs", "Cargo.toml"]
+rust-version = { workspace = true }
+
+[lib]
+doctest = false
 
 [dependencies]
+base64 = "0.22"
+bytes = "1"
+couch_rs_derive = { path = "../couch_rs_derive", optional = true }
+futures-core = "0.3"
+futures-util = "0.3"
+http = "1.1"
+percent-encoding = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-couch_rs_derive = { version = "0.12.1", optional = true, path = "../couch_rs_derive" }
-url = "2"
-tokio = { version = "^1.32", features = ["rt-multi-thread"] }
-base64 = "0.22"
-tokio-util = { version = "0.7", features = ["io"] }
-bytes = "1"
+tokio = { version = "^1.49", features = ["rt"] }
 tokio-stream = { version = "0.1", features = ["io-util"] }
-futures-util = "0.3"
-futures-core = "0.3"
-percent-encoding = "2"
-http = "1.1"
+tokio-util = { version = "0.7", features = ["io"] }
+url = "2"
 
 [dependencies.reqwest]
-version = "0.12"
-features = ["json", "gzip", "stream"]
+version = "0.13.1"
 default-features = false
+features = ["gzip", "json", "query", "stream"]
 
 [dev-dependencies]
-tokio = { version = "^1.32", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }
 
 [features]
-default = ["derive", "native-tls"]
+default = ["derive", "native-tls", "tokio/rt-multi-thread"]
 integration-tests = []
 
 # Provide derive(CouchDocument) macros.
@@ -47,12 +51,11 @@ derive = ["couch_rs_derive"]
 
 # tls backend, copied from reqwest
 native-tls = ["reqwest/native-tls"]
-native-tls-alpn = ["reqwest/native-tls-alpn"]
+native-tls-no-alpn = ["reqwest/native-tls-no-alpn"]
 native-tls-vendored = ["reqwest/native-tls-vendored"]
-rustls-tls = ["reqwest/rustls-tls"]
-rustls-tls-manual-roots = ["reqwest/rustls-tls-manual-roots"]
-rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots"]
-rustls-tls-native-roots = ["reqwest/rustls-tls-native-roots"]
+native-tls-vendored-no-alpn = ["reqwest/native-tls-vendored-no-alpn"]
+rustls-no-provider = ["reqwest/rustls-no-provider"]
+rustls-tls = ["reqwest/rustls"]
 
-[lib]
-doctest = false
+[lints]
+workspace = true

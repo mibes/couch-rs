@@ -4,7 +4,7 @@ use crate::{
     types::changes::{ChangeEvent, Event},
 };
 use futures_core::{Future, Stream};
-use futures_util::{ready, FutureExt, StreamExt, TryStreamExt};
+use futures_util::{FutureExt, StreamExt, TryStreamExt, ready};
 use reqwest::{Method, Response, StatusCode};
 use std::{
     collections::HashMap,
@@ -34,10 +34,20 @@ pub struct ChangesStream {
     infinite: bool,
 }
 
+#[cfg(target_arch = "wasm32")]
+type ChangesRequestFuture = Pin<Box<dyn Future<Output = CouchResult<Response>> + 'static>>;
+#[cfg(not(target_arch = "wasm32"))]
+type ChangesRequestFuture = Pin<Box<dyn Future<Output = CouchResult<Response>> + Send + Sync + 'static>>;
+
+#[cfg(target_arch = "wasm32")]
+type ChangesLineStream = Pin<Box<dyn Stream<Item = io::Result<String>> + 'static>>;
+#[cfg(not(target_arch = "wasm32"))]
+type ChangesLineStream = Pin<Box<dyn Stream<Item = io::Result<String>> + Send + Sync + 'static>>;
+
 enum ChangesStreamState {
     Idle,
-    Requesting(Pin<Box<dyn Future<Output=CouchResult<Response>> + Send + Sync + 'static>>),
-    Reading(Pin<Box<dyn Stream<Item=io::Result<String>> + Send + Sync + 'static>>),
+    Requesting(ChangesRequestFuture),
+    Reading(ChangesLineStream),
 }
 
 impl ChangesStream {
@@ -112,7 +122,11 @@ impl Stream for ChangesStream {
                 ChangesStreamState::Idle => {
                     let mut params = self.params.clone();
                     if let Some(seq) = &self.last_seq {
-                        params.insert("since".to_string(), seq.to_string());
+                        let seq = match seq {
+                            serde_json::Value::String(seq) => seq.clone(),
+                            _ => seq.to_string(),
+                        };
+                        params.insert("since".to_string(), seq);
                     }
                     let fut = get_changes(self.client.clone(), self.database.clone(), params);
                     ChangesStreamState::Requesting(Box::pin(fut))
@@ -186,7 +200,7 @@ impl Stream for ChangesStream {
 mod tests {
     use crate::client::Client;
     use futures_util::StreamExt;
-    use serde_json::{json, Value};
+    use serde_json::{Value, json};
     use tokio::join;
 
     #[tokio::test]
