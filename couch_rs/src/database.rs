@@ -1427,13 +1427,13 @@ mod tests {
     async fn test_unexpected_json_error() {
         let response = build_json_response(r#"{"foo": "bar"}"#);
         let x = response.couch_json::<Baz>().await;
-        assert_json_error(x, "error decoding response body");
+        assert_json_error(x, "error decoding response body for url (http://example.com/)");
     }
 
     #[tokio::test]
     async fn test_invalid_json_error() {
         let response = build_json_response("not even json");
         let x = response.couch_json::<Baz>().await;
-        assert_json_error(x, "error decoding response body");
+        assert_json_error(x, "error decoding response body for url (http://example.com/)");
     }
 }
