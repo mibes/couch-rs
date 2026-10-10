@@ -1,9 +1,9 @@
 [workspace]
-members = ["couch_rs", "couch_rs_derive"]
 resolver = "3"
+members = ["couch_rs", "couch_rs_derive"]
 
 [workspace.package]
-version = "0.13.0"
+version = "0.13.1"
 edition = "2024"
 rust-version = "1.89.0"
 
