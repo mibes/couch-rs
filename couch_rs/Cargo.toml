@@ -22,7 +22,7 @@ doctest = false
 [dependencies]
 base64 = "0.22"
 bytes = "1"
-couch_rs_derive = { path = "../couch_rs_derive", optional = true }
+couch_rs_derive = { path = "../couch_rs_derive", version = "0.13.1", optional = true }
 futures-core = "0.3"
 futures-util = "0.3"
 http = "1.1"
